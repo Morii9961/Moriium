@@ -1,35 +1,72 @@
 ---
+import type { GetStaticPaths } from 'astro';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import { SITE, UI, type Language } from '../../../data/site';
 import { getListedPosts, uniqueTaxonomy } from '../../../utils/content';
+import '../../../styles/prototypes.css';
 
-export function getStaticPaths() {
-  return SITE.languages.map((lang) => ({ params: { lang }, props: { lang } }));
-}
+export const getStaticPaths: GetStaticPaths = () =>
+  SITE.languages.map((lang) => ({ params: { lang }, props: { lang } }));
 
 const { lang } = Astro.props as { lang: Language };
+const ui = UI[lang];
 const posts = await getListedPosts(lang);
-const tags = uniqueTaxonomy(posts, 'tags');
+const tagEntries = uniqueTaxonomy(posts, 'tags')
+  .map((name) => ({ name, count: posts.filter((post) => post.data.tags.includes(name)).length }))
+  .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, ui.locale));
 const copy = {
-  zh: { count: `${tags.length} 个标签`, intro: '按标签找文章。', entries: (count: number) => `${count} 篇文章` },
-  ja: { count: `${tags.length} タグ`, intro: 'タグから記事を探せます。', entries: (count: number) => `${count} 件` },
-  en: { count: `${tags.length} tags`, intro: 'Find posts by tag.', entries: (count: number) => `${count} posts` },
-};
+  zh: {
+    title: '标签', intro: '一些会在不同主题之间反复出现的词。按使用次数排列，也保留文章之间更细的联系。',
+    tags: '标签', posts: '文章', emptyTitle: '还没有标签', empty: '这个语言版本暂时没有可以公开列出的标签。',
+    crosslink: '想从更稳定的主题进入？', categories: '转到分类 →',
+    label: (name: string, count: number) => `${name}，${count} 篇文章`,
+  },
+  ja: {
+    title: 'タグ', intro: '異なるテーマのあいだに繰り返し現れる言葉です。使用数の多い順に、記事同士の細かなつながりをたどれます。',
+    tags: 'タグ', posts: '記事', emptyTitle: 'タグはまだありません', empty: 'この言語で公開中のタグはまだありません。',
+    crosslink: 'より大きなテーマから探すなら', categories: 'カテゴリーへ →',
+    label: (name: string, count: number) => `${name}、${count} 件の記事`,
+  },
+  en: {
+    title: 'Tags', intro: 'Words that recur across different subjects, ordered by use and tracing the finer links between posts.',
+    tags: 'Tags', posts: 'Posts', emptyTitle: 'No tags yet', empty: 'There are no public tags in this language yet.',
+    crosslink: 'Prefer broader subjects?', categories: 'Browse categories →',
+    label: (name: string, count: number) => `${name}, ${count} ${count === 1 ? 'post' : 'posts'}`,
+  },
+} as const;
 const c = copy[lang];
 ---
 
-<BaseLayout lang={lang} title={UI[lang].nav.tags}>
-  <header class="site-shell page-heading">
-    <p class="page-heading__eyebrow">{c.count}</p>
-    <h1>{UI[lang].nav.tags}</h1>
-    <p>{c.intro}</p>
-  </header>
-  <nav class="site-shell taxonomy-grid" aria-label={UI[lang].nav.tags}>
-    {tags.map((tag) => (
-      <a href={`/${lang}/tags/${encodeURIComponent(tag)}/`}>
-        <span class="taxonomy-label">{c.entries(posts.filter((post) => post.data.tags.includes(tag)).length)}</span><br />
-        <strong>{tag}</strong>
-      </a>
-    ))}
-  </nav>
+<BaseLayout lang={lang} title={c.title} bodyClass="concept-a">
+  <div class="a-directory">
+    <header class="a-directory__hero">
+      <p class="prototype-kicker">04 / Tags</p>
+      <div class="a-directory__title"><h1>{c.title}</h1><p>{c.intro}</p></div>
+      <dl class="a-directory__stats">
+        <div><dt>{c.tags}</dt><dd>{String(tagEntries.length).padStart(2, '0')}</dd></div>
+        <div><dt>{c.posts}</dt><dd>{String(posts.length).padStart(2, '0')}</dd></div>
+      </dl>
+    </header>
+
+    {tagEntries.length > 0 ? (
+      <nav class="a-tag-field" aria-label={ui.nav.tags}>
+        {tagEntries.map(({ name, count }, index) => (
+          <a
+            href={`/${lang}/tags/${encodeURIComponent(name)}/`}
+            style={`--tag-rank: ${index}`}
+            aria-label={c.label(name, count)}
+          >
+            <span># {name}</span><small>{String(count).padStart(2, '0')}</small>
+          </a>
+        ))}
+      </nav>
+    ) : (
+      <section class="a-tag-field a-tag-field--quiet" aria-labelledby="tags-empty-title">
+        <h2 id="tags-empty-title">{c.emptyTitle}</h2>
+        <p>{c.empty}</p>
+      </section>
+    )}
+
+    <p class="a-directory__crosslink">{c.crosslink} <a href={`/${lang}/categories/`}>{c.categories}</a></p>
+  </div>
 </BaseLayout>
