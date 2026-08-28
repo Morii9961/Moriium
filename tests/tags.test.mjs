@@ -39,3 +39,23 @@ test('production tag directory has localized empty states and responsive A style
   assert.match(styles, /@media \(max-width: 46rem\)[\s\S]*\.concept-a \.a-tag-field\s*\{[^}]*grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/s);
   assert.match(styles, /\.a-tag-field a:focus-visible/);
 });
+
+test('production tag detail uses the shared localized taxonomy article list', async () => {
+  const [tag, list] = await Promise.all([
+    read('src/pages/[lang]/tags/[tag].astro'),
+    read('src/components/TaxonomyPostList.astro'),
+  ]);
+
+  assert.match(tag, /bodyClass="concept-a"/);
+  assert.match(tag, /import type \{ GetStaticPaths \} from 'astro'/);
+  assert.match(tag, /getListedPosts\(lang\).*filter\(\(post\) => post\.data\.tags\.includes\(tag\)\)/s);
+  assert.match(tag, /formatDate\(latest\.data\.publishedAt, ui\.locale\)/);
+  assert.match(tag, /<TaxonomyPostList/);
+  assert.match(tag, /heading=\{`# \$\{tag\}`\}/);
+  for (const text of ['返回全部标签', 'タグ一覧へ戻る', 'Back to all tags']) {
+    assert.match(tag, new RegExp(text));
+  }
+  assert.match(list, /aria-labelledby="taxonomy-posts-title"/);
+  assert.match(list, /formatDate\(post\.data\.publishedAt, ui\.locale\)/);
+  assert.doesNotMatch(tag, /<PostList|site-shell page-heading|client:/);
+});

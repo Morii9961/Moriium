@@ -1,8 +1,9 @@
 ---
 import type { GetStaticPaths } from 'astro';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
+import TaxonomyPostList from '../../../components/TaxonomyPostList.astro';
 import { SITE, UI, type Language } from '../../../data/site';
-import { formatDate, getListedPosts, postPath } from '../../../utils/content';
+import { formatDate, getListedPosts } from '../../../utils/content';
 import '../../../styles/prototypes.css';
 
 export const getStaticPaths: GetStaticPaths = async () => {
@@ -50,27 +51,7 @@ const c = copy[lang];
       </dl>
     </header>
 
-    <section class="a-category-detail" aria-labelledby="category-posts-title">
-      <header class="a-category-detail__head">
-        <h2 id="category-posts-title">{category}</h2>
-        <p>{c.entries(posts.length)}</p>
-      </header>
-      <ol class="a-category-posts">
-        {posts.map((post) => (
-          <li>
-            <a href={postPath(post)}>
-              <time datetime={post.data.publishedAt.toISOString()}>{formatDate(post.data.publishedAt, ui.locale)}</time>
-              <div class="a-category-posts__copy">
-                <h3>{post.data.title}</h3>
-                <p>{post.data.summary}</p>
-              </div>
-              <p class="a-category-posts__tags"><span>{c.tags}</span>{post.data.tags.join(' · ') || '—'}</p>
-              <span class="a-category-posts__arrow" aria-hidden="true">↗</span>
-            </a>
-          </li>
-        ))}
-      </ol>
-    </section>
+    <TaxonomyPostList posts={posts} lang={lang} heading={category} countLabel={c.entries(posts.length)} tagsLabel={c.tags} />
 
     <p class="a-directory__crosslink"><a href={`/${lang}/categories/`}>{c.back}</a></p>
   </div>

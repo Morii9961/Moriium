@@ -1525,11 +1525,11 @@ img {
   line-height: 1.8;
 }
 
-.concept-a .a-category-detail {
+.concept-a .a-taxonomy-detail {
   padding-block: clamp(3.5rem, 7vw, 6rem);
 }
 
-.concept-a .a-category-detail__head {
+.concept-a .a-taxonomy-detail__head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -1537,32 +1537,32 @@ img {
   border-bottom: 1px solid var(--text);
 }
 
-.concept-a .a-category-detail__head h2,
-.concept-a .a-category-detail__head p {
+.concept-a .a-taxonomy-detail__head h2,
+.concept-a .a-taxonomy-detail__head p {
   margin: 0;
 }
 
-.concept-a .a-category-detail__head h2 {
+.concept-a .a-taxonomy-detail__head h2 {
   font-size: 1rem;
 }
 
-.concept-a .a-category-detail__head p {
+.concept-a .a-taxonomy-detail__head p {
   color: var(--muted);
   font-family: var(--font-a-data);
   font-size: 0.64rem;
 }
 
-.concept-a .a-category-posts {
+.concept-a .a-taxonomy-posts {
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.concept-a .a-category-posts > li {
+.concept-a .a-taxonomy-posts > li {
   border-bottom: 1px solid var(--line);
 }
 
-.concept-a .a-category-posts > li > a {
+.concept-a .a-taxonomy-posts > li > a {
   display: grid;
   grid-template-columns: 8.5rem minmax(0, 1fr) minmax(8rem, 0.35fr) 1.5rem;
   gap: 1.5rem;
@@ -1572,27 +1572,27 @@ img {
   text-decoration: none;
 }
 
-.concept-a .a-category-posts time,
-.concept-a .a-category-posts__tags {
+.concept-a .a-taxonomy-posts time,
+.concept-a .a-taxonomy-posts__tags {
   color: var(--muted);
   font-family: var(--font-a-data);
   font-size: 0.66rem;
 }
 
-.concept-a .a-category-posts__copy h3,
-.concept-a .a-category-posts__copy p,
-.concept-a .a-category-posts__tags {
+.concept-a .a-taxonomy-posts__copy h3,
+.concept-a .a-taxonomy-posts__copy p,
+.concept-a .a-taxonomy-posts__tags {
   margin: 0;
 }
 
-.concept-a .a-category-posts__copy h3 {
+.concept-a .a-taxonomy-posts__copy h3 {
   font-size: clamp(1.35rem, 2.4vw, 2.15rem);
   font-weight: 540;
   letter-spacing: -0.035em;
   line-height: 1.2;
 }
 
-.concept-a .a-category-posts__copy p {
+.concept-a .a-taxonomy-posts__copy p {
   max-width: 44rem;
   margin-top: 0.55rem;
   color: var(--muted);
@@ -1600,28 +1600,28 @@ img {
   line-height: 1.75;
 }
 
-.concept-a .a-category-posts__tags {
+.concept-a .a-taxonomy-posts__tags {
   line-height: 1.65;
 }
 
-.concept-a .a-category-posts__tags span {
+.concept-a .a-taxonomy-posts__tags span {
   display: block;
   margin-bottom: 0.35rem;
   color: var(--text);
   text-transform: uppercase;
 }
 
-.concept-a .a-category-posts__arrow {
+.concept-a .a-taxonomy-posts__arrow {
   transition: transform 160ms ease;
 }
 
-.concept-a .a-category-posts > li > a:hover h3,
-.concept-a .a-category-posts > li > a:focus-visible h3 {
+.concept-a .a-taxonomy-posts > li > a:hover h3,
+.concept-a .a-taxonomy-posts > li > a:focus-visible h3 {
   color: var(--accent);
 }
 
-.concept-a .a-category-posts > li > a:hover .a-category-posts__arrow,
-.concept-a .a-category-posts > li > a:focus-visible .a-category-posts__arrow {
+.concept-a .a-taxonomy-posts > li > a:hover .a-taxonomy-posts__arrow,
+.concept-a .a-taxonomy-posts > li > a:focus-visible .a-taxonomy-posts__arrow {
   transform: translate(0.15rem, -0.15rem);
 }
 
@@ -2956,32 +2956,32 @@ img {
     font-size: 1.55rem;
   }
 
-  .concept-a .a-category-detail {
+  .concept-a .a-taxonomy-detail {
     padding-block: 3.75rem;
   }
 
-  .concept-a .a-category-posts > li > a {
+  .concept-a .a-taxonomy-posts > li > a {
     grid-template-columns: minmax(0, 1fr) 1.25rem;
     gap: 0.65rem 1rem;
     min-height: 9rem;
     padding-block: 1.35rem;
   }
 
-  .concept-a .a-category-posts time,
-  .concept-a .a-category-posts__tags {
+  .concept-a .a-taxonomy-posts time,
+  .concept-a .a-taxonomy-posts__tags {
     grid-column: 1;
   }
 
-  .concept-a .a-category-posts__copy {
+  .concept-a .a-taxonomy-posts__copy {
     grid-column: 1;
   }
 
-  .concept-a .a-category-posts__tags span {
+  .concept-a .a-taxonomy-posts__tags span {
     display: inline;
     margin: 0 0.65rem 0 0;
   }
 
-  .concept-a .a-category-posts__arrow {
+  .concept-a .a-taxonomy-posts__arrow {
     grid-column: 2;
     grid-row: 1;
   }

@@ -37,26 +37,28 @@ test('production category directory has localized empty states and mobile-safe A
 });
 
 test('production category detail uses A layout with a static, localized article list', async () => {
-  const [category, styles] = await Promise.all([
+  const [category, list, styles] = await Promise.all([
     read('src/pages/[lang]/categories/[category].astro'),
+    read('src/components/TaxonomyPostList.astro'),
     read('src/styles/prototypes.css'),
   ]);
 
   assert.match(category, /bodyClass="concept-a"/);
   assert.match(category, /import type \{ GetStaticPaths \} from 'astro'/);
   assert.match(category, /getListedPosts\(lang\).*filter\(\(post\) => post\.data\.category === category\)/s);
-  assert.match(category, /postPath\(post\)/);
   assert.match(category, /formatDate\(latest\.data\.publishedAt, ui\.locale\)/);
-  assert.match(category, /class="a-category-detail"/);
-  assert.match(category, /class="a-category-posts"/);
-  assert.match(category, /post\.data\.summary/);
-  assert.match(category, /post\.data\.tags\.join\(' · '\)/);
+  assert.match(category, /<TaxonomyPostList/);
+  assert.match(list, /postPath\(post\)/);
+  assert.match(list, /class="a-taxonomy-detail"/);
+  assert.match(list, /class="a-taxonomy-posts"/);
+  assert.match(list, /post\.data\.summary/);
+  assert.match(list, /post\.data\.tags\.join\(' · '\)/);
   for (const text of ['返回全部分类', 'カテゴリー一覧へ戻る', 'Back to all categories']) {
     assert.match(category, new RegExp(text));
   }
   assert.doesNotMatch(category, /<PostList|site-shell page-heading|client:/);
 
-  assert.match(styles, /\.concept-a \.a-category-posts > li > a\s*{[^}]*grid-template-columns:\s*8\.5rem minmax\(0, 1fr\) minmax\(8rem, 0\.35fr\) 1\.5rem[^}]*min-height:\s*10rem/s);
-  assert.match(styles, /@media \(max-width: 46rem\)[\s\S]*\.concept-a \.a-category-posts > li > a\s*{[^}]*grid-template-columns:\s*minmax\(0, 1fr\) 1\.25rem[^}]*min-height:\s*9rem/s);
-  assert.match(styles, /\.a-category-posts > li > a:focus-visible h3/);
+  assert.match(styles, /\.concept-a \.a-taxonomy-posts > li > a\s*{[^}]*grid-template-columns:\s*8\.5rem minmax\(0, 1fr\) minmax\(8rem, 0\.35fr\) 1\.5rem[^}]*min-height:\s*10rem/s);
+  assert.match(styles, /@media \(max-width: 46rem\)[\s\S]*\.concept-a \.a-taxonomy-posts > li > a\s*{[^}]*grid-template-columns:\s*minmax\(0, 1fr\) 1\.25rem[^}]*min-height:\s*9rem/s);
+  assert.match(styles, /\.a-taxonomy-posts > li > a:focus-visible h3/);
 });
