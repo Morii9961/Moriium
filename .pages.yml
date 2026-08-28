@@ -1,0 +1,126 @@
+media:
+  - name: content_images
+    label: Article images
+    input: public/media/posts
+    output: /media/posts
+    rename: safe
+    extensions: [avif, webp, jpg, jpeg, png, gif]
+    categories: [image]
+
+content:
+  - name: posts
+    label: Public posts
+    type: collection
+    path: src/content/posts
+    format: yaml-frontmatter
+    subfolders: true
+    filename:
+      template: "{fields.lang}-{primary}.md"
+      field: create
+    view:
+      primary: title
+      fields: [title, lang, category, publishedAt, draft, unlisted]
+      sort: publishedAt
+      order: desc
+    fields:
+      - name: title
+        label: Title
+        type: string
+        required: true
+      - name: slug
+        label: Collection slug
+        type: string
+        required: true
+        pattern:
+          regex: "^(zh|ja|en)/[a-z0-9]+(?:-[a-z0-9]+)*$"
+          message: "Use <lang>/<route-slug>, for example zh/my-post."
+        description: Astro requires a collection-wide unique ID. The language prefix is removed from the public URL.
+      - name: summary
+        label: Summary
+        type: text
+        required: true
+        options:
+          maxlength: 280
+      - name: publishedAt
+        label: Published at
+        type: date
+        required: true
+        options:
+          time: true
+      - name: updatedAt
+        label: Updated at
+        type: date
+        options:
+          time: true
+      - name: lang
+        label: Language
+        type: select
+        required: true
+        options:
+          values:
+            - name: zh
+              label: 中文
+            - name: ja
+              label: 日本語
+            - name: en
+              label: English
+      - name: translationKey
+        label: Translation key
+        type: string
+        required: true
+        description: Use the same value only for genuine translations of the same article.
+      - name: category
+        label: Category
+        type: string
+        required: true
+      - name: tags
+        label: Tags
+        type: string
+        list: true
+      - name: cover
+        label: Cover
+        type: image
+        options:
+          media: content_images
+          path: covers
+          rename: safe
+      - name: coverAlt
+        label: Cover alt text
+        type: string
+        description: Required by CI whenever a cover is selected.
+      - name: draft
+        label: Draft
+        type: boolean
+        default: true
+      - name: unlisted
+        label: Unlisted
+        type: boolean
+        default: false
+        description: Publish the URL but omit it from home, archive, taxonomy, and RSS.
+      - name: copyProtection
+        label: Discourage prose copying
+        type: boolean
+        default: false
+        description: A reading-interface obstacle only; it is not a security feature.
+      - name: body
+        label: Body
+        type: rich-text
+        required: true
+        options:
+          format: markdown
+          switcher: true
+          media: content_images
+          path: inline
+          rename: safe
+          extensions: [avif, webp, jpg, jpeg, png, gif]
+
+settings:
+  content:
+    merge: true
+  commit:
+    identity: user
+    templates:
+      create: "content: add {filename}"
+      update: "content: update {filename}"
+      delete: "content: remove {filename}"
+      rename: "content: rename {oldFilename} to {newFilename}"

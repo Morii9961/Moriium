@@ -1,0 +1,54 @@
+{
+  "name": "moriium",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.22.0",
+  "engines": {
+    "node": ">=24 <25",
+    "pnpm": ">=11.22 <12"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "sync": "astro sync",
+    "check": "astro check",
+    "content:validate": "node scripts/validate-content.mjs",
+    "media:check": "node scripts/check-media.mjs",
+    "audit": "node scripts/audit-public-tree.mjs",
+    "design:fonts": "node scripts/audit-design-fonts.mjs",
+    "github:cache": "node scripts/cache-github.mjs",
+    "encrypt": "node scripts/encrypt-post.mjs",
+    "build": "node scripts/validate-content.mjs && node scripts/check-media.mjs && node scripts/cache-github.mjs && astro build",
+    "test": "node --test tests/*.test.mjs",
+    "links": "node scripts/check-links.mjs",
+    "verify": "astro check && node --test tests/*.test.mjs && node scripts/validate-content.mjs && node scripts/check-media.mjs && node scripts/cache-github.mjs && astro build && node scripts/check-links.mjs && node scripts/audit-public-tree.mjs"
+  },
+  "dependencies": {
+    "@astrojs/markdown-remark": "7.2.4",
+    "@astrojs/rss": "4.0.19",
+    "@astrojs/sitemap": "3.7.3",
+    "@expressive-code/plugin-collapsible-sections": "0.44.1",
+    "@expressive-code/plugin-line-numbers": "0.44.1",
+    "@fontsource-variable/noto-sans-sc": "5.3.0",
+    "@fontsource-variable/sora": "5.3.0",
+    "@fontsource/ibm-plex-mono": "5.3.0",
+    "astro": "7.2.4",
+    "astro-expressive-code": "0.44.1",
+    "katex": "0.18.4",
+    "lxgw-wenkai-screen-webfont": "1.7.0",
+    "mermaid": "11.17.0",
+    "photoswipe": "5.4.4",
+    "rehype-expressive-code": "0.44.1",
+    "rehype-katex": "7.0.1",
+    "remark-directive": "4.0.0",
+    "remark-math": "6.0.0",
+    "sharp": "0.35.3"
+  },
+  "devDependencies": {
+    "@astrojs/check": "0.9.10",
+    "@types/node": "24.13.3",
+    "picomatch": "4.0.5",
+    "typescript": "6.0.3"
+  }
+}

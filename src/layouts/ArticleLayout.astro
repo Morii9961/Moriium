@@ -1,0 +1,42 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import BaseLayout from './BaseLayout.astro';
+import ReaderEnhancements from '../components/ReaderEnhancements.astro';
+import { UI } from '../data/site';
+import { formatDate, postPath } from '../utils/content';
+import type { ReaderFeatures } from '../utils/features';
+
+type Post = CollectionEntry<'posts'>;
+type Translation = CollectionEntry<'posts'> | CollectionEntry<'protected'>;
+
+interface Props {
+  post: Post;
+  translations: Translation[];
+  features: ReaderFeatures;
+}
+
+const { post, translations, features } = Astro.props;
+const ui = UI[post.data.lang];
+const imageProps = post.data.cover ? { image: post.data.cover } : {};
+---
+
+<BaseLayout lang={post.data.lang} title={post.data.title} description={post.data.summary} ogType="article" {...imageProps}>
+  <Fragment slot="head">
+    <meta property="article:published_time" content={post.data.publishedAt.toISOString()} />
+    {post.data.updatedAt && <meta property="article:modified_time" content={post.data.updatedAt.toISOString()} />}
+    {translations.map((entry) => (
+      <link rel="alternate" hreflang={UI[entry.data.lang].locale} href={new URL(postPath(entry), Astro.site ?? 'https://morii9961.top')} />
+    ))}
+  </Fragment>
+  <article data-copy-protection={String(features.copyProtection)}>
+    <header class="article-header">
+      <p class="post-meta">{post.data.category} · {formatDate(post.data.publishedAt, ui.locale)}</p>
+      <h1>{post.data.title}</h1>
+      <p class="article-header__summary">{post.data.summary}</p>
+    </header>
+    <div class="article-body">
+      <slot />
+    </div>
+  </article>
+  <ReaderEnhancements features={features} lang={post.data.lang} />
+</BaseLayout>

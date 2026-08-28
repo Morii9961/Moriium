@@ -1,0 +1,48 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { SITE, UI, type Language } from '../../../data/site';
+import { formatDate, getListedPosts, postPath } from '../../../utils/content';
+import '../../../styles/prototypes.css';
+
+export function getStaticPaths() {
+  return SITE.languages.map((lang) => ({ params: { lang }, props: { lang } }));
+}
+
+const { lang } = Astro.props as { lang: Language };
+const ui = UI[lang];
+const posts = await getListedPosts(lang);
+const latest = posts[0]?.data.publishedAt;
+const copy = {
+  zh: { title: '文章', intro: '这里收着所有公开文章，新的排在前面。', count: '文章', updated: '最近更新', list: '全部文章', order: '新 → 旧' },
+  ja: { title: '記事', intro: '公開中の記事を新しい順に並べています。', count: '記事', updated: '最近の更新', list: 'すべての記事', order: '新 → 旧' },
+  en: { title: 'Writing', intro: 'All public posts, newest first.', count: 'Posts', updated: 'Latest update', list: 'All posts', order: 'New → old' },
+} as const;
+const c = copy[lang];
+---
+
+<BaseLayout lang={lang} title={c.title} bodyClass="concept-a">
+  <div class="a-directory">
+    <header class="a-directory__hero">
+      <p class="prototype-kicker">01 / Writing</p>
+      <div class="a-directory__title"><h1>{c.title}</h1><p>{c.intro}</p></div>
+      <dl class="a-directory__stats">
+        <div><dt>{c.count}</dt><dd>{String(posts.length).padStart(2, '0')}</dd></div>
+        <div><dt>{c.updated}</dt><dd>{latest ? new Intl.DateTimeFormat(ui.locale, { year: 'numeric', month: '2-digit' }).format(latest) : '—'}</dd></div>
+      </dl>
+    </header>
+    <section class="a-directory__section" aria-labelledby="writing-list-title">
+      <header class="a-directory__section-head"><h2 id="writing-list-title">{c.list}</h2><p>{c.order}</p></header>
+      <ol class="prototype-posts a-post-index">
+        {posts.map((post, index) => (
+          <li class="prototype-post"><a href={postPath(post)}>
+            <span>{String(index + 1).padStart(2, '0')}</span>
+            <div><h3>{post.data.title}</h3><p>{post.data.summary}</p></div>
+            <span>{post.data.category}</span>
+            <time datetime={post.data.publishedAt.toISOString()}>{formatDate(post.data.publishedAt, ui.locale)}</time>
+            <span class="a-post-index__arrow" aria-hidden="true">↗</span>
+          </a></li>
+        ))}
+      </ol>
+    </section>
+  </div>
+</BaseLayout>

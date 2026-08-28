@@ -1,0 +1,40 @@
+---
+import PrototypeLayout from '../../../../layouts/PrototypeLayout.astro';
+import { PROTOTYPE_POSTS } from '../../../../data/design-prototypes';
+---
+
+<PrototypeLayout concept="a" page="writing" title="文章">
+  <div class="a-directory">
+    <header class="a-directory__hero">
+      <p class="prototype-kicker">01 / Writing</p>
+      <div class="a-directory__title">
+        <h1>文章</h1>
+        <p>按最近更新浏览全部公开文字。摄影、旅行、技术与随笔各自保留适合自己的篇幅，不被压缩成统一的信息卡片。</p>
+      </div>
+      <dl class="a-directory__stats">
+        <div><dt>公开文章</dt><dd>14</dd></div>
+        <div><dt>最近更新</dt><dd>2026.08</dd></div>
+      </dl>
+    </header>
+
+    <section class="a-directory__section" aria-labelledby="writing-list-title">
+      <header class="a-directory__section-head">
+        <h2 id="writing-list-title">最近发布</h2>
+        <p>Latest first · 2026</p>
+      </header>
+      <ol class="prototype-posts a-post-index">
+        {PROTOTYPE_POSTS.map((post, index) => (
+          <li class="prototype-post">
+            <a href="/design/a/article/">
+              <span>{String(index + 1).padStart(2, '0')}</span>
+              <div><h3>{post.title}</h3><p>{post.summary}</p></div>
+              <span>{post.category}</span>
+              <time datetime="2026-05-17">{post.date}</time>
+              <span class="a-post-index__arrow" aria-hidden="true">↗</span>
+            </a>
+          </li>
+        ))}
+      </ol>
+    </section>
+  </div>
+</PrototypeLayout>

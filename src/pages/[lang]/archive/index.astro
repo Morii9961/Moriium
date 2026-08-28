@@ -1,0 +1,73 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { SITE, UI, type Language } from '../../../data/site';
+import { getListedPosts, postPath } from '../../../utils/content';
+import '../../../styles/prototypes.css';
+
+export function getStaticPaths() {
+  return SITE.languages.map((lang) => ({ params: { lang }, props: { lang } }));
+}
+
+const { lang } = Astro.props as { lang: Language };
+const ui = UI[lang];
+const posts = await getListedPosts(lang);
+const years = Map.groupBy(posts, (post) => post.data.publishedAt.getFullYear());
+const yearGroups = [...years.entries()].sort(([a], [b]) => b - a);
+const newestYear = posts[0]?.data.publishedAt.getFullYear();
+const oldestYear = posts.at(-1)?.data.publishedAt.getFullYear();
+let yearSpan = '—';
+if (newestYear && oldestYear) yearSpan = newestYear === oldestYear ? String(newestYear) : `${oldestYear}—${newestYear}`;
+
+const copy = {
+  zh: {
+    title: '归档', intro: '所有文章按年份排列，新写的在前面。', span: '跨度', posts: '文章',
+    entries: (count: number) => `${String(count).padStart(2, '0')} 篇`,
+    emptyTitle: '还没有文章', emptyCount: '00 篇', empty: '这个语言版本暂时没有可以公开列出的文章。',
+  },
+  ja: {
+    title: 'アーカイブ', intro: '公開中の記事を年ごとに、新しい順で並べています。', span: '期間', posts: '記事',
+    entries: (count: number) => `${String(count).padStart(2, '0')} 件`,
+    emptyTitle: '記事はまだありません', emptyCount: '00 件', empty: 'この言語で公開中の記事はまだありません。',
+  },
+  en: {
+    title: 'Archive', intro: 'Every public post, grouped by year and ordered newest first.', span: 'Span', posts: 'Posts',
+    entries: (count: number) => `${String(count).padStart(2, '0')} ${count === 1 ? 'entry' : 'entries'}`,
+    emptyTitle: 'No posts yet', emptyCount: '00 entries', empty: 'There are no listed posts in this language yet.',
+  },
+} as const;
+const c = copy[lang];
+const monthDay = (date: Date) => new Intl.DateTimeFormat(ui.locale, { month: '2-digit', day: '2-digit' }).format(date);
+---
+
+<BaseLayout lang={lang} title={c.title} bodyClass="concept-a">
+  <div class="a-directory">
+    <header class="a-directory__hero">
+      <p class="prototype-kicker">02 / Archive</p>
+      <div class="a-directory__title"><h1>{c.title}</h1><p>{c.intro}</p></div>
+      <dl class="a-directory__stats">
+        <div><dt>{c.span}</dt><dd>{yearSpan}</dd></div>
+        <div><dt>{c.posts}</dt><dd>{String(posts.length).padStart(2, '0')}</dd></div>
+      </dl>
+    </header>
+
+    {yearGroups.length > 0 ? yearGroups.map(([year, entries]) => (
+      <section class="a-archive" aria-labelledby={`archive-${year}`}>
+        <header class="a-archive__year"><h2 id={`archive-${year}`}>{year}</h2><p>{c.entries(entries.length)}</p></header>
+        <ol>
+          {entries.map((post) => (
+            <li>
+              <time datetime={post.data.publishedAt.toISOString()}>{monthDay(post.data.publishedAt)}</time>
+              <a href={postPath(post)}>{post.data.title}</a>
+              <span>{post.data.category}</span>
+            </li>
+          ))}
+        </ol>
+      </section>
+    )) : (
+      <section class="a-archive a-archive--quiet" aria-labelledby="archive-empty-title">
+        <header class="a-archive__year"><h2 id="archive-empty-title">{c.emptyTitle}</h2><p>{c.emptyCount}</p></header>
+        <p class="a-archive__empty">{c.empty}</p>
+      </section>
+    )}
+  </div>
+</BaseLayout>

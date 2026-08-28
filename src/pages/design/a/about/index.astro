@@ -1,0 +1,42 @@
+---
+import PrototypeLayout from '../../../../layouts/PrototypeLayout.astro';
+---
+
+<PrototypeLayout concept="a" page="about" title="关于">
+  <div class="a-directory a-about-page">
+    <header class="a-directory__hero">
+      <p class="prototype-kicker">05 / About</p>
+      <div class="a-directory__title">
+        <h1>关于</h1>
+        <p>Moriium 是 Morii 放置文章、摄影笔记、旅行记录与技术随笔的个人网站。</p>
+      </div>
+      <dl class="a-directory__stats">
+        <div><dt>作者</dt><dd>Morii</dd></div>
+        <div><dt>所在地</dt><dd>Dalian, China</dd></div>
+      </dl>
+    </header>
+
+    <section class="a-about-page__statement" aria-labelledby="about-statement">
+      <p class="prototype-kicker">This place</p>
+      <h2 id="about-statement">把值得保留的东西，放在一个可以慢慢阅读的地方。</h2>
+      <div>
+        <p>这里不是即时动态的备份，也不要求所有内容拥有相同的形状。照片可以展开，代码需要清楚，公式与图表在需要时出现；其他时候，页面只安静地承载文字。</p>
+        <p>网站以静态方式生成。公开文章通过 CMS 编辑，受保护内容只在本地加密后发布；浏览网站不需要账户、数据库或常驻的应用服务。</p>
+      </div>
+    </section>
+
+    <section class="a-about-page__principles" aria-labelledby="about-principles">
+      <header><h2 id="about-principles">站点原则</h2><p>Three quiet rules</p></header>
+      <ol>
+        <li><span>01</span><div><h3>内容先于装饰</h3><p>设计为阅读建立节奏，不抢走文章本身的注意力。</p></div></li>
+        <li><span>02</span><div><h3>功能在需要时出现</h3><p>灯箱、图表、音乐与解密模块只由对应文章加载。</p></div></li>
+        <li><span>03</span><div><h3>长期比即时重要</h3><p>链接、归档、翻译状态与订阅入口保持清楚、稳定、可回访。</p></div></li>
+      </ol>
+    </section>
+
+    <nav class="a-about-page__links" aria-label="继续浏览">
+      <a href="/design/a/writing/"><span>继续阅读</span><small>全部文章 ↗</small></a>
+      <a href="/zh/rss.xml"><span>保持更新</span><small>RSS 订阅 ↗</small></a>
+    </nav>
+  </div>
+</PrototypeLayout>

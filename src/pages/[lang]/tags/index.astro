@@ -1,0 +1,35 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { SITE, UI, type Language } from '../../../data/site';
+import { getListedPosts, uniqueTaxonomy } from '../../../utils/content';
+
+export function getStaticPaths() {
+  return SITE.languages.map((lang) => ({ params: { lang }, props: { lang } }));
+}
+
+const { lang } = Astro.props as { lang: Language };
+const posts = await getListedPosts(lang);
+const tags = uniqueTaxonomy(posts, 'tags');
+const copy = {
+  zh: { count: `${tags.length} 个标签`, intro: '按标签找文章。', entries: (count: number) => `${count} 篇文章` },
+  ja: { count: `${tags.length} タグ`, intro: 'タグから記事を探せます。', entries: (count: number) => `${count} 件` },
+  en: { count: `${tags.length} tags`, intro: 'Find posts by tag.', entries: (count: number) => `${count} posts` },
+};
+const c = copy[lang];
+---
+
+<BaseLayout lang={lang} title={UI[lang].nav.tags}>
+  <header class="site-shell page-heading">
+    <p class="page-heading__eyebrow">{c.count}</p>
+    <h1>{UI[lang].nav.tags}</h1>
+    <p>{c.intro}</p>
+  </header>
+  <nav class="site-shell taxonomy-grid" aria-label={UI[lang].nav.tags}>
+    {tags.map((tag) => (
+      <a href={`/${lang}/tags/${encodeURIComponent(tag)}/`}>
+        <span class="taxonomy-label">{c.entries(posts.filter((post) => post.data.tags.includes(tag)).length)}</span><br />
+        <strong>{tag}</strong>
+      </a>
+    ))}
+  </nav>
+</BaseLayout>

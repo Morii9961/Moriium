@@ -1,0 +1,19 @@
+node_modules/
+dist/
+.astro/
+.cache/
+.pnpm-store/
+.DS_Store
+Thumbs.db
+
+# Local-only plaintext and deployment credentials.
+.private/
+.env
+.env.*
+!.env.example
+
+# Generated screenshots and local reports.
+artifacts/
+playwright-report/
+test-results/
+.astro-preview.*.log

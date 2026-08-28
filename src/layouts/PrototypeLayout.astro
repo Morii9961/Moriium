@@ -1,0 +1,179 @@
+---
+import '@fontsource-variable/noto-sans-sc/wght.css';
+import '@fontsource-variable/sora/wght.css';
+import '@fontsource/ibm-plex-mono/latin-400.css';
+import 'lxgw-wenkai-screen-webfont/lxgwwenkaigbscreen.css';
+import '../styles/prototypes.css';
+import { DESIGN_CONCEPTS, PROTOTYPE_POSTS, type DesignConcept } from '../data/design-prototypes';
+
+type PrototypePage = 'home' | 'writing' | 'archive' | 'categories' | 'tags' | 'about' | 'article';
+
+interface Props { concept: DesignConcept; page: PrototypePage; title: string }
+const { concept, page, title } = Astro.props;
+const current = DESIGN_CONCEPTS[concept];
+const prototypeHome = `/design/${concept}/`;
+const prototypeRoutes = concept === 'a'
+  ? {
+      home: prototypeHome,
+      writing: `${prototypeHome}writing/`,
+      archive: `${prototypeHome}archive/`,
+      categories: `${prototypeHome}categories/`,
+      tags: `${prototypeHome}tags/`,
+      about: `${prototypeHome}about/`,
+    }
+  : {
+      home: prototypeHome,
+      writing: `${prototypeHome}#writing`,
+      archive: `${prototypeHome}#writing`,
+      categories: `${prototypeHome}#writing`,
+      tags: `${prototypeHome}#writing`,
+      about: `${prototypeHome}#writing`,
+    };
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <meta name="color-scheme" content="light dark" />
+    <title>{title} · Moriium 设计研究 {current.id}</title>
+    <script is:inline>
+      (() => {
+        const stored = localStorage.getItem('moriium-prototype-theme');
+        const theme = stored === 'light' || stored === 'dark'
+          ? stored
+          : window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
+  </head>
+  <body class={`prototype concept-${concept}`} data-page={page}>
+    <a class="prototype-skip" href="#prototype-main">跳到内容</a>
+    <header class="prototype-header">
+      <a class="prototype-logo" href={`/design/${concept}/`}>Moriium</a>
+      <nav class="prototype-nav" aria-label="主导航">
+        <a href={prototypeRoutes.home} aria-current={page === 'home' ? 'page' : undefined}>首页</a>
+        <a href={prototypeRoutes.writing} aria-current={page === 'writing' || page === 'article' ? 'page' : undefined}>文章</a>
+        <a href={prototypeRoutes.archive} aria-current={page === 'archive' ? 'page' : undefined}>归档</a>
+        <a href={prototypeRoutes.categories} aria-current={page === 'categories' ? 'page' : undefined}>分类</a>
+        <a href={prototypeRoutes.tags} aria-current={page === 'tags' ? 'page' : undefined}>标签</a>
+        <a href={prototypeRoutes.about} aria-current={page === 'about' ? 'page' : undefined}>关于</a>
+      </nav>
+      <div class="prototype-actions">
+        <nav class="prototype-language" aria-label="语言">
+          <a href={prototypeHome} aria-current="page">中</a><span aria-hidden="true">/</span><a href="/ja/" lang="ja">日</a><span aria-hidden="true">/</span><a href="/en/" lang="en">EN</a>
+        </nav>
+        {concept === 'a' && (
+          <div class="prototype-tools" aria-label="站点工具">
+            <button class="prototype-tool" type="button" data-search-open aria-label="搜索文章" title="搜索文章">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.6"></circle><path d="m16 16 4.2 4.2"></path></svg>
+            </button>
+            <button class="prototype-tool" type="button" data-theme-toggle aria-label="切换至暗色模式" title="切换明暗主题">
+              <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.5"></circle><path d="M12 2.5v2M12 19.5v2M4.6 4.6 6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"></path></svg>
+              <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.2 15.1A8.4 8.4 0 0 1 8.9 3.8 8.5 8.5 0 1 0 20.2 15Z"></path></svg>
+            </button>
+          </div>
+        )}
+      </div>
+    </header>
+    {concept === 'a' && (
+      <dialog class="prototype-search" data-search-dialog aria-labelledby="prototype-search-title">
+        <div class="prototype-search__panel">
+          <header>
+            <div><p class="prototype-kicker">Search / Moriium</p><h2 id="prototype-search-title">搜索文章</h2></div>
+            <button class="prototype-search__close" type="button" data-search-close aria-label="关闭搜索">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 5 14 14M19 5 5 19"></path></svg>
+            </button>
+          </header>
+          <label for="prototype-search-input">输入标题、摘要或分类</label>
+          <div class="prototype-search__field">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.6"></circle><path d="m16 16 4.2 4.2"></path></svg>
+            <input id="prototype-search-input" type="search" inputmode="search" autocomplete="off" placeholder="例如：摄影、旅行、Moriium" data-search-input />
+          </div>
+          <p class="prototype-search__summary" aria-live="polite" data-search-summary>输入关键词以筛选当前文章。</p>
+          <ol class="prototype-search__results">
+            {PROTOTYPE_POSTS.map((post) => (
+              <li data-search-item data-search-text={`${post.title} ${post.summary} ${post.category}`.toLocaleLowerCase('zh-CN')}>
+                <a href={`/design/${concept}/article/`}>
+                  <span>{post.category}</span><strong>{post.title}</strong><time>{post.date}</time>
+                </a>
+              </li>
+            ))}
+          </ol>
+          <p class="prototype-search__empty" data-search-empty hidden>没有找到匹配的文章。可以尝试更短的关键词。</p>
+        </div>
+      </dialog>
+    )}
+    <main id="prototype-main" tabindex="-1">
+      <slot />
+    </main>
+    <footer class="prototype-footer">
+      <div>
+        <p class="prototype-footer__name">Moriium</p>
+        <p>Morii 的个人写作与记忆索引。</p>
+      </div>
+      <nav aria-label="页脚导航">
+        <a href={prototypeRoutes.writing}>文章</a>
+        <a href={prototypeRoutes.archive}>归档</a>
+        <a href={prototypeRoutes.about}>关于</a>
+        <a href="/zh/rss.xml">RSS</a>
+      </nav>
+      <p>© 2026 Morii<br />静态生成 · 内容保留所有权利</p>
+    </footer>
+    {concept === 'a' && (
+      <script>
+        const themeButton = document.querySelector<HTMLButtonElement>('[data-theme-toggle]');
+        const applyThemeButton = () => {
+          if (!themeButton) return;
+          const isDark = document.documentElement.dataset.theme === 'dark';
+          themeButton.setAttribute('aria-label', isDark ? '切换至日间模式' : '切换至暗色模式');
+        };
+        applyThemeButton();
+        themeButton?.addEventListener('click', () => {
+          const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+          document.documentElement.dataset.theme = next;
+          localStorage.setItem('moriium-prototype-theme', next);
+          applyThemeButton();
+        });
+
+        const searchDialog = document.querySelector<HTMLDialogElement>('[data-search-dialog]');
+        const searchOpen = document.querySelector<HTMLButtonElement>('[data-search-open]');
+        const searchClose = document.querySelector<HTMLButtonElement>('[data-search-close]');
+        const searchInput = document.querySelector<HTMLInputElement>('[data-search-input]');
+        const searchItems = [...document.querySelectorAll<HTMLElement>('[data-search-item]')];
+        const searchSummary = document.querySelector<HTMLElement>('[data-search-summary]');
+        const searchEmpty = document.querySelector<HTMLElement>('[data-search-empty]');
+
+        const updateSearch = () => {
+          const query = searchInput?.value.trim().toLocaleLowerCase('zh-CN') ?? '';
+          let visible = 0;
+          searchItems.forEach((item) => {
+            const matched = query.length > 0 && (item.dataset.searchText ?? '').includes(query);
+            item.hidden = !matched;
+            if (matched) visible += 1;
+          });
+          if (searchSummary) searchSummary.textContent = query ? `找到 ${visible} 篇文章。` : '输入关键词以筛选当前文章。';
+          if (searchEmpty) searchEmpty.hidden = query.length === 0 || visible > 0;
+        };
+
+        searchOpen?.addEventListener('click', () => {
+          searchDialog?.showModal();
+          requestAnimationFrame(() => searchInput?.focus());
+        });
+        searchClose?.addEventListener('click', () => searchDialog?.close());
+        searchDialog?.addEventListener('click', (event) => {
+          if (event.target === searchDialog) searchDialog.close();
+        });
+        searchInput?.addEventListener('input', updateSearch);
+        searchDialog?.addEventListener('close', () => {
+          if (searchInput) searchInput.value = '';
+          updateSearch();
+          searchOpen?.focus();
+        });
+        updateSearch();
+      </script>
+    )}
+  </body>
+</html>

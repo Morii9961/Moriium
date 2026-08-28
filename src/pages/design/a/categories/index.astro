@@ -1,0 +1,33 @@
+---
+import PrototypeLayout from '../../../../layouts/PrototypeLayout.astro';
+import { PROTOTYPE_CATEGORIES } from '../../../../data/design-prototypes';
+---
+
+<PrototypeLayout concept="a" page="categories" title="分类">
+  <div class="a-directory">
+    <header class="a-directory__hero">
+      <p class="prototype-kicker">03 / Categories</p>
+      <div class="a-directory__title">
+        <h1>分类</h1>
+        <p>每篇文章只归入一个主要主题。分类回答“这篇文字大致在谈什么”，标签则保留更细的线索。</p>
+      </div>
+      <dl class="a-directory__stats">
+        <div><dt>主要分类</dt><dd>04</dd></div>
+        <div><dt>浏览方式</dt><dd>单一归属</dd></div>
+      </dl>
+    </header>
+
+    <nav class="a-category-directory" aria-label="文章分类">
+      {PROTOTYPE_CATEGORIES.map((category, index) => (
+        <a href="/design/a/writing/">
+          <span class="a-category-directory__number">{String(index + 1).padStart(2, '0')}</span>
+          <div><h2>{category.name}</h2><p>{category.note}</p></div>
+          <strong>{String(category.count).padStart(2, '0')} 篇</strong>
+          <span class="a-category-directory__arrow" aria-hidden="true">↗</span>
+        </a>
+      ))}
+    </nav>
+
+    <p class="a-directory__crosslink">需要更细的线索？<a href="/design/a/tags/">转到标签索引 →</a></p>
+  </div>
+</PrototypeLayout>

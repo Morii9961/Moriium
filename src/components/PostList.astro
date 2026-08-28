@@ -1,0 +1,29 @@
+---
+import type { CollectionEntry } from 'astro:content';
+import { UI, type Language } from '../data/site';
+import { formatDate, postPath } from '../utils/content';
+
+type Entry = CollectionEntry<'posts'> | CollectionEntry<'protected'>;
+
+interface Props {
+  posts: Entry[];
+  lang: Language;
+}
+
+const { posts, lang } = Astro.props;
+const ui = UI[lang];
+---
+
+<ol class="post-list">
+  {posts.map((post) => (
+    <li class="post-list__item">
+      <time datetime={post.data.publishedAt.toISOString()}>{formatDate(post.data.publishedAt, ui.locale)}</time>
+      <div>
+        <p class="taxonomy-label">{post.data.category}</p>
+        <h2 class="post-list__title"><a href={postPath(post)}>{post.data.title}</a></h2>
+        <p class="post-list__summary">{post.data.summary}</p>
+      </div>
+      <a class="post-list__arrow" href={postPath(post)} aria-label={`${ui.read}: ${post.data.title}`}>↗</a>
+    </li>
+  ))}
+</ol>

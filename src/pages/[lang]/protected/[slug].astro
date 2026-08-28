@@ -1,0 +1,121 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import ReaderEnhancements from '../../../components/ReaderEnhancements.astro';
+import { UI } from '../../../data/site';
+import { formatDate, getTranslations, postPath, routeSlug } from '../../../utils/content';
+
+export async function getStaticPaths() {
+  const posts = await getCollection('protected', ({ data }) => !data.draft);
+  return posts.map((post) => ({
+    params: { lang: post.data.lang, slug: routeSlug(post) },
+    props: { post },
+  }));
+}
+
+const { post } = Astro.props;
+const ui = UI[post.data.lang];
+const copy = ui.protected;
+const translations = await getTranslations(post.data.translationKey);
+const features = { ...post.data.features, copyProtection: false };
+const envelope = JSON.stringify(post.data.encryption).replaceAll('<', '\\u003c');
+---
+
+<BaseLayout lang={post.data.lang} title={post.data.title} description={post.data.summary} ogType="article">
+  <Fragment slot="head">
+    <meta property="article:published_time" content={post.data.publishedAt.toISOString()} />
+    {post.data.updatedAt && <meta property="article:modified_time" content={post.data.updatedAt.toISOString()} />}
+    {translations.map((entry) => (
+      <link rel="alternate" hreflang={UI[entry.data.lang].locale} href={new URL(postPath(entry), Astro.site ?? 'https://morii9961.top')} />
+    ))}
+  </Fragment>
+  <article data-protected-article>
+    <header class="article-header">
+      <p class="post-meta">{post.data.category} · {formatDate(post.data.publishedAt, ui.locale)} · {copy.badge}</p>
+      <h1>{post.data.title}</h1>
+      <p class="article-header__summary">{post.data.summary}</p>
+    </header>
+    <section class="article-body protected-post" aria-labelledby="unlock-heading" data-protected-copy={JSON.stringify(copy)}>
+      <div class="protected-post__gate" data-protected-gate>
+        <h2 id="unlock-heading">{copy.title}</h2>
+        <p>{copy.intro}</p>
+        <p class="post-meta">{copy.warning}</p>
+        <form data-decrypt-form>
+          <label for="article-password">{copy.password}</label>
+          <div class="protected-post__password-row">
+            <input id="article-password" name="password" type="password" autocomplete="current-password" required minlength="1" />
+            <button type="button" data-password-toggle aria-pressed="false">{copy.show}</button>
+          </div>
+          <button type="submit">{copy.submit}</button>
+          <p data-decrypt-status role="status" aria-live="polite"></p>
+        </form>
+      </div>
+      <div data-decrypted-content hidden tabindex="-1"></div>
+    </section>
+  </article>
+  <template id="encrypted-envelope" set:html={envelope}></template>
+  <ReaderEnhancements features={features} lang={post.data.lang} />
+  <script>
+    const form = document.querySelector<HTMLFormElement>('[data-decrypt-form]');
+    const password = document.querySelector<HTMLInputElement>('#article-password');
+    const toggle = document.querySelector<HTMLButtonElement>('[data-password-toggle]');
+    const status = document.querySelector<HTMLElement>('[data-decrypt-status]');
+    const target = document.querySelector<HTMLElement>('[data-decrypted-content]');
+    const gate = document.querySelector<HTMLElement>('[data-protected-gate]');
+    const envelopeNode = document.querySelector<HTMLTemplateElement>('#encrypted-envelope');
+    const protectedShell = document.querySelector<HTMLElement>('[data-protected-copy]');
+    const copy = JSON.parse(protectedShell?.dataset.protectedCopy || '{}');
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
+
+    function decodeBase64(value: string) {
+      return Uint8Array.from(atob(value), (character) => character.charCodeAt(0));
+    }
+
+    toggle?.addEventListener('click', () => {
+      if (!password) return;
+      const visible = password.type === 'text';
+      password.type = visible ? 'password' : 'text';
+      toggle.textContent = visible ? copy.show : copy.hide;
+      toggle.setAttribute('aria-pressed', String(!visible));
+      password.focus();
+    });
+
+    form?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!password || !status || !target || !gate || !envelopeNode) return;
+      const submit = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+      submit?.setAttribute('disabled', '');
+      status.textContent = copy.working;
+      try {
+        const envelope = JSON.parse(envelopeNode.content.textContent || '{}');
+        const material = await crypto.subtle.importKey('raw', encoder.encode(password.value), 'PBKDF2', false, ['deriveKey']);
+        const key = await crypto.subtle.deriveKey(
+          { name: 'PBKDF2', hash: 'SHA-256', salt: decodeBase64(envelope.salt), iterations: envelope.iterations },
+          material,
+          { name: 'AES-GCM', length: 256 },
+          false,
+          ['decrypt'],
+        );
+        const plaintext = await crypto.subtle.decrypt(
+          { name: 'AES-GCM', iv: decodeBase64(envelope.iv) },
+          key,
+          decodeBase64(envelope.ciphertext),
+        );
+        target.innerHTML = decoder.decode(plaintext);
+        target.hidden = false;
+        gate.remove();
+        envelopeNode.remove();
+        password.value = '';
+        window.dispatchEvent(new CustomEvent('moriium:content-ready'));
+        target.focus({ preventScroll: true });
+        target.scrollIntoView({ block: 'start' });
+      } catch {
+        status.textContent = copy.failure;
+        password.select();
+      } finally {
+        submit?.removeAttribute('disabled');
+      }
+    });
+  </script>
+</BaseLayout>

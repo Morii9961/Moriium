@@ -1,0 +1,322 @@
+---
+import type { ReaderFeatures } from '../utils/features';
+import type { Language } from '../data/site';
+import photoSwipeCss from 'photoswipe/dist/photoswipe.css?url';
+import katexCss from 'katex/dist/katex.min.css?url';
+
+interface Props { features: ReaderFeatures; lang: Language }
+const { features, lang } = Astro.props;
+---
+
+<template data-reader-lang={lang}></template>
+{features.lightbox && <link rel="stylesheet" href={photoSwipeCss} />}
+{features.math && <link rel="stylesheet" href={katexCss} />}
+
+{features.lightbox && (
+  <script>
+    let lightboxPromise: Promise<unknown> | undefined;
+
+    async function getSize(link: HTMLAnchorElement) {
+      const visible = link.querySelector<HTMLImageElement>('img');
+      if (visible?.naturalWidth && visible.naturalHeight) {
+        return { width: visible.naturalWidth, height: visible.naturalHeight };
+      }
+      return await new Promise<{ width: number; height: number }>((resolve) => {
+        const image = new Image();
+        image.onload = () => resolve({ width: image.naturalWidth, height: image.naturalHeight });
+        image.onerror = () => resolve({ width: 1600, height: 900 });
+        image.src = link.href;
+      });
+    }
+
+    function bindLightbox() {
+      const imageLinks = [...document.querySelectorAll<HTMLAnchorElement>('.article-body a[data-lightbox]')];
+      for (const link of imageLinks) {
+        if (link.dataset.lightboxBound) continue;
+        link.dataset.lightboxBound = 'true';
+        link.addEventListener('click', async (event) => {
+        event.preventDefault();
+        const origin = event.currentTarget as HTMLAnchorElement;
+        const currentLinks = [...document.querySelectorAll<HTMLAnchorElement>('.article-body a[data-lightbox]')];
+        const index = currentLinks.indexOf(origin);
+        const sizes = await Promise.all(currentLinks.map(getSize));
+        const dataSource = currentLinks.map((item, itemIndex) => {
+          const image = item.querySelector<HTMLImageElement>('img');
+          return {
+            src: item.href,
+            width: sizes[itemIndex]?.width || image?.naturalWidth || 1600,
+            height: sizes[itemIndex]?.height || image?.naturalHeight || 900,
+            alt: image?.alt || '',
+          };
+        });
+
+        lightboxPromise ??= import('photoswipe/lightbox').then(({ default: PhotoSwipeLightbox }) => {
+          const lightbox = new PhotoSwipeLightbox({
+            dataSource,
+            pswpModule: () => import('photoswipe'),
+            bgOpacity: 0.94,
+            wheelToZoom: true,
+            returnFocus: true,
+          });
+          lightbox.init();
+          return lightbox;
+        });
+        const lightbox = await lightboxPromise as { loadAndOpen(index: number): void };
+        lightbox.loadAndOpen(index);
+        });
+      }
+    }
+    bindLightbox();
+    window.addEventListener('moriium:content-ready', bindLightbox);
+  </script>
+)}
+
+{features.mermaid && (
+  <script>
+    const mermaidLang = document.querySelector<HTMLTemplateElement>('[data-reader-lang]')?.dataset.readerLang ?? 'en';
+    const mermaidCopy = {
+      zh: { diagram: '图表', error: '图表无法显示，下面是原始内容：' },
+      ja: { diagram: '図', error: '図を表示できません。元の内容を示します。' },
+      en: { diagram: 'Diagram', error: 'The diagram could not be displayed. Here is the source:' },
+    }[mermaidLang as 'zh' | 'ja' | 'en'];
+    const renderDiagrams = async (refresh = false) => {
+      const diagramSources = [
+        ...document.querySelectorAll<HTMLElement>('pre[data-language="mermaid"]'),
+        ...document.querySelectorAll<HTMLElement>('pre > code.language-mermaid'),
+      ];
+      const existingShells = refresh
+        ? [...document.querySelectorAll<HTMLElement>('.mermaid-shell[data-mermaid-source]')]
+        : [];
+      if (diagramSources.length || existingShells.length) {
+        const { default: mermaid } = await import('mermaid');
+        const dark = document.documentElement.dataset.theme === 'dark';
+        mermaid.initialize({
+          startOnLoad: false,
+          securityLevel: 'strict',
+          theme: dark ? 'dark' : 'neutral',
+          fontFamily: 'system-ui, sans-serif',
+        });
+
+        const diagrams: Array<{ shell: HTMLElement; code: string; source?: HTMLElement; pre?: HTMLElement }> = [];
+        for (const source of diagramSources) {
+          const pre = source.tagName === 'PRE' ? source : source.parentElement;
+          if (!pre || pre.dataset.mermaidProcessed) continue;
+          const expressiveCode = pre.closest('.expressive-code');
+          const encodedCode = expressiveCode
+            ?.querySelector<HTMLElement>('[data-code]')
+            ?.dataset.code;
+          const code = encodedCode?.replaceAll('\u007f', '\n') ?? source.textContent ?? '';
+          const shell = document.createElement('figure');
+          shell.className = 'mermaid-shell';
+          shell.dataset.mermaidSource = code;
+          pre.dataset.mermaidProcessed = 'true';
+          pre.replaceWith(shell);
+          diagrams.push({ shell, code, source, pre });
+        }
+        for (const shell of existingShells) {
+          diagrams.push({ shell, code: shell.dataset.mermaidSource ?? '' });
+        }
+
+        for (const [index, { shell, code }] of diagrams.entries()) {
+          shell.classList.remove('mermaid-shell--error');
+          shell.setAttribute('aria-label', `${mermaidCopy.diagram} ${index + 1}`);
+          const output = document.createElement('div');
+          output.className = 'mermaid';
+          output.textContent = code;
+          shell.replaceChildren(output);
+          try {
+            await mermaid.run({ nodes: [output], suppressErrors: false });
+          } catch (error) {
+            shell.classList.add('mermaid-shell--error');
+            shell.replaceChildren();
+            const message = document.createElement('p');
+            message.className = 'embed-error';
+            message.textContent = mermaidCopy.error;
+            const fallback = document.createElement('pre');
+            fallback.textContent = code;
+            shell.append(message, fallback);
+            console.warn('Mermaid render failed', error);
+          }
+        }
+      }
+    };
+    void renderDiagrams();
+    window.addEventListener('moriium:content-ready', () => void renderDiagrams());
+    window.addEventListener('moriium:theme', () => void renderDiagrams(true));
+  </script>
+)}
+
+{features.video && (
+  <script>
+    const videoLang = document.querySelector<HTMLTemplateElement>('[data-reader-lang]')?.dataset.readerLang ?? 'en';
+    const videoFallback = { zh: '嵌入视频', ja: '埋め込み動画', en: 'Embedded video' }[videoLang as 'zh' | 'ja' | 'en'];
+    function bindVideos() {
+      for (const button of document.querySelectorAll<HTMLButtonElement>('[data-video-src]')) {
+        if (button.dataset.videoBound) continue;
+        button.dataset.videoBound = 'true';
+        button.addEventListener('click', () => {
+        const source = button.dataset.videoSrc;
+        if (!source) return;
+        const frame = document.createElement('iframe');
+        frame.src = source;
+        frame.title = button.dataset.videoTitle || videoFallback;
+        frame.loading = 'lazy';
+        frame.allow = 'accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen';
+        frame.allowFullscreen = true;
+        frame.referrerPolicy = 'strict-origin-when-cross-origin';
+        button.replaceWith(frame);
+        frame.focus();
+        });
+      }
+    }
+    bindVideos();
+    window.addEventListener('moriium:content-ready', bindVideos);
+  </script>
+)}
+
+{features.music && (
+  <script>
+    const musicLang = document.querySelector<HTMLTemplateElement>('[data-reader-lang]')?.dataset.readerLang ?? 'en';
+    const musicCopy = {
+      zh: { blocked: '这个音乐接口不在允许列表中。', response: '音乐服务返回了错误：', source: '音乐服务没有返回可用的音频地址。', loading: '正在加载歌曲信息，加载好后请再点一次播放。', loaded: '歌曲已经加载，可以播放了。', play: '播放', pause: '暂停', playing: '正在播放。', paused: '已暂停。', unavailable: '这首歌暂时无法播放。' },
+      ja: { blocked: 'この音楽サービスは許可されていません。', response: '音楽サービスからエラーが返されました：', source: '再生できる音声 URL が返されませんでした。', loading: '曲の情報を読み込んでいます。完了後、もう一度再生してください。', loaded: '読み込みが完了しました。再生できます。', play: '再生', pause: '一時停止', playing: '再生中。', paused: '一時停止しました。', unavailable: 'この曲は現在再生できません。' },
+      en: { blocked: 'This music service is not allowed.', response: 'The music service returned an error:', source: 'The music service did not return a playable audio URL.', loading: 'Loading track details. Press play again when it is ready.', loaded: 'The track is ready.', play: 'Play', pause: 'Pause', playing: 'Playing.', paused: 'Paused.', unavailable: 'This track is not available.' },
+    }[musicLang as 'zh' | 'ja' | 'en'];
+    let activeAudio: HTMLAudioElement | null = null;
+
+    async function loadRemote(card: HTMLElement) {
+      const endpoint = card.dataset.meting;
+      if (!endpoint || new URL(endpoint).origin !== 'https://meting.spr-aachen.com') {
+        throw new Error(musicCopy.blocked);
+      }
+      const response = await fetch(endpoint, { credentials: 'omit', referrerPolicy: 'no-referrer' });
+      if (!response.ok) throw new Error(`${musicCopy.response} ${response.status}`);
+      const raw = await response.json();
+      const track = Array.isArray(raw) ? raw[0] : raw;
+      const source = String(track?.url ?? track?.audio ?? '');
+      if (!source.startsWith('https://')) throw new Error(musicCopy.source);
+      const audio = document.createElement('audio');
+      audio.preload = 'none';
+      audio.src = source;
+      audio.dataset.musicAudio = '';
+      card.append(audio);
+      delete card.dataset.meting;
+      return audio;
+    }
+
+    function bindMusic() {
+      for (const card of document.querySelectorAll<HTMLElement>('[data-music-card]')) {
+        if (card.dataset.musicBound) continue;
+        card.dataset.musicBound = 'true';
+        const button = card.querySelector<HTMLButtonElement>('[data-music-play]');
+        const status = card.querySelector<HTMLElement>('[data-music-status]');
+        button?.addEventListener('click', async () => {
+        button.disabled = true;
+        try {
+          let audio = card.querySelector<HTMLAudioElement>('[data-music-audio]');
+          if (!audio) {
+            if (status) status.textContent = musicCopy.loading;
+            audio = await loadRemote(card);
+            if (status) status.textContent = musicCopy.loaded;
+            button.textContent = musicCopy.play;
+            return;
+          }
+
+          if (audio.paused) {
+            if (activeAudio && activeAudio !== audio) activeAudio.pause();
+            await audio.play();
+            activeAudio = audio;
+            button.textContent = musicCopy.pause;
+            if (status) status.textContent = musicCopy.playing;
+          } else {
+            audio.pause();
+            button.textContent = musicCopy.play;
+            if (status) status.textContent = musicCopy.paused;
+          }
+        } catch (error) {
+          if (status) status.textContent = error instanceof Error ? error.message : musicCopy.unavailable;
+        } finally {
+          button.disabled = false;
+        }
+        });
+      }
+    }
+    bindMusic();
+    window.addEventListener('moriium:content-ready', bindMusic);
+  </script>
+)}
+
+<script>
+  const commonLang = document.querySelector<HTMLTemplateElement>('[data-reader-lang]')?.dataset.readerLang ?? 'en';
+  const commonCopy = {
+    zh: { copied: '已复制', failed: '复制失败，请手动选择代码。' },
+    ja: { copied: 'コピーしました', failed: 'コピーできませんでした。コードを手動で選択してください。' },
+    en: { copied: 'Copied', failed: 'Copy failed. Select the code manually.' },
+  }[commonLang as 'zh' | 'ja' | 'en'];
+  function bindDecryptedCodeCopy() {
+    const buttons = document.querySelectorAll<HTMLButtonElement>(
+      '[data-decrypted-content] .expressive-code .copy button[data-code]',
+    );
+    for (const button of buttons) {
+      if (button.dataset.moriiumCopyBound) continue;
+      button.dataset.moriiumCopyBound = 'true';
+      button.addEventListener('click', async () => {
+        const code = (button.dataset.code ?? '').replaceAll('\u007f', '\n');
+        const announcement = button.parentElement?.querySelector<HTMLElement>('[aria-live]');
+        try {
+          await navigator.clipboard.writeText(code);
+          button.dataset.copied = commonCopy.copied;
+          if (announcement) announcement.textContent = commonCopy.copied;
+        } catch {
+          if (announcement) announcement.textContent = commonCopy.failed;
+        }
+      });
+    }
+  }
+
+  function bindSpoilers() {
+    for (const spoiler of document.querySelectorAll<HTMLElement>('[data-spoiler]')) {
+      if (spoiler.dataset.spoilerBound) continue;
+      spoiler.dataset.spoilerBound = 'true';
+      const reveal = () => {
+        spoiler.dataset.revealed = spoiler.dataset.revealed === 'true' ? 'false' : 'true';
+        spoiler.setAttribute('aria-pressed', String(spoiler.dataset.revealed === 'true'));
+      };
+      spoiler.addEventListener('click', reveal);
+      spoiler.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          reveal();
+        }
+      });
+    }
+  }
+  bindDecryptedCodeCopy();
+  bindSpoilers();
+  window.addEventListener('moriium:content-ready', bindDecryptedCodeCopy);
+  window.addEventListener('moriium:content-ready', bindSpoilers);
+</script>
+
+{features.copyProtection && (
+  <script>
+    const protectionLang = document.querySelector<HTMLTemplateElement>('[data-reader-lang]')?.dataset.readerLang ?? 'en';
+    const protectionNotice = {
+      zh: '这篇文章不允许复制正文，代码块仍可复制。',
+      ja: 'この記事の本文はコピーできません。コードブロックはコピーできます。',
+      en: 'Prose copying is disabled for this article. Code blocks remain copyable.',
+    }[protectionLang as 'zh' | 'ja' | 'en'];
+    const protectedArticle = document.querySelector<HTMLElement>('[data-copy-protection="true"]');
+    protectedArticle?.addEventListener('copy', (event) => {
+      const selection = document.getSelection();
+      const origin = selection?.anchorNode?.parentElement;
+      if (origin?.closest('pre, code, input, textarea, [data-allow-copy]')) return;
+      event.preventDefault();
+      const notice = document.createElement('p');
+      notice.className = 'reader-notice';
+      notice.role = 'status';
+      notice.textContent = protectionNotice;
+      document.body.append(notice);
+      window.setTimeout(() => notice.remove(), 3500);
+    });
+  </script>
+)}

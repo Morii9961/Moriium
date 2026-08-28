@@ -1,0 +1,108 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { DESIGN_CONCEPTS } from '../../data/design-prototypes';
+---
+
+<BaseLayout lang="zh" title="三套手机端设计比较" noindex>
+  <main class="mobile-study">
+    <header class="mobile-study__header">
+      <p class="page-heading__eyebrow">390 px comparison</p>
+      <h1>手机端并排预览</h1>
+      <p>下方 iframe 固定为 390 × 760 像素。A 是当前修订方案；B、C 仅保留为上一轮比较记录。预览内部可独立滚动。</p>
+      <p><a href="/design/">← 返回设计总览</a></p>
+    </header>
+    {Object.entries(DESIGN_CONCEPTS).map(([key, concept]) => (
+      <section class="mobile-study__concept">
+        <header>
+          <p>方案 {concept.id}</p>
+          <h2>{concept.name}</h2>
+          <p>{concept.note}</p>
+        </header>
+        <div class="mobile-study__frames">
+          <figure>
+            <figcaption>首页 · 390 px</figcaption>
+            <iframe src={`/design/${key}/`} title={`方案 ${concept.id} 手机首页`} loading="lazy"></iframe>
+          </figure>
+          <figure>
+            <figcaption>文章页 · 390 px</figcaption>
+            <iframe src={`/design/${key}/article/`} title={`方案 ${concept.id} 手机文章页`} loading="lazy"></iframe>
+          </figure>
+        </div>
+      </section>
+    ))}
+  </main>
+</BaseLayout>
+
+<style>
+  .mobile-study {
+    width: min(calc(100% - 2rem), 76rem);
+    margin-inline: auto;
+    padding-block: 5rem;
+  }
+
+  .mobile-study__header {
+    max-width: 43rem;
+    margin-bottom: 5rem;
+  }
+
+  .mobile-study__header h1 {
+    margin: 0.3rem 0 1rem;
+    font-size: clamp(2.5rem, 7vw, 5rem);
+    font-weight: 520;
+    letter-spacing: -0.045em;
+    line-height: 1;
+  }
+
+  .mobile-study__concept {
+    padding-block: 3rem 5rem;
+    border-top: 1px solid var(--line);
+  }
+
+  .mobile-study__concept > header {
+    max-width: 34rem;
+    margin-bottom: 2rem;
+  }
+
+  .mobile-study__concept h2,
+  .mobile-study__concept p,
+  .mobile-study figure {
+    margin: 0;
+  }
+
+  .mobile-study__frames {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 390px));
+    gap: 2rem;
+  }
+
+  .mobile-study figcaption {
+    margin-bottom: 0.6rem;
+    color: var(--muted);
+    font-family: ui-monospace, monospace;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+  }
+
+  .mobile-study iframe {
+    display: block;
+    width: 390px;
+    max-width: 100%;
+    height: 760px;
+    border: 1px solid var(--line);
+    background: #fff;
+  }
+
+  @media (max-width: 54rem) {
+    .mobile-study__frames {
+      display: flex;
+      overflow-x: auto;
+      padding-bottom: 1rem;
+      scroll-snap-type: x mandatory;
+    }
+
+    .mobile-study figure {
+      flex: 0 0 min(390px, calc(100vw - 2rem));
+      scroll-snap-align: start;
+    }
+  }
+</style>

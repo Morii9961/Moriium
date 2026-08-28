@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" role="img" aria-labelledby="title desc">
+  <title id="title">Moriium reading fixture</title>
+  <desc id="desc">A restrained composition of black rules, a blue rectangle, and article metadata.</desc>
+  <rect width="1600" height="1000" fill="#f4f4f1"/>
+  <path d="M120 150h1360M120 850h1360M420 150v700" stroke="#202321" stroke-width="2"/>
+  <rect x="900" y="305" width="420" height="270" fill="#315f68"/>
+  <g fill="#202321" font-family="system-ui, sans-serif">
+    <text x="120" y="105" font-size="24" letter-spacing="4">MORIIUM / READER FIXTURE</text>
+    <text x="480" y="360" font-size="82" font-weight="500">Reading</text>
+    <text x="480" y="450" font-size="82" font-weight="500">without noise.</text>
+    <text x="120" y="910" font-size="20">1600 × 1000 · No private metadata</text>
+  </g>
+</svg>

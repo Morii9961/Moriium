@@ -1,0 +1,105 @@
+---
+import PrototypeLayout from '../../../../layouts/PrototypeLayout.astro';
+import { DESIGN_CONCEPTS, type DesignConcept } from '../../../../data/design-prototypes';
+
+export function getStaticPaths() {
+  return Object.keys(DESIGN_CONCEPTS).map((concept) => ({ params: { concept }, props: { concept } }));
+}
+
+const { concept } = Astro.props as { concept: DesignConcept };
+---
+
+<PrototypeLayout concept={concept} page="article" title="末次共振 2024篇">
+  {concept === 'a' ? (
+    <article class="a-article">
+      <header class="a-article__hero">
+        <p class="a-article__breadcrumb"><a href={`/design/${concept}/`}>首页</a><span>/</span><a href="#article-body">摄影</a><span>/</span>末次共振</p>
+        <div class="a-article__title">
+          <p class="prototype-kicker">Photo essay · Final Resonance 01</p>
+          <h1>末次共振 <span lang="en">-Final Resonance-</span> 2024篇</h1>
+          <p class="prototype-article__lead">城市并不会诉说它的过去。它只是将过去留存在自身的纹理之中。</p>
+        </div>
+        <dl class="a-article__facts">
+          <div><dt>发布</dt><dd><time datetime="2026-05-17">2026.05.17</time></dd></div>
+          <div><dt>阅读</dt><dd>8 分钟 / 2,460 字</dd></div>
+          <div><dt>分类</dt><dd><a href="#article-body">摄影</a></dd></div>
+        </dl>
+      </header>
+
+      <figure class="prototype-photo a-article__cover">
+        <img src="/design/final-resonance-2024.webp" width="1621" height="1080" alt="夜空中密集绽放的金色与红色烟火" />
+        <figcaption><span>作品 #07 · 2024.02.09</span><span>点击图片可查看原图</span></figcaption>
+      </figure>
+
+      <div class="a-reading-grid" id="article-body">
+        <aside class="a-article__outline">
+          <p>本文目录</p>
+          <nav aria-label="本文目录">
+            <a href="#surface"><span>01</span>时间留下的表面</a>
+            <a href="#distance"><span>02</span>观看的距离</a>
+            <a href="#after"><span>03</span>在回响之后</a>
+          </nav>
+          <a class="a-article__back" href={`/design/${concept}/`}>← 返回文章列表</a>
+        </aside>
+
+        <div class="prototype-article__body a-article__body">
+          <p class="a-article__opening">城市并不会主动诉说它的过去。街角的栏杆、窗框的划痕、楼梯扶手被反复触碰后的弧度，却把那些已经远去的时刻留在了表面。</p>
+          <blockquote>
+            <p>这里收录的是 2024 年留下的片段。它们没有替时间作结，只是让当时的光线、距离和停顿重新获得一次被观看的机会。</p>
+          </blockquote>
+          <h2 id="surface">时间留下的表面</h2>
+          <p>拍下照片时，我并不知道这些画面最后会被放在一起。回头整理，重复出现的却总是同一类边缘：光快要消失的地方，人刚刚离开的地方，以及结构仍在沉默承受的地方。</p>
+          <p>它们不是事件发生的中心。更像是事件离开之后，被墙面、金属和空气暂时保存下来的余温。摄影没有让它们重新发生，只是把观看的时间延长了一点。</p>
+          <h2 id="distance">观看的距离</h2>
+          <p>我刻意没有靠得更近。距离让画面保留一部分无法确认的东西，也让观者不必接受唯一的解释。烟火既可以是一场庆典，也可以只是夜色中短暂而巨大的噪声。</p>
+          <p>当熟悉的景物被重新放进取景框，日常会显露出某种陌生的秩序。那不是秘密，只是平时走得太快，没有看见。</p>
+          <h2 id="after">在回响之后</h2>
+          <p>“末次共振”并不意味着结束。它描述的是声音已经停止之后，身体仍能感到的那一点震动。照片也停留在同样的位置：事情过去了，图像却继续要求一次观看。</p>
+        </div>
+
+        <aside class="a-article__context" aria-label="文章附加信息">
+          <section>
+            <p>翻译</p>
+            <ul><li><strong>中文</strong><span>当前版本</span></li><li><span>日本語</span><small>尚未提供</small></li><li><span>English</span><small>尚未提供</small></li></ul>
+          </section>
+          <section>
+            <p>标签</p>
+            <div><a href="#article-body"># 城市</a><a href="#article-body"># 时间</a><a href="#article-body"># 摄影</a></div>
+          </section>
+          <section>
+            <p>阅读提示</p>
+            <span>图片支持灯箱与键盘操作；本文没有加载代码、图表或媒体模块。</span>
+          </section>
+        </aside>
+      </div>
+
+      <footer class="a-article__end">
+        <p>End / Final Resonance 2024</p>
+        <nav aria-label="相邻文章">
+          <a href={`/design/${concept}/article/`}><span>上一篇</span><strong>末次共振 -Final Resonance- 引言</strong></a>
+          <a href={`/design/${concept}/article/`}><span>下一篇</span><strong>末次共振 -Final Resonance- 2025篇</strong></a>
+        </nav>
+      </footer>
+    </article>
+  ) : (
+    <article class="prototype-article">
+      <p class="prototype-article__meta">摄影<br />2026.05.17<br />8 min</p>
+      <header class="prototype-article__heading">
+        <h1>末次共振<br />-Final Resonance-<br />2024篇</h1>
+        <p class="prototype-article__lead">城市并不会诉说它的过去。它只是将过去留存在自身的纹理之中。</p>
+      </header>
+      <figure class="prototype-photo">
+        <img src="/design/final-resonance-2024.webp" width="1621" height="1080" alt="夜空中密集绽放的金色与红色烟火" />
+        <figcaption>作品 #07 · 2024.02.09</figcaption>
+      </figure>
+      <div class="prototype-article__body">
+        <p>城市并不会主动诉说它的过去。街角的栏杆、窗框的划痕、楼梯扶手被反复触碰后的弧度，却把那些已经远去的时刻留在了表面。</p>
+        <blockquote>
+          <p>这里收录的是 2024 年留下的片段。它们没有替时间作结，只是让当时的光线、距离和停顿重新获得一次被观看的机会。</p>
+        </blockquote>
+        <h2>时间留下的表面</h2>
+        <p>拍下照片时，我并不知道这些画面最后会被放在一起。回头整理，重复出现的却总是同一类边缘：光快要消失的地方，人刚刚离开的地方，以及结构仍在沉默承受的地方。</p>
+      </div>
+    </article>
+  )}
+</PrototypeLayout>

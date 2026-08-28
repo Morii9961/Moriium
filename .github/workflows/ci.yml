@@ -1,0 +1,145 @@
+name: Verify, build, and deploy
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: moriium-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Install Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Compute GitHub card cache date
+        id: github-cache-date
+        shell: bash
+        run: echo "date=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore GitHub repository card metadata
+        id: github-card-cache
+        uses: actions/cache@v6
+        with:
+          path: .cache/github.json
+          key: github-cards-v1-${{ steps.github-cache-date.outputs.date }}-${{ hashFiles('src/content/posts/**/*.md') }}
+          restore-keys: |
+            github-cards-v1-
+
+      - name: Verify and build
+        run: pnpm verify
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_CACHE_FRESH: ${{ steps.github-card-cache.outputs.cache-hit }}
+
+      - name: Confirm static output contains no protected source directory
+        shell: bash
+        run: |
+          test ! -e dist/.private
+          ! grep -R --line-number --fixed-string '.private/posts' dist
+
+      - name: Package verified output
+        if: github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
+        run: tar -czf "moriium-${GITHUB_SHA}.tar.gz" -C dist .
+
+      - name: Configure deployment key
+        if: github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
+        shell: bash
+        env:
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Upload release archive
+        if: github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
+        shell: bash
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: scp "moriium-${GITHUB_SHA}.tar.gz" "${VPS_USER}@${VPS_HOST}:/tmp/moriium-${GITHUB_SHA}.tar.gz"
+
+      - name: Verify staged release and switch atomically
+        if: github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
+        shell: bash
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_RELEASE_ROOT: ${{ secrets.VPS_RELEASE_ROOT }}
+        run: |
+          ssh "${VPS_USER}@${VPS_HOST}" bash -s -- "$GITHUB_SHA" "$VPS_RELEASE_ROOT" <<'REMOTE'
+          set -euo pipefail
+          sha="$1"
+          root="$2"
+          case "$root" in
+            /var/www/*) ;;
+            *) echo 'VPS_RELEASE_ROOT must be a non-root path below /var/www/.' >&2; exit 1 ;;
+          esac
+          archive="/tmp/moriium-${sha}.tar.gz"
+          release="${root}/releases/${sha}"
+          previous=""
+          if [ -L "${root}/current" ]; then
+            previous="$(readlink "${root}/current")"
+          fi
+
+          mkdir -p "$release"
+          tar -xzf "$archive" -C "$release"
+          rm -f "$archive"
+
+          test -s "${release}/zh/index.html"
+          test -s "${release}/ja/index.html"
+          test -s "${release}/en/index.html"
+          test -s "${release}/sitemap-index.xml"
+          grep -q '<title>' "${release}/zh/index.html"
+          if find "$release" -type f -name '*.html' -size 0 -print -quit | grep -q .; then
+            echo 'A generated HTML file is empty.' >&2
+            exit 1
+          fi
+
+          ln -s "$release" "${root}/current.next"
+          mv -Tf "${root}/current.next" "${root}/current"
+
+          if ! curl --fail --silent --show-error --max-time 12 \
+            --resolve 'morii9961.top:443:127.0.0.1' 'https://morii9961.top/zh/' >/dev/null; then
+            if [ -n "$previous" ]; then
+              ln -s "$previous" "${root}/current.rollback"
+              mv -Tf "${root}/current.rollback" "${root}/current"
+            fi
+            echo 'Live health check failed; restored the previous release.' >&2
+            exit 1
+          fi
+
+          find "${root}/releases" -mindepth 1 -maxdepth 1 -type d -printf '%T@ %p\0' \
+            | sort -z -nr | tail -z -n +7 | cut -z -d' ' -f2- \
+            | while IFS= read -r -d '' old_release; do
+                case "$old_release" in
+                  "${root}"/releases/*) rm -rf -- "$old_release" ;;
+                  *) echo "Refusing to remove unexpected path: $old_release" >&2; exit 1 ;;
+                esac
+              done
+          REMOTE

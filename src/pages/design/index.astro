@@ -1,0 +1,22 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { DESIGN_CONCEPTS } from '../../data/design-prototypes';
+---
+
+<BaseLayout lang="zh" title="设计方向比较" noindex>
+  <header class="site-shell page-heading">
+    <p class="page-heading__eyebrow">Clean-room design study</p>
+    <h1>A 方案修订预览</h1>
+    <p>Morii 已选择 A 的内容方向。A 目前正在验证更完整的欢迎页、内容密度与文章阅读结构；B、C 只保留为上一轮比较记录。</p>
+    <p><a href="/design/a/">打开 A 桌面首页 →</a>　<a href="/design/mobile/">查看 390px 首页与文章页 →</a></p>
+  </header>
+  <nav class="site-shell taxonomy-grid" aria-label="设计方案">
+    {Object.entries(DESIGN_CONCEPTS).map(([key, concept]) => (
+      <a href={`/design/${key}/`}>
+        <span class="taxonomy-label">方案 {concept.id}</span><br />
+        <strong>{concept.name}</strong><br />
+        <span>{concept.note}</span>
+      </a>
+    ))}
+  </nav>
+</BaseLayout>

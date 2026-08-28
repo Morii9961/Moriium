@@ -1,0 +1,241 @@
+---
+import PrototypeLayout from '../../../layouts/PrototypeLayout.astro';
+import {
+  DESIGN_CONCEPTS,
+  PROTOTYPE_CATEGORIES,
+  PROTOTYPE_NOW,
+  PROTOTYPE_POSTS,
+  type DesignConcept,
+} from '../../../data/design-prototypes';
+
+export function getStaticPaths() {
+  return Object.keys(DESIGN_CONCEPTS).map((concept) => ({ params: { concept }, props: { concept } }));
+}
+
+const { concept } = Astro.props as { concept: DesignConcept };
+const calendarDays = Array.from({ length: 31 }, (_, index) => index + 1);
+const activeDays = new Set([10, 17]);
+---
+
+<PrototypeLayout concept={concept} page="home" title="首页">
+  {concept === 'a' ? (
+    <div class="a-home">
+      <section class="a-opening" aria-labelledby="a-opening-title">
+        <header class="a-opening__mast">
+          <h1 id="a-opening-title" lang="en">Moriium</h1>
+          <p class="a-opening__thesis">想到什么，<br />就慢慢写下来。</p>
+          <p class="a-opening__intro">Moriium 是我的个人博客。这里没有固定主题，也不赶更新；文章、照片和路上的见闻，想整理时就放进来。</p>
+          <a class="a-opening__entry" href={`/design/${concept}/writing/`}>看看文章 <span aria-hidden="true">↘</span></a>
+        </header>
+
+        <section class="a-feature-reel" data-feature-reel aria-label="精选内容">
+          <div class="a-feature-reel__slides" aria-live="polite">
+            <article class="a-feature-slide" data-feature-slide>
+              <a href={`/design/${concept}/article/`} aria-label="阅读精选文章：末次共振 2024篇">
+                <figure class="a-feature-visual a-feature-visual--photo">
+                  <img src="/design/final-resonance-2024.webp" width="1621" height="1080" alt="夜空中密集绽放的金色与红色烟火" />
+                  <figcaption><span>作品 #07</span><span>2024.02.09</span></figcaption>
+                </figure>
+                <div class="a-feature-slide__copy">
+                  <p><span>摄影随笔</span><time datetime="2026-05-17">2026.05.17</time></p>
+                  <h2>末次共振 <span lang="en">-Final Resonance-</span> 2024篇</h2>
+                  <p>城市把过去留在栏杆、窗框、楼梯与反复触碰的表面。</p>
+                </div>
+              </a>
+            </article>
+            <article class="a-feature-slide" data-feature-slide hidden>
+              <a href={`/design/${concept}/writing/`} aria-label="阅读精选文章：2026 日本行程手记">
+                <div class="a-feature-visual a-feature-visual--route" aria-hidden="true">
+                  <p>JAPAN</p><strong>2026</strong>
+                  <div><span>Tokyo</span><span>Fuji</span><span>Kyoto</span><span>Osaka</span></div>
+                  <small>ROUTE NOTES / 18 DAYS</small>
+                </div>
+                <div class="a-feature-slide__copy">
+                  <p><span>旅行记录</span><time datetime="2026-08-18">2026.08.18</time></p>
+                  <h2>一趟旅行如何慢慢成形</h2>
+                  <p>路线、睡眠、天气和拍摄计划之间，需要留出能够真正生活的空隙。</p>
+                </div>
+              </a>
+            </article>
+            <article class="a-feature-slide" data-feature-slide hidden>
+              <a href={`/design/${concept}/writing/`} aria-label="阅读精选文章：Moriium 重构记录">
+                <div class="a-feature-visual a-feature-visual--build" aria-hidden="true">
+                  <p>MORIIUM / BUILD LOG</p><strong>STATIC<br />FIRST.</strong>
+                  <code>Astro · Markdown · Nginx</code>
+                  <span>07 / RECONSTRUCTION</span>
+                </div>
+                <div class="a-feature-slide__copy">
+                  <p><span>技术记录</span><time datetime="2026-08-24">2026.08.24</time></p>
+                  <h2>把博客重新做轻一点</h2>
+                  <p>保留复杂文章真正需要的能力，让普通页面只承担阅读本身。</p>
+                </div>
+              </a>
+            </article>
+          </div>
+          <nav class="a-feature-reel__controls" aria-label="切换精选内容">
+            <span>Featured</span>
+            <div>
+              <button type="button" data-feature-control aria-pressed="true" aria-label="显示摄影精选">01</button>
+              <button type="button" data-feature-control aria-pressed="false" aria-label="显示旅行精选">02</button>
+              <button type="button" data-feature-control aria-pressed="false" aria-label="显示技术精选">03</button>
+            </div>
+          </nav>
+        </section>
+      </section>
+
+      <section class="a-home-section" id="writing" aria-labelledby="a-latest-title">
+        <header class="a-section-heading">
+          <p><span>01</span> Writing</p>
+          <div>
+            <h2 id="a-latest-title">最近文章</h2>
+            <p>按写下的时间排列，也可以从归档、分类或标签重新进入。</p>
+          </div>
+          <a href={`/design/${concept}/writing/`}>查看全部文章 →</a>
+        </header>
+        <ol class="prototype-posts a-post-index">
+          {PROTOTYPE_POSTS.map((post, index) => (
+            <li class="prototype-post">
+              <a href={`/design/${concept}/article/`}>
+                <span>{String(index + 1).padStart(2, '0')}</span>
+                <div><h3>{post.title}</h3><p>{post.summary}</p></div>
+                <span>{post.category}</span>
+                <time datetime="2026-05-17">{post.date}</time>
+                <span class="a-post-index__arrow" aria-hidden="true">↗</span>
+              </a>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <section class="a-home-utility" aria-labelledby="a-utility-title">
+        <header class="a-section-heading a-section-heading--compact">
+          <p><span>02</span> At a glance</p>
+          <div>
+            <h2 id="a-utility-title">关于这里</h2>
+            <p>作者、内容规模与最近更新，都可以在首页直接找到。</p>
+          </div>
+        </header>
+
+        <div class="a-home-utility__grid">
+          <section class="a-profile-panel" aria-labelledby="a-profile-title">
+            <div class="a-profile-panel__body">
+              <h3 id="a-profile-title">Morii &amp; Enouia</h3>
+              <p>Morii 和 Enouia 一起维护 Moriium。Morii 写文章、拍照片；Enouia 整理内容，也负责把网站搭起来、照看好。</p>
+            </div>
+            <nav aria-label="作者链接">
+              <a href="/design/a/about/">关于</a>
+              <a href="https://github.com/Morii9961">GitHub</a>
+              <a href="/zh/rss.xml">RSS</a>
+            </nav>
+          </section>
+
+          <section class="a-stats-panel" aria-labelledby="a-stats-title">
+            <header><h3 id="a-stats-title">站点统计</h3><p>Current index</p></header>
+            <dl>
+              <div><dt>示例文章</dt><dd>04</dd></div>
+              <div><dt>内容方向</dt><dd>04</dd></div>
+              <div><dt>标签索引</dt><dd>12</dd></div>
+              <div><dt>界面语言</dt><dd>03</dd></div>
+            </dl>
+          </section>
+
+          <section class="a-activity-panel" aria-labelledby="a-activity-title">
+            <header><div><h3 id="a-activity-title">更新日历</h3><p>2026 年 5 月</p></div><a href={`/design/${concept}/archive/`}>完整归档 →</a></header>
+            <div class="a-activity-calendar" aria-label="2026 年 5 月文章更新日历">
+              <div class="a-activity-calendar__week" aria-hidden="true"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>
+              <div class="a-activity-calendar__days">
+                {Array.from({ length: 5 }).map(() => <span aria-hidden="true"></span>)}
+                {calendarDays.map((day) => activeDays.has(day)
+                  ? <time class="is-active" datetime={`2026-05-${String(day).padStart(2, '0')}`} title={`${day} 日有文章更新`}>{day}<i aria-hidden="true"></i></time>
+                  : <time datetime={`2026-05-${String(day).padStart(2, '0')}`}>{day}</time>)}
+              </div>
+            </div>
+            <ol class="a-activity-panel__latest">
+              {PROTOTYPE_POSTS.slice(0, 3).map((post) => <li><a href={`/design/${concept}/article/`}>{post.title}</a><time>{post.date.slice(5)}</time></li>)}
+            </ol>
+          </section>
+        </div>
+      </section>
+
+      <section class="a-discovery" aria-labelledby="a-discovery-title">
+        <header class="a-section-heading a-section-heading--compact">
+          <p><span>03</span> Discover</p>
+          <div>
+            <h2 id="a-discovery-title">继续浏览</h2>
+            <p>让旧文章不只存在于时间线末端。</p>
+          </div>
+        </header>
+
+        <section class="a-categories" aria-labelledby="a-categories-title">
+          <header><h3 id="a-categories-title">按分类</h3><p>4 个主题</p></header>
+          <ul>
+            {PROTOTYPE_CATEGORIES.map((category) => (
+              <li><a href={`/design/${concept}/categories/`}><span>{category.name}</span><small>{category.note}</small><strong>{String(category.count).padStart(2, '0')}</strong></a></li>
+            ))}
+          </ul>
+        </section>
+
+        <section class="a-now" aria-labelledby="a-now-title">
+          <header><h3 id="a-now-title">现在</h3><p>Now / 2026.08</p></header>
+          <ol>
+            {PROTOTYPE_NOW.map((item) => (
+              <li><time>{item.date}</time><h4>{item.title}</h4><p>{item.note}</p></li>
+            ))}
+          </ol>
+        </section>
+
+        <nav class="a-site-index" aria-label="站点索引">
+          <p>Site index</p>
+          <a href={`/design/${concept}/archive/`}><span>文章归档</span><small>按年份回看全部文章</small></a>
+          <a href={`/design/${concept}/categories/`}><span>分类与标签</span><small>从主题进入内容</small></a>
+          <a href="/zh/rss.xml"><span>RSS 订阅</span><small>不依赖算法获取更新</small></a>
+        </nav>
+      </section>
+
+      <section class="a-about" aria-labelledby="a-about-title">
+        <p class="prototype-kicker">04 / About this place</p>
+        <h2 id="a-about-title">一间留给长期写作的房间。</h2>
+        <div>
+          <p>Moriium 不追求每天更新，也不把功能收进看不见的角落。文章、归档、分类、翻译和订阅都应该在需要时直接找到；真正复杂的能力，只在阅读对应内容时出现。</p>
+          <nav aria-label="关于页快捷入口"><a href={`/design/${concept}/about/`}>关于 Moriium</a><a href={`/design/${concept}/categories/`}>浏览主题</a><a href="/zh/rss.xml">订阅 RSS</a></nav>
+        </div>
+      </section>
+
+      <script>
+        const reel = document.querySelector<HTMLElement>('[data-feature-reel]');
+        const slides = [...(reel?.querySelectorAll<HTMLElement>('[data-feature-slide]') ?? [])];
+        const controls = [...(reel?.querySelectorAll<HTMLButtonElement>('[data-feature-control]') ?? [])];
+        controls.forEach((control, index) => {
+          control.addEventListener('click', () => {
+            slides.forEach((slide, slideIndex) => { slide.hidden = slideIndex !== index; });
+            controls.forEach((button, buttonIndex) => button.setAttribute('aria-pressed', String(buttonIndex === index)));
+          });
+        });
+      </script>
+    </div>
+  ) : (
+    <section class="prototype-home" id="writing">
+      <header class="prototype-intro">
+        <p class="prototype-kicker">Personal notes / 2026</p>
+        <h1>把时间写下来。</h1>
+        <p>摄影、旅行、技术，以及那些不适合被压缩成一句话的日常。Moriium 是 Morii 持续写作与整理记忆的地方。</p>
+      </header>
+      <figure class="prototype-photo">
+        <img src="/design/final-resonance-2024.webp" width="1621" height="1080" alt="夜空中密集绽放的金色与红色烟火" />
+        <figcaption>末次共振 #07 · 2024.02.09</figcaption>
+      </figure>
+      <ol class="prototype-posts">
+        {PROTOTYPE_POSTS.map((post, index) => (
+          <li class="prototype-post">
+            <a href={`/design/${concept}/article/`}>
+              <span>{String(index + 1).padStart(2, '0')}</span>
+              <div><h2>{post.title}</h2><p>{post.summary}</p></div>
+              <span>{post.category}</span>
+              <time datetime="2026-05-17">{post.date}</time>
+            </a>
+          </li>
+        ))}
+      </ol>
+    </section>
+  )}
+</PrototypeLayout>

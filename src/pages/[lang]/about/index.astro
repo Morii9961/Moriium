@@ -1,0 +1,23 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { SITE, UI, type Language } from '../../../data/site';
+
+export function getStaticPaths() {
+  return SITE.languages.map((lang) => ({ params: { lang }, props: { lang } }));
+}
+
+const { lang } = Astro.props as { lang: Language };
+const copy = {
+  zh: ['关于 Moriium', 'Moriium 是 Morii 的个人博客。这里放文章、照片、旅行记录，也收着一些暂时不好归类的东西。网站静态生成，不需要数据库。'],
+  ja: ['Moriium について', 'Moriium は Morii の個人ブログです。文章、写真、旅の記録のほか、まだ分類しにくいものも置いています。サイトは静的に生成され、データベースは使いません。'],
+  en: ['About Moriium', "Moriium is Morii's personal blog. It holds articles, photographs, travel notes, and a few things that do not fit a category. The site is static and uses no database."],
+} as const;
+---
+
+<BaseLayout lang={lang} title={copy[lang][0]}>
+  <header class="site-shell page-heading">
+    <p class="page-heading__eyebrow">{UI[lang].nav.about}</p>
+    <h1>{copy[lang][0]}</h1>
+    <p>{copy[lang][1]}</p>
+  </header>
+</BaseLayout>

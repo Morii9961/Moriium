@@ -1,0 +1,23 @@
+---
+import { render } from 'astro:content';
+import ArticleLayout from '../../../layouts/ArticleLayout.astro';
+import { getPublishedPosts, getTranslations, routeSlug } from '../../../utils/content';
+import { detectReaderFeatures } from '../../../utils/features';
+
+export async function getStaticPaths() {
+  const posts = await getPublishedPosts();
+  return posts.map((post) => ({
+    params: { lang: post.data.lang, slug: routeSlug(post) },
+    props: { post },
+  }));
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+const translations = await getTranslations(post.data.translationKey);
+const features = detectReaderFeatures(post.body ?? '', post.data.copyProtection);
+---
+
+<ArticleLayout post={post} translations={translations} features={features}>
+  <Content />
+</ArticleLayout>

@@ -1,0 +1,30 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import PostList from '../../../components/PostList.astro';
+import { SITE, UI, type Language } from '../../../data/site';
+import { getListedPosts } from '../../../utils/content';
+
+export async function getStaticPaths() {
+  const paths = [];
+  for (const lang of SITE.languages) {
+    const posts = await getListedPosts(lang);
+    for (const category of new Set(posts.map((post) => post.data.category))) {
+      paths.push({ params: { lang, category }, props: { lang, category } });
+    }
+  }
+  return paths;
+}
+
+const { lang, category } = Astro.props as { lang: Language; category: string };
+const posts = (await getListedPosts(lang)).filter((post) => post.data.category === category);
+const count = lang === 'zh' ? `${posts.length} 篇文章` : lang === 'ja' ? `${posts.length} 件` : `${posts.length} posts`;
+---
+
+<BaseLayout lang={lang} title={category}>
+  <header class="site-shell page-heading">
+    <p class="page-heading__eyebrow">{UI[lang].nav.categories}</p>
+    <h1>{category}</h1>
+    <p>{count}</p>
+  </header>
+  <section class="site-shell"><PostList posts={posts} lang={lang} /></section>
+</BaseLayout>

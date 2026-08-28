@@ -1,0 +1,34 @@
+---
+import PrototypeLayout from '../../../../layouts/PrototypeLayout.astro';
+
+const tags = [
+  ['城市', 6], ['时间', 5], ['摄影', 4], ['日本', 3], ['旅行计划', 2], ['Astro', 2],
+  ['建站', 2], ['器材', 2], ['日常', 2], ['文字', 1], ['音乐', 1], ['回忆', 1],
+] as const;
+---
+
+<PrototypeLayout concept="a" page="tags" title="标签">
+  <div class="a-directory">
+    <header class="a-directory__hero">
+      <p class="prototype-kicker">04 / Tags</p>
+      <div class="a-directory__title">
+        <h1>标签</h1>
+        <p>一些会在不同主题之间反复出现的词。它们不是严格分类，更像是从文章边缘伸出的细线。</p>
+      </div>
+      <dl class="a-directory__stats">
+        <div><dt>索引词</dt><dd>12</dd></div>
+        <div><dt>排序</dt><dd>使用频率</dd></div>
+      </dl>
+    </header>
+
+    <nav class="a-tag-field" aria-label="文章标签">
+      {tags.map(([tag, count], index) => (
+        <a href="/design/a/writing/" style={`--tag-rank:${index}`}>
+          <span># {tag}</span><small>{String(count).padStart(2, '0')}</small>
+        </a>
+      ))}
+    </nav>
+
+    <p class="a-directory__crosslink">想从更稳定的主题进入？<a href="/design/a/categories/">转到分类 →</a></p>
+  </div>
+</PrototypeLayout>

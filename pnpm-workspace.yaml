@@ -1,0 +1,10 @@
+packages:
+  - .
+
+# Keep this project independent from machine-wide virtual stores.
+enableGlobalVirtualStore: false
+
+# pnpm 11 blocks dependency lifecycle scripts unless explicitly reviewed.
+allowBuilds:
+  esbuild: true
+  sharp: true

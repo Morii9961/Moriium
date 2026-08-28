@@ -1,0 +1,29 @@
+{
+  "title": "Protected collection build fixture",
+  "slug": "en/protected-collection-fixture",
+  "summary": "Non-editorial ciphertext used only to keep the protected collection schema exercised in empty projects.",
+  "publishedAt": "2026-08-23T00:00:00.000Z",
+  "lang": "en",
+  "translationKey": "protected-collection-fixture",
+  "category": "Engineering fixture",
+  "tags": ["fixture"],
+  "draft": true,
+  "unlisted": true,
+  "listed": false,
+  "features": {
+    "lightbox": false,
+    "mermaid": false,
+    "music": false,
+    "video": false,
+    "math": false
+  },
+  "encryption": {
+    "version": 1,
+    "algorithm": "AES-256-GCM",
+    "kdf": "PBKDF2-HMAC-SHA-256",
+    "iterations": 600000,
+    "salt": "Q8t63NXcIIicpHt8aNI8Cw==",
+    "iv": "H/br+8NdTdF+tqgG",
+    "ciphertext": "53eI64rVKq3UCYCOLgTQz4rEsq4U5w9pdXqfQmCUHLvqDU2JkzdYh79wNFyeHSmp1EpTHPtEUozPa2XQ6WJoWOqnCr3aq1KDJRm9MKM="
+  }
+}

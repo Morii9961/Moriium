@@ -1,0 +1,38 @@
+---
+import PrototypeLayout from '../../../../layouts/PrototypeLayout.astro';
+import { PROTOTYPE_POSTS } from '../../../../data/design-prototypes';
+---
+
+<PrototypeLayout concept="a" page="archive" title="归档">
+  <div class="a-directory">
+    <header class="a-directory__hero">
+      <p class="prototype-kicker">02 / Archive</p>
+      <div class="a-directory__title">
+        <h1>归档</h1>
+        <p>时间是最朴素的索引。这里不区分热度，只保留每篇文章写下与再次修订的顺序。</p>
+      </div>
+      <dl class="a-directory__stats">
+        <div><dt>跨度</dt><dd>2024—2026</dd></div>
+        <div><dt>当前年份</dt><dd>2026</dd></div>
+      </dl>
+    </header>
+
+    <section class="a-archive" aria-labelledby="archive-2026">
+      <header class="a-archive__year"><h2 id="archive-2026">2026</h2><p>04 entries</p></header>
+      <ol>
+        {PROTOTYPE_POSTS.map((post) => (
+          <li>
+            <time datetime="2026-05-17">{post.date.slice(5)}</time>
+            <a href="/design/a/article/">{post.title}</a>
+            <span>{post.category}</span>
+          </li>
+        ))}
+      </ol>
+    </section>
+
+    <section class="a-archive a-archive--quiet" aria-labelledby="archive-2025">
+      <header class="a-archive__year"><h2 id="archive-2025">2025</h2><p>整理中</p></header>
+      <p class="a-archive__empty">旧站文章会在内容校对与媒体清理完成后迁入，不为填满页面虚构记录。</p>
+    </section>
+  </div>
+</PrototypeLayout>
