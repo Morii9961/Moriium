@@ -1,23 +1,99 @@
 ---
+import type { GetStaticPaths } from 'astro';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
-import { SITE, UI, type Language } from '../../../data/site';
+import { SITE, type Language } from '../../../data/site';
+import '../../../styles/prototypes.css';
 
-export function getStaticPaths() {
-  return SITE.languages.map((lang) => ({ params: { lang }, props: { lang } }));
-}
+export const getStaticPaths: GetStaticPaths = () =>
+  SITE.languages.map((lang) => ({ params: { lang }, props: { lang } }));
 
 const { lang } = Astro.props as { lang: Language };
 const copy = {
-  zh: ['关于 Moriium', 'Moriium 是 Morii 的个人博客。这里放文章、照片、旅行记录，也收着一些暂时不好归类的东西。网站静态生成，不需要数据库。'],
-  ja: ['Moriium について', 'Moriium は Morii の個人ブログです。文章、写真、旅の記録のほか、まだ分類しにくいものも置いています。サイトは静的に生成され、データベースは使いません。'],
-  en: ['About Moriium', "Moriium is Morii's personal blog. It holds articles, photographs, travel notes, and a few things that do not fit a category. The site is static and uses no database."],
+  zh: {
+    title: '关于 Moriium', intro: 'Moriium 是 Morii 的个人博客。这里放文章、摄影笔记、旅行记录和技术随笔。',
+    author: '作者', languages: '语言', languageValue: '中 · 日 · EN', place: 'This place',
+    statement: '把值得保留的东西，放在一个可以慢慢阅读的地方。',
+    body: [
+      '这里不追赶即时动态，也不要求所有内容长成同一种样子。照片可以展开，代码需要清楚；其他时候，页面只安静地承载文字。',
+      '网站以静态方式生成。公开文章可以持续整理，受保护内容先在本地加密；阅读不需要账户、数据库或常驻服务。',
+    ],
+    principles: '站点原则', principlesNote: 'Three quiet rules',
+    rules: [
+      ['内容先于装饰', '设计为阅读建立节奏，不抢走文章本身的注意力。'],
+      ['功能按需出现', '灯箱、图表、音乐与解密模块只在对应文章需要时加载。'],
+      ['长期重于即时', '链接、归档、翻译状态与订阅入口保持清楚、稳定、可回访。'],
+    ],
+    linksLabel: '继续浏览', read: '继续阅读', writing: '全部文章 ↗', update: '保持更新', rss: 'RSS 订阅 ↗',
+    elsewhere: '其他地方', github: 'GitHub ↗',
+  },
+  ja: {
+    title: 'Moriium について', intro: 'Moriium は Morii の個人ブログです。文章、写真のメモ、旅の記録、技術ノートを置いています。',
+    author: '作者', languages: '言語', languageValue: '中 · 日 · EN', place: 'This place',
+    statement: '残しておきたいものを、ゆっくり読める場所へ。',
+    body: [
+      'ここは短い近況を追いかける場所ではなく、すべてを同じ形にも揃えません。写真は大きく開き、コードは読みやすくする。それ以外のときは、文章を静かに載せます。',
+      'サイトは静的に生成します。公開記事は継続して整え、保護記事はローカルで暗号化してから公開します。閲覧にアカウント、データベース、常駐サービスは不要です。',
+    ],
+    principles: 'サイトの方針', principlesNote: 'Three quiet rules',
+    rules: [
+      ['内容を先に置く', 'デザインは読むためのリズムをつくり、記事から注意を奪いません。'],
+      ['機能は必要なときだけ', '写真、図表、音楽、復号の機能は、必要な記事でだけ読み込みます。'],
+      ['速さより長く残ること', 'リンク、アーカイブ、翻訳状況、購読入口を明確で安定した状態に保ちます。'],
+    ],
+    linksLabel: '次に読む', read: '記事を読む', writing: 'すべての記事 ↗', update: '更新を受け取る', rss: 'RSS を購読 ↗',
+    elsewhere: 'ほかの場所', github: 'GitHub ↗',
+  },
+  en: {
+    title: 'About Moriium', intro: "Moriium is Morii's personal blog for essays, photography notes, travel records, and technical writing.",
+    author: 'Author', languages: 'Languages', languageValue: 'ZH · JA · EN', place: 'This place',
+    statement: 'A place to keep what matters and read it slowly.',
+    body: [
+      'This is not a feed of passing updates, and every piece need not take the same shape. Photographs can open wide, code stays legible, and plain pages carry the rest.',
+      'The site builds to static files. Public posts remain editable; protected posts are encrypted locally before publication. Reading requires no account, database, or always-on application service.',
+    ],
+    principles: 'Site principles', principlesNote: 'Three quiet rules',
+    rules: [
+      ['Content before decoration', 'Design gives reading a rhythm without competing with the work.'],
+      ['Features appear when needed', 'Lightboxes, diagrams, music, and decryption load only for posts that use them.'],
+      ['Longevity over immediacy', 'Links, archives, translation status, and feeds stay clear, stable, and easy to revisit.'],
+    ],
+    linksLabel: 'Keep exploring', read: 'Keep reading', writing: 'All writing ↗', update: 'Stay updated', rss: 'RSS feed ↗',
+    elsewhere: 'Elsewhere', github: 'GitHub ↗',
+  },
 } as const;
+const c = copy[lang];
 ---
 
-<BaseLayout lang={lang} title={copy[lang][0]}>
-  <header class="site-shell page-heading">
-    <p class="page-heading__eyebrow">{UI[lang].nav.about}</p>
-    <h1>{copy[lang][0]}</h1>
-    <p>{copy[lang][1]}</p>
-  </header>
+<BaseLayout lang={lang} title={c.title} bodyClass="concept-a">
+  <div class="a-directory a-about-page">
+    <header class="a-directory__hero">
+      <p class="prototype-kicker">05 / About</p>
+      <div class="a-directory__title"><h1>{c.title}</h1><p>{c.intro}</p></div>
+      <dl class="a-directory__stats">
+        <div><dt>{c.author}</dt><dd>{SITE.author}</dd></div>
+        <div><dt>{c.languages}</dt><dd>{c.languageValue}</dd></div>
+      </dl>
+    </header>
+
+    <section class="a-about-page__statement" aria-labelledby="about-statement">
+      <p class="prototype-kicker">{c.place}</p>
+      <h2 id="about-statement">{c.statement}</h2>
+      <div>{c.body.map((paragraph) => <p>{paragraph}</p>)}</div>
+    </section>
+
+    <section class="a-about-page__principles" aria-labelledby="about-principles">
+      <header><h2 id="about-principles">{c.principles}</h2><p>{c.principlesNote}</p></header>
+      <ol>
+        {c.rules.map(([title, description], index) => (
+          <li><span>{String(index + 1).padStart(2, '0')}</span><div><h3>{title}</h3><p>{description}</p></div></li>
+        ))}
+      </ol>
+    </section>
+
+    <nav class="a-about-page__links" aria-label={c.linksLabel}>
+      <a href={`/${lang}/writing/`}><span>{c.read}</span><small>{c.writing}</small></a>
+      <a href={`/${lang}/rss.xml`}><span>{c.update}</span><small>{c.rss}</small></a>
+      <a href="https://github.com/Morii9961" rel="me"><span>{c.elsewhere}</span><small>{c.github}</small></a>
+    </nav>
+  </div>
 </BaseLayout>

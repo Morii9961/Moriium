@@ -1803,7 +1803,7 @@ img {
 
 .concept-a .a-about-page__links {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   margin-bottom: 5rem;
   border: 1px solid var(--line);
 }
@@ -1825,7 +1825,8 @@ img {
   color: var(--muted);
 }
 
-.concept-a .a-about-page__links a:hover span {
+.concept-a .a-about-page__links a:hover span,
+.concept-a .a-about-page__links a:focus-visible span {
   color: var(--accent);
 }
 
