@@ -1,10 +1,11 @@
 ---
+import type { GetStaticPaths } from 'astro';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
-import PostList from '../../../components/PostList.astro';
 import { SITE, UI, type Language } from '../../../data/site';
-import { getListedPosts } from '../../../utils/content';
+import { formatDate, getListedPosts, postPath } from '../../../utils/content';
+import '../../../styles/prototypes.css';
 
-export async function getStaticPaths() {
+export const getStaticPaths: GetStaticPaths = async () => {
   const paths = [];
   for (const lang of SITE.languages) {
     const posts = await getListedPosts(lang);
@@ -13,18 +14,64 @@ export async function getStaticPaths() {
     }
   }
   return paths;
-}
+};
 
 const { lang, category } = Astro.props as { lang: Language; category: string };
 const posts = (await getListedPosts(lang)).filter((post) => post.data.category === category);
-const count = lang === 'zh' ? `${posts.length} 篇文章` : lang === 'ja' ? `${posts.length} 件` : `${posts.length} posts`;
+const ui = UI[lang];
+const latest = posts[0];
+if (!latest) throw new Error(`Category "${category}" has no listed posts.`);
+
+const copy = {
+  zh: {
+    kicker: '03 / Category', intro: `收在“${category}”下的文章，按发布时间从新到旧排列。`, posts: '文章', updated: '最近更新',
+    entries: (count: number) => `${String(count).padStart(2, '0')} 篇`, back: '返回全部分类 ←', tags: '标签',
+  },
+  ja: {
+    kicker: '03 / Category', intro: `「${category}」にまとめた記事を、公開日の新しい順に並べています。`, posts: '記事', updated: '最終更新',
+    entries: (count: number) => `${String(count).padStart(2, '0')} 件`, back: 'カテゴリー一覧へ戻る ←', tags: 'タグ',
+  },
+  en: {
+    kicker: '03 / Category', intro: `Posts filed under “${category}”, ordered from newest to oldest.`, posts: 'Posts', updated: 'Latest update',
+    entries: (count: number) => `${String(count).padStart(2, '0')} ${count === 1 ? 'post' : 'posts'}`, back: 'Back to all categories ←', tags: 'Tags',
+  },
+} as const;
+const c = copy[lang];
 ---
 
-<BaseLayout lang={lang} title={category}>
-  <header class="site-shell page-heading">
-    <p class="page-heading__eyebrow">{UI[lang].nav.categories}</p>
-    <h1>{category}</h1>
-    <p>{count}</p>
-  </header>
-  <section class="site-shell"><PostList posts={posts} lang={lang} /></section>
+<BaseLayout lang={lang} title={category} bodyClass="concept-a">
+  <div class="a-directory">
+    <header class="a-directory__hero">
+      <p class="prototype-kicker">{c.kicker}</p>
+      <div class="a-directory__title"><h1>{category}</h1><p>{c.intro}</p></div>
+      <dl class="a-directory__stats">
+        <div><dt>{c.posts}</dt><dd>{c.entries(posts.length)}</dd></div>
+        <div><dt>{c.updated}</dt><dd><time datetime={latest.data.publishedAt.toISOString()}>{formatDate(latest.data.publishedAt, ui.locale)}</time></dd></div>
+      </dl>
+    </header>
+
+    <section class="a-category-detail" aria-labelledby="category-posts-title">
+      <header class="a-category-detail__head">
+        <h2 id="category-posts-title">{category}</h2>
+        <p>{c.entries(posts.length)}</p>
+      </header>
+      <ol class="a-category-posts">
+        {posts.map((post) => (
+          <li>
+            <a href={postPath(post)}>
+              <time datetime={post.data.publishedAt.toISOString()}>{formatDate(post.data.publishedAt, ui.locale)}</time>
+              <div class="a-category-posts__copy">
+                <h3>{post.data.title}</h3>
+                <p>{post.data.summary}</p>
+              </div>
+              <p class="a-category-posts__tags"><span>{c.tags}</span>{post.data.tags.join(' · ') || '—'}</p>
+              <span class="a-category-posts__arrow" aria-hidden="true">↗</span>
+            </a>
+          </li>
+        ))}
+      </ol>
+    </section>
+
+    <p class="a-directory__crosslink"><a href={`/${lang}/categories/`}>{c.back}</a></p>
+  </div>
 </BaseLayout>
