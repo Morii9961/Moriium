@@ -5,6 +5,7 @@
   "type": "module",
   "packageManager": "pnpm@11.22.0",
   "scripts": {
+    "check": "node ../node_modules/typescript/bin/tsc -p .",
     "fixtures:build": "node tools/build-protected-fixture.mjs",
     "fixtures:check": "node tools/validate-fixtures.ts"
   }

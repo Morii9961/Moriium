@@ -6,5 +6,8 @@
     "types": ["node"]
   },
   "include": [".astro/types.d.ts", "**/*"],
-  "exclude": ["dist", "node_modules"]
+  // prototypes/ is the Phase 1 spike (ADR 0001). It has its own tsconfig and its
+  // own `pnpm -C prototypes check`, so experimental code cannot fail the
+  // production gate. Remove this entry when prototypes/ is deleted.
+  "exclude": ["dist", "node_modules", "prototypes"]
 }

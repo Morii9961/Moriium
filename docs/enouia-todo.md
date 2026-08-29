@@ -213,8 +213,8 @@ Phase 1 已获批准并开工（2026-08-29），`prototypes/` 骨架与隔离验
 
 fixture corpus 已完成，`shared/` 的 frontmatter 契约也已随校验器落地（`prototypes/shared/content-schema.ts`，带与 `src/content.config.ts` 的漂移检查）。
 
-**下一块有一个决策卡口**：ADR 第 8 节第 5 项，`prototypes/` 是否排除出 `astro check`。根 `tsconfig.json` 的 `include: ["**/*"]` 让原型代码能弄挂 `pnpm verify`，动它属于 L2 且要碰根配置，需要 Morii 明确指示。不阻塞写代码，但拖着会让原型一直背生产的严格类型合同。
+类型检查的隔离也已完成：`prototypes/` 排除出根 `tsconfig.json`，自带一份同等严格的配置由 `pnpm -C prototypes check` 运行（ADR 13.4，L2 单独提交）。
 
-之后按 ADR 顺序是：语料的生产 HTML 基线快照（round-trip 丢失计数的前提），然后 `shared/` 契约补齐三语与媒体部分，再是原型 B 的存储层。
+之后按 ADR 顺序是：语料的生产 HTML 基线快照（round-trip 丢失计数的前提，基准取公开文章管线），然后 `shared/` 契约补齐三语与媒体部分，再是原型 B 的存储层。
 
 00 节其余未完成项——固定口径的体积/构建测量、体验任务评分表、把 07–12 的人工验收测试化——不阻塞原型开工，但必须在 Morii 实际操作 T1–T10 之前就位，否则没有可对照的基线。

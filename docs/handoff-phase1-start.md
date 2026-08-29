@@ -113,13 +113,17 @@ pnpm -C prototypes fixtures:check
 
 顺带在真实路径下确认了两件事：原型能用相对路径吃到生产 remark/rehype 管线（3.3 的零依赖前提成立），Node 24 直接执行 `.ts` 无需构建步骤（3.6 的 `shared/` 用普通 TypeScript 不需要工具链）。
 
-## 4.2 下一步
+## 4.2 类型检查隔离 — 已完成（L2）
 
-**先等一个决定**：ADR 第 8 节第 5 项。根 `tsconfig.json` 的 `include: ["**/*"]` 把 `prototypes/` 纳入了 `astro check`，原型代码因此能让 `pnpm verify` 失败。本轮按「不碰根配置」的边界改了原型代码去适配，但这让原型一直背着生产的严格类型合同。见 ADR 13.3。
+Morii 定夺后已实施：`prototypes/` 排除出根 `tsconfig.json`，并自带一份同等严格的 `prototypes/tsconfig.json`，由 `pnpm -C prototypes check` 运行。原型里的坏文件不再能弄挂 `pnpm verify`，但原型自己仍然被检查。
 
-不阻塞的话，按 ADR 顺序往下是：
+这是 Phase 1 至今唯一一次根配置改动，按第 6 节 L2 单独成一次提交，回退即 `git revert` 该提交。详见 [ADR 13.4](adr-0001-phase1-spike.md)。
 
-1. 给语料生成生产 HTML 的基线快照——round-trip 丢失项计数的前提，第 4 节的评分维度依赖它；
+## 4.3 下一步
+
+按 ADR 顺序往下是：
+
+1. 给语料生成生产 HTML 的基线快照——round-trip 丢失项计数的前提，第 4 节的评分维度依赖它。**基准取公开文章管线**（Morii 定夺，2026-08-29）：`astro.config.mjs` 的 `markdown.processor`，不是 `scripts/lib/render-markdown.mjs` 那条加密文章路径，后者关掉了 smartypants 与语法高亮，拿它当基准会让所有保真度数字系统性偏移；
 2. `shared/` 契约补齐三语关系、媒体 asset 形状与错误模型（frontmatter schema 已落地）；
 3. 原型 B 的薄存储层，SQL 收在里面，不让 `node:sqlite` 的 API 形状渗进业务逻辑。
 

@@ -1,0 +1,19 @@
+{
+  // The prototypes are excluded from the root tsconfig so that spike code cannot
+  // fail the production gate (ADR 0001 section 13.3). Excluded is not the same
+  // as unchecked: this config keeps the same strictness the production site
+  // uses, and `pnpm -C prototypes check` runs it.
+  "extends": "astro/tsconfigs/strict",
+  "compilerOptions": {
+    "exactOptionalPropertyTypes": true,
+    "noUncheckedIndexedAccess": true,
+    "types": ["node"],
+    // Node 24 executes .ts directly, and its resolver wants the real extension
+    // on relative imports. tsc only tolerates that alongside noEmit, which is
+    // correct here because nothing in this tree is compiled.
+    "allowImportingTsExtensions": true,
+    "noEmit": true
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules"]
+}

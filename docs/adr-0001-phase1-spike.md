@@ -232,12 +232,7 @@ Morii 已于 2026-08-29 定夺前三项：
 
 4. **发布新鲜度**：发布后秒级可见是否是硬需求，会影响 Phase 5 对 Hybrid 逐路由策略的取舍。这一项等两个原型的实测发布延迟出来后再判断更有依据。
 
-5. **`prototypes/` 是否排除出 `astro check`**（2026-08-29 新增，见 13.3）。根 `tsconfig.json` 的 `include: ["**/*"]` 把原型纳入了生产的类型检查，原型代码因此必须满足生产的严格配置，且能让 `pnpm verify` 失败。两个选项：
-
-   - **保持现状**：不动根配置，原型代码持续遵守生产的类型合同。好处是原型的类型质量不会松掉，坏处是原型这个本该允许试错和中间态的地方被生产标准绑住，且生产验证的结果不再只反映生产代码。
-   - **在 `tsconfig.json` 的 `exclude` 加入 `prototypes`**：属于第 6 节的 L2，单独成一次提交、单独说明，需要时 `git revert` 即可。好处是 3.1 的隔离主张真正成立，坏处是原型代码失去类型检查，除非 `prototypes/` 自带一份 tsconfig（可以，Node 24 直接跑 `.ts`，加检查不需要构建步骤）。
-
-   倾向后者加上原型自带 tsconfig：既让生产验证只对生产负责，又不放弃原型的类型检查。但这要动根配置，等 Morii 明确指示再做。在此之前按前者执行。
+5. ~~**`prototypes/` 是否排除出 `astro check`**~~ — **已由 Morii 定夺（2026-08-29）：采用排除加原型自带 tsconfig 的方案。已实施，见 13.4。**
 
 此外由 Morii 定夺、已并入正文的还有：原型采用嵌套 workspace（3.1），`node:sqlite` 仅作尖峰工具而非生产选型（3.5）。
 
@@ -441,4 +436,30 @@ node prototypes/tools/validate-fixtures.ts   → Fixture corpus is valid.（退�
 
 本次的处理是**改原型代码去适配，不动根配置**：Morii 给本轮定的边界明确包含「不碰根配置」，而 `tsconfig.json` 属于根配置。5 个错误全部是 `noUncheckedIndexedAccess` 下的真实空值风险（正则捕获组、解构结果可能为 `undefined`），修掉是应该的，不是为了迁就检查器。修复后 64 个文件 0 错误 0 警告 0 提示，`pnpm verify` 退出码 0。
 
-**但这一项需要 Morii 定夺，已列入第 8 节第 5 项。**当前状态可以走下去，代价是原型代码要一直背着生产的严格类型合同；而原型正是最需要允许中间态和试错的地方。第 6 节的 L1 回退不受影响——删掉 `prototypes/` 目录后一切照旧。
+**这一项已由 Morii 定夺**，处理见 13.4。第 6 节的 L1 回退不受影响——删掉 `prototypes/` 目录后一切照旧。
+
+### 13.4 L2：把 `prototypes/` 排除出生产类型检查（2026-08-29）
+
+Morii 选择 13.3 的第二个方案。这是本 ADR 第 6 节定义的 **L2 改动**：Phase 1 期间第一次、也是目前唯一一次改动根配置，因此单独成一次提交，需要时 `git revert` 即可，不牵连语料与骨架。
+
+改动三处：
+
+- 根 `tsconfig.json` 的 `exclude` 加入 `prototypes`，并注明删除 `prototypes/` 时应一并移除该条；
+- 新增 `prototypes/tsconfig.json`，继承同一套 `astro/tsconfigs/strict` 加 `exactOptionalPropertyTypes`、`noUncheckedIndexedAccess`。**排除不等于不检查**，严格度与生产一致；
+- `prototypes/package.json` 增加 `check` 脚本。它以 `node ../node_modules/typescript/bin/tsc` 调用根仓库已有的 TypeScript 6.0.3，因此不给原型新增任何依赖——pnpm 不会把父 workspace 的 `.bin` 串进嵌套 workspace 的 PATH，直接写 `tsc` 会找不到。
+
+`allowImportingTsExtensions` 与 `noEmit` 是必需的：Node 24 直接执行 `.ts` 时，相对导入要带真实扩展名，而 tsc 只在不产出文件时接受这种写法。原型树本来就不编译，这个组合是正确的而不是将就。
+
+实测两侧都成立，且是用一次刻意注入的错误证明的，不是声明：
+
+```text
+pnpm exec astro check                    → Result (60 files)（此前为 64）
+pnpm -C prototypes check                 → 退出码 0
+临时放入一个类型错误的 .ts 到 prototypes/  →
+  pnpm -C prototypes check               → error TS2322，退出码 2
+  pnpm exec astro check                  → Result (60 files): 0 errors（不受影响）
+删除该文件后                              → 两侧均恢复退出码 0
+pnpm verify                              → 退出码 0
+```
+
+关键的一条是中间那两行：原型里存在一个坏文件时，原型自查会失败而生产验证依然干净。3.1 的隔离主张到此才真正覆盖类型检查，而不只是覆盖文件改动。
