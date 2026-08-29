@@ -614,9 +614,9 @@ Tiptap 的 `MarkdownManager` 用 `markedInstance.use(...)` 注册扩展 tokenize
 
 `Markdown.configure({ marked })` 就是为注入而存在的。测试把这条钉死：先跑一遍带源节点的 round-trip，再跑基线，断言基线仍然如实丢掉那三个块。如果污染成立，基线会「正常」地一个都不丢，而那是假的。
 
-#### 新增依赖 `marked@17.0.6`，以及它不在 3.3 的表里
+#### 新增依赖 `marked@17.0.6`（Morii 已追认）
 
-注入需要能 `new Marked()`，因此 `marked` 从传递依赖提升为 `admin-b` 的直接依赖。**它不在 3.3 批准的依赖表内，这里明确记下**。三条事实供 Morii 判断：
+注入需要能 `new Marked()`，因此 `marked` 从传递依赖提升为 `admin-b` 的直接依赖。它不在 3.3 批准的依赖表内，**Morii 于 2026-08-29 追认保留**。三条事实一并记下：
 
 - 锁文件只多了 3 行 importer 记录，`marked@17.0.6` 本来就是 `@tiptap/markdown` 的依赖，磁盘上仍然只有一份，安装树没有新增任何包；
 - 版本号必须与 `@tiptap/markdown` 解析到的那份保持一致。将来升级 Tiptap 时若 marked 跨了大版本，这个直接 pin 会造成两份副本，需要一并调整；
