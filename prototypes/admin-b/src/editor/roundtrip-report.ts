@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { basename, resolve } from 'node:path';
-import { measureMarkdownRoundTrip } from './roundtrip.ts';
+import { measureMarkdownRoundTrip, measureMoriiumMarkdownRoundTrip } from './roundtrip.ts';
 
 const fixtures = [
   resolve(import.meta.dirname, '../../../fixtures/posts/zh/zh-tide-notes.md'),
@@ -13,17 +13,21 @@ function bodyOf(file: string): string {
   return parts.slice(2).join('---').trimStart();
 }
 
-const rows = fixtures.map((file) => {
-  const report = measureMarkdownRoundTrip(bodyOf(file));
-  return {
+const rows = fixtures.flatMap((file) => {
+  const body = bodyOf(file);
+  return [
+    ['unextended', measureMarkdownRoundTrip(body)] as const,
+    ['source-fallback', measureMoriiumMarkdownRoundTrip(body)] as const,
+  ].map(([mode, report]) => ({
     fixture: basename(file),
+    mode,
     inputBlocks: report.inputBlockIds.length,
     preserved: report.blockResults.filter((result) => result.preserved).length,
     lost: report.lostBlockIds.length,
     lostIds: report.lostBlockIds.join(', ') || 'none',
     characters: `${report.inputCharacters} -> ${report.outputCharacters}`,
-  };
+  }));
 });
 
 console.table(rows);
-console.log('This is the unextended Tiptap Markdown baseline; losses are evidence, not exemptions.');
+console.log('The unextended row is the Beta baseline; source-fallback must close losses without exemptions.');
