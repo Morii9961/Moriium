@@ -664,3 +664,47 @@ pnpm verify                         -> 退出码 0
 ```
 
 **仍未做**：源节点在界面上还没有可视化呈现，B 依然没有启动入口和 UI；发布闸门、媒体与翻译关系仍未接线。round-trip 保真成立不等于原型 B 可以交给 Morii 操作。
+
+### 13.12 Morii 定夺：源码块可编辑，图片做成真节点（2026-08-29）
+
+13.11 把取舍摆到台面上之后，Morii 选了「第 2 档打底，图片做到第 3 档」。也就是说，Markdown 保真继续是硬约束，但那七类语法不能是碰都碰不了的死块。
+
+#### 从原子块改成可编辑文本
+
+原来的两个节点是 `atom: true`，源码整段塞在 `raw` 属性里。后果很具体：光标进不去，视频 id 改一个字符也要整块删掉重打。
+
+现在改用 Tiptap 自己 CodeBlock 的形状——`content: 'text*'` 配 `marks: ''` 和 `code: true`，源码成为节点的普通文本内容。
+
+原先跟在 `raw` 尾巴上的那个换行挪进了 `trailing` 属性。这一步不是洁癖：换行留在文本里，作者会在每个源码块末尾看到一行凭空多出来的空行；而直接丢掉换行又会让输出不再等于原文。放进属性，两头都成立，逐字节比对仍然通过。
+
+#### 图片单独做成有预览的节点
+
+只有图片值得这份额外工作，理由在 13.10：其余几类是被转义，图片是被**彻底销毁**——路径和 caption 全没，只剩 alt 文本掉成普通段落。它也恰好是写作时最常碰的块。
+
+`image-node.ts` 把 `src`、`alt`、`title` 拆成三个结构化属性，`renderHTML` 画的是 `<figure><img>` 加 `<figcaption>`，而不是产生它的那行 Markdown。等 B 有了界面，属性面板可以直接改这三个字段。
+
+**要说清楚的是这一档现在只完成了一半。**结构和渲染已经就位，但「改 alt」需要的属性面板属于界面，而 B 至今没有界面。今天能证明的是：编辑器把它当图片而不是源码，且序列化逐字节还原。
+
+#### 断言的是结构，不是说法
+
+「光标能进去」这句话直接写成了 ProseMirror 层面的断言，而不是注释：源码块必须 `isTextblock === true` 且 `isAtom === false`，图片必须 `isAtom === true`。另有一条把编辑本身走完——在源码块里把 `id="old"` 改成 `id="new"`，再让 schema `check()` 通过。
+
+这几条做过负向测试：把块节点临时改回 `atom: true`，`lets the cursor into a block source node` 如期报 `math-block is not a textblock` 并失败，还原后转绿。
+
+#### 一条明确不做、并已钉死的限制
+
+只认整行图片。夹在句子中间的图片仍然走未加扩展的老路，alt 保留、文件丢失。Moriium 的图片本来就独占一行，夹具里也是如此，因此没有为它加宽 `BLOCK_IMAGE`。但这条不是默认它不会发生，`image-node.test.ts` 有一条用例断言这个行为，将来真要支持时会看见它。
+
+#### 本轮验证
+
+保真数字与 13.11 完全一致，改的是编辑形态，不是输出：
+
+```text
+pnpm -C prototypes check            -> 退出码 0
+pnpm -C prototypes test             -> tests 102 / suites 26 / pass 102 / fail 0
+pnpm -C prototypes fixtures:check   -> Fixture corpus is valid.
+pnpm -C prototypes roundtrip:report -> unextended 8/11；moriium-nodes 11/11，1889 -> 1888
+pnpm verify                         -> 退出码 0（60 files 0 errors、30/30、46 pages）
+```
+
+**下一块仍然是界面。**源码块和图片节点到今天为止没有任何人用眼睛看过，`getHTML()` 在 Node 里跑不了，因为 ProseMirror 的 DOM 序列化需要 `window`。可编辑、可预览这两件事现在成立于结构层面，能不能用还要等 B 有了启动入口和 Vue 外壳才知道。
