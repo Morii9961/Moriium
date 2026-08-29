@@ -1,0 +1,13 @@
+packages:
+  - studio-a
+  - admin-b
+  - shared
+
+# A nested workspace inherits nothing from the repository root, so every
+# setting the root relies on has to be restated here.
+enableGlobalVirtualStore: false
+
+saveExact: true
+
+allowBuilds:
+  esbuild: true

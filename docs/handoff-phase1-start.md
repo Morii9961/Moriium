@@ -25,8 +25,8 @@
 - **仓库已公开发布：<https://github.com/Morii9961/Moriium>**，`origin` 已配置，`main` 已跟踪远端；
 - Node `24.15.0`，pnpm `11.22.0`，Astro `7.2.4`；
 - 生产验证通过：`pnpm verify` 退出码 0；`astro check` 60 文件 0 错误 0 警告 0 提示；`pnpm test` 30/30；`astro build` 46 页；链接与公开树审计通过；
-- `prototypes/` **尚未创建**；
-- 尚未安装任何原型依赖。
+- `prototypes/` **骨架已建立并通过隔离验证**（2026-08-29，见第 4 节与 ADR 13.1）；
+- 尚未安装任何原型的正式依赖（第 6 节那批 Vue / Tiptap / Vite 包一个都还没装）。
 
 本轮新增的四个提交：
 
@@ -58,11 +58,15 @@
 
 Enouia 额度耗尽已退出，全部切片归 Claude，交叉审查改为自审。这一点的质量影响写在 ADR 1.1，接手时请读一遍，别默认「已审过就没问题」。
 
-## 4. 下一步：一个可以安全执行的小步骤
+## 4. 第一步：建立 `prototypes/` 骨架并验证隔离 — 已完成
 
-**建立 `prototypes/` 骨架并当场验证嵌套 workspace。**
+> **状态：2026-08-29 完成，四条验收标准全中，无需启用仓外目录的备选方案。**
+> 实测命令与输出见 [ADR 13.1](adr-0001-phase1-spike.md)。执行中发现 ADR 3.1 的配置清单漏了 `enableGlobalVirtualStore: false`，已补齐并在 ADR 3.1 说明理由。
+> 下一步是 fixture corpus，见第 4.1 节。
 
-嵌套 workspace 目前只在仓库外的副本验证过，没有在真实仓库路径下建过。所以第一步不是写功能，是确认隔离成立：
+原始任务描述保留如下，作为验收口径的依据。
+
+嵌套 workspace 当时只在仓库外的副本验证过，没有在真实仓库路径下建过。所以第一步不是写功能，是确认隔离成立：
 
 ```bash
 mkdir -p prototypes/studio-a prototypes/admin-b prototypes/shared
@@ -97,7 +101,15 @@ pnpm -C prototypes install
 
 任一条不成立，按 ADR 3.1 的备选方案改用仓库外的同级目录，并回填 ADR 第 12 节的遗留风险条目。
 
-这一步做完之后，才是 Phase 0 的 fixture corpus（ADR 第 1 节前置第 3 项，硬前置），然后才是 `shared/` 契约与 B 的存储层。
+## 4.1 下一步：fixture corpus
+
+这是 Phase 0 的遗留项（`enouia-todo.md` 00 节），也是 ADR 第 1 节前置第 3 项标记的**硬前置**：两个原型必须吃同一套输入，否则 A/B 比较不成立。
+
+约束：全部人工虚构，加密 fixture 只用测试口令与测试密文，图片只用生成素材；不读 `.private/posts/`、真实口令或原始照片；语料放在 `prototypes/fixtures/`，两个原型都不得写回（ADR 3.2）。
+
+覆盖面取自 ADR 第 4 节的 T3 与 T6：`markdown-reference.md` 的全部内容块、三语 `translationKey` 关系（含一个故意缺失的英语版本）、草稿状态、加密信封。
+
+fixture corpus 之后才是 `shared/` 契约与 B 的存储层。
 
 ## 5. 写代码时最容易踩的边界
 
@@ -149,7 +161,7 @@ pnpm -C prototypes install（仓外副本）→ Scope: all 4 workspace projects�
 
 ## 8. 已知风险与临时假设
 
-- 嵌套 workspace 在真实仓库路径下**未验证**，见第 4 节；
+- ~~嵌套 workspace 在真实仓库路径下未验证~~ — **已关闭**，2026-08-29 在仓库内验证通过，见第 4 节与 ADR 13.1；
 - `engineStrict: true` 是行为收紧。将来 pnpm 升到 12 时若不同步改 `engines`，本地与 CI 都会安装失败。当前 CI（Node 24 + pnpm 11.22.0）已确认不受影响；
 - Vite 大分包警告本轮未捕获到输出，**不能**据此认为它消失了，仍在 Phase 0 体积测量清单里；
 - `@tiptap/markdown` 是 Beta，Moriium 的 admonition、音乐、视频、GitHub 卡片、剧透、Mermaid 等自定义指令能否 round-trip **完全未知**，这正是 Phase 1 要测的东西，不要预设它能行；

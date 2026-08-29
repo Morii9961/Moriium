@@ -85,6 +85,8 @@ packages:
   - admin-b
   - shared
 
+enableGlobalVirtualStore: false
+
 saveExact: true
 
 allowBuilds:
@@ -92,6 +94,8 @@ allowBuilds:
 ```
 
 `saveExact` 承担 `AGENTS.md`「Lock exact versions」的要求；`allowBuilds` 是因为 pnpm 11 默认拦截依赖的 lifecycle script，而 `esbuild` 带 `postinstall: node install.js`，Vite 链路会用到它。两项都已实测，见第 9 节与第 10 节。
+
+`enableGlobalVirtualStore: false` 是建骨架时补上的，本 ADR 初稿漏了它。根 `pnpm-workspace.yaml` 显式写了这一条，注释写明意图是让本项目独立于机器级虚拟 store；嵌套 workspace 不继承父配置，不重写就只能靠 pnpm 的默认值兜住。实测虚拟 store 确实落在 `prototypes/node_modules/.pnpm`，但那是默认行为而非声明，与根仓库刻意声明它的理由相抵触，因此补齐。
 
 ### 3.2 目录职责
 
@@ -350,4 +354,38 @@ Enouia 退出后由 Claude 自审。以下是自审**实际改掉**的问题，�
 
 **自审覆盖不到的地方**，需要 Morii 补位：本 ADR 的架构取舍（嵌套 workspace、`node:sqlite` 作尖峰、Markdown 保持真源）没有第二个独立技术视角复核过；A/B 的体验优劣按设计就只能由 Morii 实际操作判定。第 4 节的硬性否决项是为了让「体验好」不能盖过「草稿泄漏」这类客观失败，但它挡不住评分维度本身选错。
 
-**已知遗留风险**：`prototypes/` 嵌套 workspace 只在仓库外副本验证过，尚未在真实仓库路径下建过；Phase 1 第一步建目录时如果行为不符，按 3.1 的备选方案改用仓外目录并回填本节。
+**已关闭的遗留风险**：`prototypes/` 嵌套 workspace 此前只在仓库外副本验证过。2026-08-29 已在真实仓库路径下建立骨架并当场复验，四条验收标准全部成立，备选的仓外目录方案不需要启用。命令与输出见 13.1。
+
+自审在这一步又发现一处本 ADR 自己的疏漏：3.1 列出的嵌套 workspace 最小配置漏了 `enableGlobalVirtualStore: false`，已补，理由写在 3.1。这类「父配置不继承」的遗漏还可能存在于其他设置上，往 `prototypes/` 加配置时应逐条对照根 `pnpm-workspace.yaml`，不要假设本 ADR 的清单是完整的。
+
+## 13. 执行记录
+
+### 13.1 骨架与隔离验证（2026-08-29）
+
+建立 `prototypes/`，成员为 `studio-a`、`admin-b`、`shared`，各带一个 `private: true` 的最小 `package.json`。四条验收标准逐条实测：
+
+```text
+pnpm -C prototypes root -w        → E:\Moriium\prototypes\node_modules
+pnpm -C prototypes install        → Scope: all 4 workspace projects
+仓库内 pnpm-lock.yaml（排除 node_modules）→ 只有根的与 prototypes/ 的两个
+git status --short --untracked-files=no → 空（无 tracked 文件被修改）
+git check-ignore -v prototypes/node_modules → .gitignore:1:node_modules/
+pnpm verify（仓库根）              → 退出码 0
+```
+
+`pnpm verify` 的构成与第 9 节一致：60 个 Astro 文件 0 错误 0 警告 0 提示、30/30 测试、46 个静态页面、链接与公开树审计通过。既有的 Vite 大分包警告仍在，与第 9 节的记录一致，仍留在 Phase 0 的体积测量清单里。
+
+**零依赖安装是弱证据，因此补做了一次真实依赖往返。** 四个成员当时都没有依赖，`install` 只输出 `Already up to date`，并未解析任何包，隔离的关键问题（装依赖时会不会串到根 store 或根 lockfile）没有被触及。按第 9 节的做法给 `admin-b` 装 `nanoid` 再移除：
+
+```text
+pnpm -C prototypes --filter @moriium-prototypes/admin-b add nanoid
+  → admin-b/package.json 写入 "nanoid": "6.0.1"（精确，saveExact 在嵌套 workspace 生效）
+根 node_modules/.pnpm        → nanoid@3.3.18（生产传递依赖，在未修改的根 lockfile 内）
+prototypes/node_modules/.pnpm → nanoid@6.0.1
+prototypes/admin-b/node_modules/nanoid
+  → prototypes/node_modules/.pnpm/nanoid@6.0.1/node_modules/nanoid
+根 package.json / pnpm-lock.yaml → 全程未修改
+pnpm -C prototypes --filter @moriium-prototypes/admin-b remove nanoid → 已还原
+```
+
+两个 `nanoid` 大版本各自独立解析、互不干扰，这比零依赖安装更能证明隔离成立。
