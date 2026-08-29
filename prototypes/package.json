@@ -2,5 +2,10 @@
   "name": "moriium-prototypes",
   "version": "0.0.0",
   "private": true,
-  "packageManager": "pnpm@11.22.0"
+  "type": "module",
+  "packageManager": "pnpm@11.22.0",
+  "scripts": {
+    "fixtures:build": "node tools/build-protected-fixture.mjs",
+    "fixtures:check": "node tools/validate-fixtures.ts"
+  }
 }

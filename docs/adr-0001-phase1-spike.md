@@ -232,6 +232,13 @@ Morii 已于 2026-08-29 定夺前三项：
 
 4. **发布新鲜度**：发布后秒级可见是否是硬需求，会影响 Phase 5 对 Hybrid 逐路由策略的取舍。这一项等两个原型的实测发布延迟出来后再判断更有依据。
 
+5. **`prototypes/` 是否排除出 `astro check`**（2026-08-29 新增，见 13.3）。根 `tsconfig.json` 的 `include: ["**/*"]` 把原型纳入了生产的类型检查，原型代码因此必须满足生产的严格配置，且能让 `pnpm verify` 失败。两个选项：
+
+   - **保持现状**：不动根配置，原型代码持续遵守生产的类型合同。好处是原型的类型质量不会松掉，坏处是原型这个本该允许试错和中间态的地方被生产标准绑住，且生产验证的结果不再只反映生产代码。
+   - **在 `tsconfig.json` 的 `exclude` 加入 `prototypes`**：属于第 6 节的 L2，单独成一次提交、单独说明，需要时 `git revert` 即可。好处是 3.1 的隔离主张真正成立，坏处是原型代码失去类型检查，除非 `prototypes/` 自带一份 tsconfig（可以，Node 24 直接跑 `.ts`，加检查不需要构建步骤）。
+
+   倾向后者加上原型自带 tsconfig：既让生产验证只对生产负责，又不放弃原型的类型检查。但这要动根配置，等 Morii 明确指示再做。在此之前按前者执行。
+
 此外由 Morii 定夺、已并入正文的还有：原型采用嵌套 workspace（3.1），`node:sqlite` 仅作尖峰工具而非生产选型（3.5）。
 
 ## 9. 本轮核验记录
@@ -389,3 +396,49 @@ pnpm -C prototypes --filter @moriium-prototypes/admin-b remove nanoid → 已还
 ```
 
 两个 `nanoid` 大版本各自独立解析、互不干扰，这比零依赖安装更能证明隔离成立。
+
+### 13.2 fixture corpus（2026-08-29）
+
+第 1 节前置第 3 项完成。语料在 `prototypes/fixtures/`，四篇公开文章、一篇加密文章、两个 SVG 媒体，全部人工虚构。
+
+按用途设计，不是凑数：
+
+| 夹具 | 服务的验收任务 | 形态理由 |
+| --- | --- | --- |
+| `posts/zh/zh-tide-notes.md` | T3、T5 | 覆盖 `markdown-reference.md` 的全部内容块，含 fence metadata（标题、行号、标记行、折叠段）、行内与块级数学、Mermaid、五种 admonition 加 GitHub callout、spoiler、`::github`、`::video`、`::music`、带 alt 与 caption 的图片，以及一段中日英混排标点 |
+| `posts/ja/ja-tide-notes.md` | T3、T5、T6 | 同 `translationKey`、同内容块的日文版。round-trip 保真需要一个非拉丁正文来暴露丢字 |
+| *(无英文版)* | T6 | 缺席本身就是夹具。「不可用」必须能与「还没写」区分开，且 `AGENTS.md` 禁止伪造或复制翻译 |
+| `posts/zh/zh-darkroom-log.md` | T6 | 故意只有中文。T6 要 Morii 在任务中补日语，所以必须有一组是从不完整状态起步的 |
+| `posts/zh/zh-winter-drafts.md` | T8、硬性否决项 | `draft: true` 配 `unlisted: false`，确保泄漏测试验证的是 `draft` 过滤本身，而不是被 `unlisted` 顺带挡住 |
+| `protected/zh-sealed-notebook.json` | T3、解锁流程 | 用生产的 `scripts/lib/crypto.mjs` 生成的真实 AES-256-GCM 信封，正文含图片与数学，`features` 标记因此不是全 false |
+
+`prototypes/tools/validate-fixtures.ts` 把语料的每条性质做成断言而不是注释：schema 校验、`slug` 前缀与目录同 `lang` 一致、三语关系符合 T6 的起始状态、草稿夹具存在且 `unlisted: false`、媒体文件存在且 alt 非空且无孤儿、加密夹具的 feature 标记与源文一致、用测试口令能解密且用错误口令必须失败。
+
+**校验器本身做过负向测试。** 只会通过的校验器没有价值，因此把日文夹具的 `lang` 临时改成 `en` 跑了一次，如期触发四条断言并以退出码 1 结束，随后还原：
+
+```text
+node prototypes/tools/validate-fixtures.ts   → Fixture corpus is valid.（退出码 0）
+临时把 ja-tide-notes 的 lang 改成 en          → 4 problem(s)，退出码 1
+  - slug "ja/tide-notes" does not start with lang "en"
+  - sits in directory "ja" but declares lang "en"
+  - tide-notes must ship zh and ja
+  - tide-notes must NOT ship en
+还原后                                        → 退出码 0
+```
+
+顺带确认了两件影响后续选型的事实：
+
+1. **原型可以用相对路径吃到生产管线。**`build-protected-fixture.mjs` 从 `prototypes/` 导入 `scripts/lib/render-markdown.mjs`，裸依赖正常解析到根 `node_modules`。3.3 关于「原型 A 新依赖为 0」的前提到此在真实路径下成立，不再只是推断。
+2. **Node 24.15.0 直接执行 `.ts`，无需 flag、无需构建步骤。**因此 3.6 要求 `shared/` 用普通 TypeScript 不需要引入任何工具链，原型 A 也可以全程 TypeScript 而仍然保持零新依赖。
+
+**尚未完成**：这些正文还没有生产 HTML 的基线快照，所以第 4 节要求的 round-trip 丢失项计数目前还无法自动统计。生成并存下基线是语料的下一块工作。
+
+### 13.3 发现：隔离不覆盖 `astro check`
+
+建完语料后 `pnpm verify` **失败**了。根 `tsconfig.json` 的 `include` 是 `["**/*"]`，`exclude` 只有 `dist` 与 `node_modules`，因此 `astro check` 把 `prototypes/**/*.ts` 一并纳入了类型检查：文件数从 60 变成 64，并报出 5 个错误。
+
+这与 3.1 的判断有出入。3.1 说 Phase 1 期间生产文件零改动即可保证生产不受影响，但零改动**不等于**零耦合：原型的 TypeScript 现在必须满足生产的严格配置（`astro/tsconfigs/strict` 加 `exactOptionalPropertyTypes`、`noUncheckedIndexedAccess`），任何一个不合规的原型文件都会让 `pnpm verify` 失败。
+
+本次的处理是**改原型代码去适配，不动根配置**：Morii 给本轮定的边界明确包含「不碰根配置」，而 `tsconfig.json` 属于根配置。5 个错误全部是 `noUncheckedIndexedAccess` 下的真实空值风险（正则捕获组、解构结果可能为 `undefined`），修掉是应该的，不是为了迁就检查器。修复后 64 个文件 0 错误 0 警告 0 提示，`pnpm verify` 退出码 0。
+
+**但这一项需要 Morii 定夺，已列入第 8 节第 5 项。**当前状态可以走下去，代价是原型代码要一直背着生产的严格类型合同；而原型正是最需要允许中间态和试错的地方。第 6 节的 L1 回退不受影响——删掉 `prototypes/` 目录后一切照旧。

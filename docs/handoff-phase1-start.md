@@ -101,15 +101,27 @@ pnpm -C prototypes install
 
 任一条不成立，按 ADR 3.1 的备选方案改用仓库外的同级目录，并回填 ADR 第 12 节的遗留风险条目。
 
-## 4.1 下一步：fixture corpus
+## 4.1 fixture corpus — 已完成
 
-这是 Phase 0 的遗留项（`enouia-todo.md` 00 节），也是 ADR 第 1 节前置第 3 项标记的**硬前置**：两个原型必须吃同一套输入，否则 A/B 比较不成立。
+> **状态：2026-08-29 完成。** 语料在 `prototypes/fixtures/`，用法与设计理由见该目录的 `README.md`，实测记录见 [ADR 13.2](adr-0001-phase1-spike.md)。
 
-约束：全部人工虚构，加密 fixture 只用测试口令与测试密文，图片只用生成素材；不读 `.private/posts/`、真实口令或原始照片；语料放在 `prototypes/fixtures/`，两个原型都不得写回（ADR 3.2）。
+```bash
+pnpm -C prototypes fixtures:check
+```
 
-覆盖面取自 ADR 第 4 节的 T3 与 T6：`markdown-reference.md` 的全部内容块、三语 `translationKey` 关系（含一个故意缺失的英语版本）、草稿状态、加密信封。
+四篇公开文章、一篇加密文章、两个 SVG，全部人工虚构。每一条性质都是断言：schema 校验、`slug` 与目录同 `lang` 一致、三语关系符合 T6 起始状态、草稿夹具存在、媒体存在且 alt 非空、加密夹具能用测试口令解密且用错误口令必须失败。校验器本身做过负向测试，不是只会通过的摆设。
 
-fixture corpus 之后才是 `shared/` 契约与 B 的存储层。
+顺带在真实路径下确认了两件事：原型能用相对路径吃到生产 remark/rehype 管线（3.3 的零依赖前提成立），Node 24 直接执行 `.ts` 无需构建步骤（3.6 的 `shared/` 用普通 TypeScript 不需要工具链）。
+
+## 4.2 下一步
+
+**先等一个决定**：ADR 第 8 节第 5 项。根 `tsconfig.json` 的 `include: ["**/*"]` 把 `prototypes/` 纳入了 `astro check`，原型代码因此能让 `pnpm verify` 失败。本轮按「不碰根配置」的边界改了原型代码去适配，但这让原型一直背着生产的严格类型合同。见 ADR 13.3。
+
+不阻塞的话，按 ADR 顺序往下是：
+
+1. 给语料生成生产 HTML 的基线快照——round-trip 丢失项计数的前提，第 4 节的评分维度依赖它；
+2. `shared/` 契约补齐三语关系、媒体 asset 形状与错误模型（frontmatter schema 已落地）；
+3. 原型 B 的薄存储层，SQL 收在里面，不让 `node:sqlite` 的 API 形状渗进业务逻辑。
 
 ## 5. 写代码时最容易踩的边界
 

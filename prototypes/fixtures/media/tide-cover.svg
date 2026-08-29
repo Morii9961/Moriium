@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc" width="1200" height="630">
+  <title id="title">抽象潮位示意图</title>
+  <desc id="desc">由横向细线与几处深色色块构成的抽象潮位示意，纯几何生成，不含任何摄影素材。</desc>
+  <rect width="1200" height="630" fill="#f4f2ee" />
+  <g stroke="#8d8880" stroke-width="1" fill="none">
+    <path d="M0 420 C 150 360, 250 300, 400 300 S 650 400, 800 400 S 1050 320, 1200 290" />
+    <path d="M0 448 C 150 392, 250 334, 400 334 S 650 430, 800 430 S 1050 352, 1200 322" />
+    <path d="M0 476 C 150 424, 250 368, 400 368 S 650 460, 800 460 S 1050 384, 1200 354" />
+  </g>
+  <g stroke="#c9c4bb" stroke-width="1">
+    <line x1="0" y1="140" x2="1200" y2="140" />
+    <line x1="0" y1="540" x2="1200" y2="540" />
+  </g>
+  <g fill="#2f2c28">
+    <rect x="120" y="196" width="64" height="8" />
+    <rect x="120" y="220" width="140" height="8" />
+    <rect x="948" y="560" width="132" height="8" />
+  </g>
+  <g fill="#8d8880">
+    <rect x="120" y="248" width="88" height="4" />
+    <rect x="120" y="266" width="52" height="4" />
+  </g>
+</svg>
