@@ -21,20 +21,29 @@
 
 ## 2. 当前状态
 
-- 分支 `main`，HEAD `64ac315`，**本轮没有任何 commit**；
+- 分支 `main`，工作树干净，全部已提交并推送；
+- **仓库已公开发布：<https://github.com/Morii9961/Moriium>**，`origin` 已配置，`main` 已跟踪远端；
 - Node `24.15.0`，pnpm `11.22.0`，Astro `7.2.4`；
 - 生产验证通过：`pnpm verify` 退出码 0；`astro check` 60 文件 0 错误 0 警告 0 提示；`pnpm test` 30/30；`astro build` 46 页；链接与公开树审计通过；
 - `prototypes/` **尚未创建**；
 - 尚未安装任何原型依赖。
 
-工作树未提交改动，分三组：
+本轮新增的四个提交：
 
-| 组 | 文件 | 来源 |
+| 提交 | 内容 | 署名 |
 | --- | --- | --- |
-| 本轮 Claude 配置 | `AGENTS.md`、`CLAUDE.md` | 技能路由与阅读顺序 |
-| 本轮 Claude 修复 | `pnpm-workspace.yaml`、`.npmrc` | `saveExact` / `engineStrict` 迁移 |
-| 本轮 Claude 文档 | `docs/adr-0001-phase1-spike.md`、`docs/handoff-phase1-start.md` | 新增 |
-| Enouia 遗留 | `docs/architecture.md`、`docs/design-system.md`、`docs/enouia-todo.md`、`docs/claude-vnext-handoff.md`、`docs/vnext-architecture-plan.md` | **不要覆盖或重排** |
+| `8441ee0` | vNext 架构方案与规划文档更新 | Codex |
+| `340e69d` | ADR 0001 与本交接文档 | Claude |
+| `30c92c3` | `saveExact` / `engineStrict` 迁入 `pnpm-workspace.yaml` | Claude |
+| `8e54f3f` | `AGENTS.md` 技能路由与 `CLAUDE.md` 阅读顺序 | Claude |
+
+`30c92c3` 刻意独立成一次提交，对应 ADR 第 6 节的 L2 回退级别，需要时 `git revert 30c92c3` 即可，不牵连其他改动。
+
+> **公开发布带来的新约束。** 仓库现在是公开的，`git push` 会立刻对外可见且历史永久保留。本轮的提交与推送是 Morii 逐次明确批准的一次性授权，**不构成后续默认权限**。`AGENTS.md` 的规则恢复生效：没有 Morii 的明确指示，不 commit、不 push、不部署。
+>
+> 发布前的隐私审计结论（可复查）：全历史无 token/密钥模式；`.private/`、`.env` 从未提交；`.env.example` 只有空占位；`src/content/protected/` 只有 `.gitkeep`、路由和一个标记为 `draft`/`unlisted` 的非编辑性 fixture；公开 raster media 无 EXIF、XMP、IPTC。
+>
+> **已知的一项例外**：`enouia-todo.md` 第 14 节要求「删除或隔离 `/design/` 原型页面」，该项尚未完成，`src/pages/design/` 与 `dist/design/`（含 `public/design/final-resonance-2024.webp`）已随本次公开发布对外可见。这些页面带 `noindex` 且不进 sitemap，图片已去除元数据，但文件本身公开可读。Morii 在知情后仍选择发布。清理它们仍是发布前总验收的待办项。
 
 ## 3. Morii 已批准与已定夺的事
 
@@ -95,8 +104,7 @@ pnpm -C prototypes install
 - **不碰生产文件**：`package.json`、`pnpm-lock.yaml`、`pnpm-workspace.yaml`、`astro.config.mjs`、`src/**`、`.github/**`、`deploy/**`。需要改就先停下来问；
 - **不碰真实私密内容**：不读 `.private/posts/`、真实口令、原始照片。fixture 全部人工虚构，加密 fixture 只用测试口令与测试密文；
 - **不写回 `src/content/`**：原型只读写 `prototypes/fixtures/`；
-- **不 commit、push、部署、发布**；
-- **不覆盖 Enouia 遗留的未提交改动**；
+- **不 commit、push、部署、发布**——仓库已公开，push 立刻对外可见且不可撤回；
 - 媒体导入必须过 `scripts/sanitize-media.mjs` 闸门，原图不可写；
 - B 的 SQL 收在薄存储层内，不让 `node:sqlite` 的 API 形状渗进业务逻辑——它随时可能被换掉。
 
@@ -135,7 +143,9 @@ node:sqlite 建表/写入/读取往返   → { a: 1 }
 pnpm -C prototypes install（仓外副本）→ Scope: all 4 workspace projects，只生成嵌套 lockfile
 ```
 
-未运行：任何 commit / push / deploy；任何仓库内的原型依赖安装。
+经 Morii 逐次明确批准后执行：4 次 commit，创建公开仓库 `Morii9961/Moriium` 并推送全部 10 个提交。推送前做过全历史隐私审计，结论见第 2 节。co-author 署名已用 GitHub GraphQL 核实解析到 `codex` 与 `claude` 两个真实账户。
+
+未运行：任何部署；任何仓库内的原型依赖安装。
 
 ## 8. 已知风险与临时假设
 
