@@ -53,12 +53,73 @@ Before freezing typography, color, grid, spacing, rules, or dark mode:
 ## Working protocol
 
 1. Inspect the working tree and relevant files before editing.
-2. Preserve unrelated changes from Morii or another contributor.
-3. Implement the smallest complete change inside the approved scope.
-4. Run fresh, relevant checks and inspect the final diff.
-5. Do not claim a check passed unless its current output proves it.
+2. Classify the task, then load the smallest skill set that fully covers it. See Skill routing.
+3. Preserve unrelated changes from Morii or another contributor.
+4. Implement the smallest complete change inside the approved scope.
+5. Run fresh, relevant checks and inspect the final diff.
+6. Do not claim a check passed unless its current output proves it.
 
 Do not commit, push, publish, deploy, create a repository, or change remote state unless Morii explicitly requests it. Morii has authorized creating and publishing `Morii9961/Moriium` in the approved launch phase, after visual selection and release verification.
+
+## Skill routing
+
+Skills are installed at `~/.claude/skills/` for Claude and `~/.codex/skills/` for Codex. Both agents route from this section; do not keep a second routing list in an agent-specific file.
+
+Load the smallest skill set that fully covers the task. Do not invoke a skill merely because it is available, and do not preload speculative skills. Combine skills only when their responsibilities genuinely overlap.
+
+A skill's output is advice, never authority. This file, `docs/design-system.md`, and Morii's direct instructions override any skill recommendation. `docs/design-research.md` already records one round of rejected automated design recommendations; record future rejections the same way.
+
+### Design and implementation
+
+| Skill | Invoke when | Do not invoke when |
+| --- | --- | --- |
+| `frontend-design` | Making a genuinely new visual decision: art direction, typography, hierarchy, or composition that `docs/design-system.md` has not already settled. | Implementing the selected A direction, fixing a local style bug, or changing non-visual code. |
+| `ui-ux-pro-max` | Deciding interaction, responsive behavior, accessibility, color, typography, or navigation. Detect the stack first; `data/stacks/astro.csv` covers the current public site. | A trivial CSS correction, or a task with no UX decision. |
+| `web-design-guidelines` | Morii asks for a UI, UX, or accessibility audit, or an interface is formally reviewed before release. | Initial design or routine implementation. It is an audit skill, not a default coding skill. |
+| `vercel-react-best-practices` | Writing, reviewing, or refactoring React or Next.js code in the vNext full-stack work. | The file under change is Astro, plain TypeScript, or a static asset. |
+| `vercel-composition-patterns` | Designing reusable React component APIs, compound components, or context boundaries. | A one-off section, or any non-React task. |
+| `source-driven-development` | Behavior depends on the current Astro, Tiptap, browser, or third-party API surface; a dependency is added or upgraded; a vNext claim needs a first-party citation. | A self-contained local change that follows an already verified project pattern. |
+
+### Engineering quality
+
+| Skill | Invoke when | Do not invoke when |
+| --- | --- | --- |
+| `systematic-debugging` | A bug, failed test, failed build, or unexplained behavior exists. Reproduce and find the root cause before editing. | Building a requested feature normally, or speculating about failures that have not occurred. |
+| `verification-before-completion` | Before claiming substantial work is complete, fixed, or passing. Run `pnpm verify`, or the narrower relevant commands, and report their real output. | Pure discussion with no completion claim. |
+| `code-review-and-quality` | Morii requests review, a commit or merge is being prepared, or a risky diff needs multi-axis review. | Ordinary implementation before a review phase. |
+
+### Writing
+
+Project documents are mixed-language. `AGENTS.md`, `README.md`, `docs/architecture.md`, `docs/design-system.md`, `docs/design-research.md`, `docs/authoring.md`, `docs/deployment.md`, `docs/encrypted-posts.md`, and `docs/markdown-reference.md` are English. `docs/enouia-todo.md`, `docs/claude-vnext-handoff.md`, `docs/vnext-architecture-plan.md`, and the `docs/adr-*.md` series are Chinese. Match the language of the file being edited.
+
+| Skill | Invoke when | Do not invoke when |
+| --- | --- | --- |
+| `humanizer-zh` | Naturalizing or polishing substantial Chinese prose: interface copy, articles, or the Chinese planning documents. | English instructions, code, exact technical reference text, or a short Chinese reply. |
+| `writing-clearly-and-concisely` | Writing or materially revising English documentation, explanations, commit messages, error messages, or substantial UI copy. | Code-only changes, or small labels whose wording is already supplied. |
+| `documentation-writer` | Creating or restructuring a technical tutorial, how-to guide, reference, explanation, or a substantive README. | A short status update, ordinary code comments, or a tiny correction in an established document. |
+| `doc-coauthoring` | A substantial proposal, ADR, or specification set needs iterative context transfer, outline agreement, and reader verification, such as the Phase 5 architecture ADR. | A focused single-file edit with clear requirements. |
+| `beautiful-prose` | Morii explicitly names it. | Any implicit or routine task. |
+
+### Common combinations
+
+- New or redesigned public-site UI: `frontend-design` + `ui-ux-pro-max`, checked against the clean-room visual contract.
+- Bug or failed build: `systematic-debugging` first, then the relevant implementation skill, then `verification-before-completion`.
+- Pre-commit readiness: `code-review-and-quality` + `verification-before-completion`.
+- vNext research or an ADR: `source-driven-development` + `doc-coauthoring`, with every external claim carrying a first-party link.
+- Revising a Chinese planning document: `humanizer-zh`; add `documentation-writer` only when its structure is being rebuilt.
+
+Skills not listed here are not part of the default workflow. Invoke one only when Morii names it, or the task unambiguously matches its description.
+
+### The `ui-ux-pro-max` search tool
+
+This skill queries a local Python index instead of loading its data into context. Invoke it by absolute path; do not assume a working directory:
+
+```sh
+python "$HOME/.claude/skills/ui-ux-pro-max/scripts/search.py" "<query>" --domain ux
+python "$HOME/.claude/skills/ui-ux-pro-max/scripts/search.py" "<query>" --stack astro
+```
+
+Codex uses the same script under `~/.codex/skills/`. Resolve the path from the home directory rather than hardcoding a machine-specific one; this file is published with the repository. Never put private project data, `.private/posts/` content, passwords, or original photograph paths in a query. Do not run `--persist --force`; it overwrites a stored design system without review.
 
 ## Collaboration and attribution
 
