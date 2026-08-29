@@ -1,6 +1,6 @@
 # Moriium design system
 
-> Status: **A selected; production migration in progress**. The global frame, home, and Writing page use A. Remaining directories and the article reader will move over in separate, reviewable blocks.
+> Status: **A structure selected and migrated to the primary production routes; final tokens still under review**. The global frame, home, Writing, archive, categories, tags, about, and article reader use A. This does not freeze the pending typography, color, spacing, media-width, or photography decisions below.
 
 ## Frozen product invariants
 

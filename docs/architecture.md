@@ -1,5 +1,11 @@
 # Architecture
 
+> Production baseline. Morii has approved evaluating the experience-first
+> full-stack scope documented in [vnext-architecture-plan.md](vnext-architecture-plan.md).
+> Until Phase 1 receives implementation authorization and a later Phase 5 ADR
+> updates the project contract, the static production architecture below remains
+> authoritative.
+
 ## Runtime boundary
 
 Astro builds the entire site to `dist/`. Production serves that directory through Nginx. There is no server adapter, Node process, database, PM2 application, server-side search service, comments service, analytics client, or CMS runtime on the VPS.
@@ -37,4 +43,4 @@ Search is a newly approved V1 capability. The design prototype filters its small
 
 ## Design boundary
 
-`src/styles/base.css` is a neutral engineering baseline, not the final design. The selected prototype will be translated into tokens and rules in `docs/design-system.md` before production UI is frozen. Prototype routes are excluded from the sitemap and carry `noindex`.
+The selected A structure has been migrated to the primary production routes. Its final typography, color, spacing, photography cadence, and other visual tokens are still under review in `docs/design-system.md`; structural migration does not mean the visual system is frozen. Prototype routes are excluded from the sitemap and carry `noindex`.
