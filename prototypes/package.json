@@ -10,6 +10,7 @@
     "fixtures:build": "node tools/build-protected-fixture.mjs",
     "fixtures:check": "node tools/validate-fixtures.ts",
     "baselines:build": "node tools/build-baselines.mjs",
-    "baselines:verify": "node tools/verify-baseline-pipeline.mjs"
+    "baselines:verify": "node tools/verify-baseline-pipeline.mjs",
+    "roundtrip:report": "node admin-b/src/editor/roundtrip-report.ts"
   }
 }
