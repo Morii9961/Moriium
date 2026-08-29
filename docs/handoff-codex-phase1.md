@@ -172,6 +172,7 @@ Tiptap 不注入 marked 实例时会把 tokenizer 注册到模块单例上，污
 
 ```bash
 # 原型
+pnpm -C prototypes dev:b              # 起原型 B，浏览器开 http://localhost:4320/
 pnpm -C prototypes check              # 类型检查
 pnpm -C prototypes test               # 102 个用例
 pnpm -C prototypes roundtrip:report   # Markdown round-trip 丢失表
@@ -194,8 +195,9 @@ pnpm verify
 6. **`marked@17.0.6` 是 `admin-b` 的直接依赖，在 ADR 3.3 批准的依赖表之外**，Morii 已于 2026-08-29 追认保留。安装树没有新增包（它本来就是 `@tiptap/markdown` 的依赖）。升级 Tiptap 时若 marked 跨大版本，这个直接 pin 需要一并调整。见 ADR 13.11。
 7. **图片的可视化编辑只完成了一半。**图片已是带预览的真节点，`src` / `alt` / `title` 是结构化属性，但改这三个字段要的属性面板属于界面，B 还没有界面。
 8. **句子中间的图片仍然会丢文件。**只认整行图片，这是刻意的取舍，有测试钉住，不是遗漏。
-9. **Vite 大分包警告仍在**，未消失，仍在 Phase 0 的体积测量清单里。
-10. **`scripts/encrypt-post.mjs` 仍有自己的 `featuresOf()`**，与 `shared/content-blocks.ts` 的 `markersFor` 是两份实现。本轮未合并，因为合并要改生产脚本。
+9. **Vite 开发服务器会把项目树端出去。**`admin-b/.data/admin.db` 原本可以无会话直接下载，已用 `server.fs.deny` 挡掉并实测 403。但这是开发服务器的性质：**任何把它暴露到本机之外的做法都会连带暴露数据库**，不要因为 API 那几道守卫就以为安全。
+10. **Vite 大分包警告仍在**，未消失，仍在 Phase 0 的体积测量清单里。
+11. **`scripts/encrypt-post.mjs` 仍有自己的 `featuresOf()`**，与 `shared/content-blocks.ts` 的 `markersFor` 是两份实现。本轮未合并，因为合并要改生产脚本。
 
 ## 7. 测试的写法约定
 
@@ -205,11 +207,11 @@ ADR 第 5 节要求「测试必须证明而不是声明」。本轮所有测试�
 
 ## 8. 下一步
 
-**下一块是 B 的可操作界面**，两条决策门都已关闭（`marked` 依赖已追认；编辑形态已定为源码块可编辑加图片真节点）。
+**原型 B 现在可以被操作**（ADR 13.13）：`pnpm -C prototypes dev:b`，浏览器开 <http://localhost:4320/>，口令 `moriium-prototype`。登录、列表、编辑、自动保存、发布、回滚和「读者看到的」面板都通了，库用夹具语料播种。
 
-要做的是启动入口和 Vue 编辑器外壳。源码块和图片节点到今天为止没有任何人用眼睛看过——`getHTML()` 在 Node 里跑不起来，ProseMirror 的 DOM 序列化需要 `window`。可编辑与可预览目前成立于结构层面，好不好用要等界面出来才知道。图片属性面板也在这一块，没有它 `alt` 改不了。
+**下一块由 Morii 实际用过之后再定。**在他试用之前值得先补的是：完整发布闸门（内容、媒体、翻译关系目前只校验请求形状）、图片的属性面板（`alt` 改不了）、以及草稿的生产同源预览。之后进入原型 A。
 
-再往后是完整发布闸门（内容、媒体、翻译关系），然后进入原型 A。
+**能操作不等于 T1–T10 可以开跑。**评分表本身也还没写（`enouia-todo.md` 00 节）。
 
 **round-trip 保真成立，不等于原型 B 完成。**两个原型现在都还不能被 Morii 实际操作，T1–T10 一个都跑不了。
 
