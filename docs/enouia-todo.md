@@ -51,10 +51,10 @@
 
 ### 02　共享内容、身份与媒体契约
 
-- [ ] 抽出 CLI、Studio 和 Astro 共用的 frontmatter/schema 校验，避免三套规则。
-- [ ] 为每个自定义内容块定义稳定语法、属性、no-JavaScript fallback、feature marker 和版本策略。
+- [~] 抽出 CLI、Studio 和 Astro 共用的 frontmatter/schema 校验，避免三套规则。原型侧已在 `prototypes/shared/content-schema.ts` 落地，并有与 `src/content.config.ts` 的字段漂移检查；生产侧仍是独立一份，合并要等 Phase 5。
+- [~] 为每个自定义内容块定义稳定语法、属性、no-JavaScript fallback、feature marker 和版本策略。语法与 feature marker 已在 `prototypes/shared/content-blocks.ts` 成为可断言数据（11 个块，语料全覆盖）；**no-JavaScript fallback 与版本策略尚未定义**。
 - [ ] 让 Studio 预览直接调用生产 remark/rehype 管线，不维护第二套近似解析器。
-- [ ] 定义摄影 asset manifest：公开路径、宽高、格式、alt、caption、版权和可公开 EXIF 白名单。
+- [~] 定义摄影 asset manifest：公开路径、宽高、格式、alt、caption、版权和可公开 EXIF 白名单。形状与发布闸门已在 `prototypes/shared/media.ts` 落地（manifest 结构上没有原图路径字段）；实际的 manifest 生成尚未接线。
 - [ ] Studio 媒体导入必须调用去 EXIF/GPS 与媒体检查；不得触碰原图。
 - [ ] 加密文章继续留在忽略的 `.private/posts/`，不进入公开 Studio 数据接口。
 - [ ] 定义作者/管理员/可选读者权限、会话、CSRF、速率限制、审计和账户恢复。
@@ -217,6 +217,8 @@ fixture corpus 已完成，`shared/` 的 frontmatter 契约也已随校验器落
 
 语料的渲染基线也已完成（ADR 13.5，基准取公开文章管线，并与 `dist/` 的真实产物比对过）。
 
-之后按 ADR 顺序是：`shared/` 契约补齐三语关系、媒体 asset 形状与错误模型（frontmatter schema 已落地），然后原型 B 的薄存储层。round-trip 丢失计数的反方向要等原型 B 存在后才能建。
+`shared/` 契约也已落地（ADR 13.6）：内容块清单、三语关系、媒体形状、错误模型，四个模块加 20 个 `node:test` 用例，无新依赖。02 节因此有三项转为 `[~]`。
+
+**下一块是原型 B 的薄存储层**，SQL 收在其中，不让 `node:sqlite` 的 API 形状渗进业务逻辑。round-trip 丢失计数的反方向要等原型 B 存在后才能建。
 
 00 节其余未完成项——固定口径的体积/构建测量、体验任务评分表、把 07–12 的人工验收测试化——不阻塞原型开工，但必须在 Morii 实际操作 T1–T10 之前就位，否则没有可对照的基线。

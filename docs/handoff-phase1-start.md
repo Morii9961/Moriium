@@ -124,8 +124,16 @@ Morii 定夺后已实施：`prototypes/` 排除出根 `tsconfig.json`，并自�
 按 ADR 顺序往下是：
 
 1. ~~给语料生成生产 HTML 的基线快照~~ — **已完成**，见 [ADR 13.5](adr-0001-phase1-spike.md)。基准取公开文章管线（Morii 定夺）。`pnpm -C prototypes baselines:verify` 会把基线渲染器与 `dist/` 的真实产物逐项比对，当前 14 项标记一致；这个比对第一次跑就抓到了一个真实错误（漏了 Expressive Code）。反方向的 round-trip 计数要等原型 B 才能做；
-2. `shared/` 契约补齐三语关系、媒体 asset 形状与错误模型（frontmatter schema 已落地）；
+2. ~~`shared/` 契约补齐三语关系、媒体 asset 形状与错误模型~~ — **已完成**，见 [ADR 13.6](adr-0001-phase1-spike.md)。四个模块加 20 个测试（`pnpm -C prototypes test`）。翻译查询在类型上就无法回退到别的语言，媒体 manifest 结构上放不下原图路径；
 3. 原型 B 的薄存储层，SQL 收在里面，不让 `node:sqlite` 的 API 形状渗进业务逻辑。
+
+`prototypes/` 目前的命令：
+
+```bash
+pnpm -C prototypes check && pnpm -C prototypes test && pnpm -C prototypes fixtures:check
+```
+
+`baselines:verify` 另外跑，因为它需要一份当前的 `dist/`（先在仓库根跑 `pnpm build`）。
 
 ## 5. 写代码时最容易踩的边界
 

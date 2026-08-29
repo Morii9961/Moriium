@@ -17,22 +17,15 @@ import { parseFrontmatter } from '@astrojs/markdown-remark';
 import { encryptHtml } from '../../scripts/lib/crypto.mjs';
 import { renderPrivateMarkdown } from '../../scripts/lib/render-markdown.mjs';
 import { FIXTURE_PASSWORD } from './fixture-password.ts';
+// Markers come from the shared block inventory rather than a second copy of the
+// regexes. scripts/encrypt-post.mjs still has its own featuresOf() for real
+// protected posts; reconciling the two belongs with whichever prototype takes
+// over the encryption flow, and is noted in the fixtures README.
+import { markersFor } from '../shared/content-blocks.ts';
 
 const here = import.meta.dirname;
 const sourcePath = resolve(here, '../fixtures/protected/zh-sealed-notebook.source.md');
 const outputPath = resolve(here, '../fixtures/protected/zh-sealed-notebook.json');
-
-// Mirrors featuresOf() in scripts/encrypt-post.mjs. Kept in step by
-// validate-fixtures.mjs, which fails if a marker disagrees with the body.
-function featuresOf(markdown) {
-  return {
-    lightbox: /!\[[^\]]*\]\([^)]+\)/.test(markdown),
-    mermaid: /```mermaid\s/.test(markdown),
-    music: /::music\{/.test(markdown),
-    video: /::video\{/.test(markdown),
-    math: /(^|[^\\])\$\$?[\s\S]*?\$\$?/.test(markdown),
-  };
-}
 
 function publicMetadata(frontmatter) {
   if ('password' in frontmatter) {
@@ -61,7 +54,7 @@ const encryption = await encryptHtml(rendered, FIXTURE_PASSWORD);
 
 const output = {
   ...publicMetadata(frontmatter),
-  features: featuresOf(content),
+  features: markersFor(content),
   encryption,
 };
 

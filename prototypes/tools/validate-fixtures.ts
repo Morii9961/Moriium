@@ -17,9 +17,17 @@ import {
   PROTECTED_ADDED_FIELDS,
   PROTECTED_OMITTED_FIELDS,
   SHARED_METADATA_FIELDS,
+  type Language,
   postMetadata,
   protectedMetadata,
 } from '../shared/content-schema.ts';
+import { CONTENT_BLOCKS, blocksIn, markersFor } from '../shared/content-blocks.ts';
+import {
+  availableLanguages,
+  buildTranslationIndex,
+  missingLanguages,
+  statusOf,
+} from '../shared/translations.ts';
 import { FIXTURE_PASSWORD } from './fixture-password.ts';
 import { baselinePathFor, createPublicRenderer, renderPost } from './build-baselines.mjs';
 
@@ -161,23 +169,36 @@ for (const file of postFiles) {
 // 3. Translation relationships (ADR section 4, task T6)
 // ---------------------------------------------------------------------------
 
-const groups = new Map<string, Set<string>>();
-for (const post of posts) {
-  const key = String(post.data.translationKey);
-  if (!groups.has(key)) groups.set(key, new Set());
-  groups.get(key)!.add(String(post.data.lang));
-}
+// Built through the shared module rather than a local map, so the contract the
+// prototypes will use is the one exercised here.
+const groups = buildTranslationIndex(
+  posts.map((post) => ({
+    translationKey: String(post.data.translationKey),
+    lang: post.data.lang as Language,
+    slug: String(post.data.slug),
+    title: String(post.data.title),
+    draft: post.data.draft === true,
+  })),
+);
 
-for (const [key, langs] of [...groups].sort()) {
-  notes.push(`translationKey ${key}: ${[...langs].sort().join(', ')}`);
+for (const [key, group] of [...groups].sort(([a], [b]) => a.localeCompare(b))) {
+  const available = availableLanguages(group);
+  const missing = missingLanguages(group);
+  notes.push(
+    `translationKey ${key}: available ${available.join(', ') || 'none'}` +
+      (missing.length > 0 ? ` | unavailable ${missing.join(', ')}` : ''),
+  );
 }
 
 // T6 needs a group that already has two languages and is genuinely missing a
 // third, so "unavailable" can be told apart from "not built yet".
 const tide = groups.get('tide-notes');
-check(tide?.has('zh') && tide?.has('ja'), 'tide-notes must ship zh and ja.');
 check(
-  tide && !tide.has('en'),
+  JSON.stringify(availableLanguages(tide)) === JSON.stringify(['zh', 'ja']),
+  `tide-notes must offer zh and ja, got ${availableLanguages(tide).join(', ') || 'none'}.`,
+);
+check(
+  statusOf(tide, 'en').state === 'unavailable',
   'tide-notes must NOT ship en. The absent English version is the fixture for "translation unavailable".',
 );
 
@@ -185,9 +206,39 @@ check(
 // has to start out single-language.
 const darkroom = groups.get('darkroom-log');
 check(
-  darkroom?.size === 1 && darkroom.has('zh'),
-  'darkroom-log must ship zh only; it is the starting state for task T6.',
+  JSON.stringify(availableLanguages(darkroom)) === JSON.stringify(['zh']),
+  'darkroom-log must offer zh only; it is the starting state for task T6.',
 );
+
+// A draft must never be reported as an available translation.
+const winter = groups.get('winter-drafts');
+check(
+  statusOf(winter, 'zh').state === 'draft',
+  'winter-drafts zh is draft:true and must report as draft, never as available.',
+);
+
+// ---------------------------------------------------------------------------
+// 3b. The corpus exercises every content block
+// ---------------------------------------------------------------------------
+
+const reference = await readFile(join(repoRoot, 'docs/markdown-reference.md'), 'utf8');
+const documentedSections = new Set(captures(reference, /^## (.+)$/gm));
+for (const block of CONTENT_BLOCKS) {
+  check(
+    documentedSections.has(block.section),
+    `Block "${block.id}" claims section "${block.section}", which docs/markdown-reference.md ` +
+      'no longer has. The inventory has drifted from the reference.',
+  );
+}
+
+const covered = new Set(posts.flatMap((post) => blocksIn(post.body)));
+const uncovered = CONTENT_BLOCKS.filter((block) => !covered.has(block.id)).map((b) => b.id);
+check(
+  uncovered.length === 0,
+  `The corpus does not exercise: ${uncovered.join(', ')}. Task T3 checks every block, so a ` +
+    'block no fixture contains would go untested.',
+);
+if (uncovered.length === 0) notes.push(`content blocks: all ${CONTENT_BLOCKS.length} exercised`);
 
 // ---------------------------------------------------------------------------
 // 4. Draft fixture (ADR section 4 hard veto: drafts must not leak)
@@ -257,13 +308,8 @@ for (const file of protectedFiles) {
   if (await exists(sourcePath)) {
     const rawSource = await readFile(sourcePath, 'utf8');
     const { content } = parseFrontmatter(rawSource);
-    const expected = {
-      lightbox: /!\[[^\]]*\]\([^)]+\)/.test(content),
-      mermaid: /```mermaid\s/.test(content),
-      music: /::music\{/.test(content),
-      video: /::video\{/.test(content),
-      math: /(^|[^\\])\$\$?[\s\S]*?\$\$?/.test(content),
-    };
+    // Catches a source edited without regenerating the envelope.
+    const expected = markersFor(content);
     for (const [name, want] of Object.entries(expected)) {
       check(
         parsed.features[name] === want,
