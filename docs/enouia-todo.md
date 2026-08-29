@@ -221,7 +221,9 @@ fixture corpus 已完成，`shared/` 的 frontmatter 契约也已随校验器落
 
 原型 B 的薄存储层也已完成（ADR 13.7）：`node:sqlite`，状态机由数据结构承担，17 个用例。
 
-**下一块是 B 的 HTTP 层与认证**，也是安全边界开始生效的地方——Origin/Host 校验、CSRF、scrypt 口令哈希、会话 cookie、速率限制、对象级授权、路径穿越与 Windows junction 检查。存储层通过不等于 01 节的原型 B 完成。
+安全边界也大部分完成（ADR 13.8）：路径防护、scrypt 口令哈希、Origin/Host/CSRF 守卫，41 个用例。当前 `prototypes` 共 78 个用例。
+
+**下一块是 B 的 HTTP 路由**：把存储层与守卫接起来，登录、列表、编辑、自动保存、发布、回滚。对象级授权要等路由存在才能测。之后是 Tiptap 接入与原型 A。
 
 round-trip 丢失计数的反方向仍要等 Tiptap 接进来之后才能建。
 

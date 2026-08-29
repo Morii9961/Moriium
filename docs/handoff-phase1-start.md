@@ -127,9 +127,11 @@ Morii 定夺后已实施：`prototypes/` 排除出根 `tsconfig.json`，并自�
 2. ~~`shared/` 契约补齐三语关系、媒体 asset 形状与错误模型~~ — **已完成**，见 [ADR 13.6](adr-0001-phase1-spike.md)。四个模块加 20 个测试（`pnpm -C prototypes test`）。翻译查询在类型上就无法回退到别的语言，媒体 manifest 结构上放不下原图路径；
 3. ~~原型 B 的薄存储层~~ — **已完成**，见 [ADR 13.7](adr-0001-phase1-spike.md)。状态机由结构承担：草稿等于「没有已发布版本」，保存只追加、API 上够不到 `published_version_id`，发布与回滚是同一个原子操作指向不同版本。17 个用例。
 
-**下一块是 B 的 HTTP 层**，也是安全边界真正开始生效的地方。ADR 第 5 节那一条最容易被略过：仅绑定 `127.0.0.1` 不构成安全模型，还需要 Origin/Host 校验、CSRF token、文件根白名单、路径规范化后再校验，以及 Windows 上的 junction / reparse point 越界检查（NTFS junction 不是 symlink，容易漏）。B 还要加 scrypt 口令哈希、`HttpOnly` + `SameSite=Strict` 会话 cookie、登录失败速率限制、对象级授权。
+4. ~~安全边界~~ — **大部分已完成**，见 [ADR 13.8](adr-0001-phase1-spike.md)。路径防护在 `shared/safe-path.ts`（A 与 B 共用，测试真的建了一个 junction 来验证越界拦截）；scrypt 口令哈希把参数与 salt 一起编码；Origin / Host / CSRF 三道守卫。41 个新用例，全部写成越权尝试。
 
-存储层测试通过**不等于** 3.5 完成——认证与授权都还没有。
+**下一块是 B 的 HTTP 路由**，把存储层与守卫接起来：登录、文章列表、编辑、自动保存、发布、回滚。对象级授权（草稿不可越权读取）要等路由存在才能测。之后是 Tiptap 接入与原型 A。
+
+两处已知且必须随结论报告的差异，不要当作已解决：本地 http 下 cookie 没有 `Secure` 与 `__Host-` 前缀；会话存在内存里，重启即失效。
 
 `prototypes/` 目前的命令：
 
