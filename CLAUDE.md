@@ -10,7 +10,7 @@ For vNext work, read in this order before claiming a task:
 2. [`docs/vnext-architecture-plan.md`](docs/vnext-architecture-plan.md) — the verified route proposal.
 3. [`docs/adr-0001-phase1-spike.md`](docs/adr-0001-phase1-spike.md) — the approved Phase 1 scope, dependencies, and boundaries. Binding for prototype work.
 4. [`docs/enouia-todo.md`](docs/enouia-todo.md) — current work order and decision gates.
-5. [`docs/handoff-phase1-start.md`](docs/handoff-phase1-start.md) — the current handoff: state, next safe step, and boundaries. Supersedes [`docs/claude-vnext-handoff.md`](docs/claude-vnext-handoff.md), which stays as history.
+5. [`docs/handoff-codex-phase1.md`](docs/handoff-codex-phase1.md) — the current handoff: state, boundaries, verified commands, and the next safe step. Supersedes [`docs/handoff-phase1-start.md`](docs/handoff-phase1-start.md) and [`docs/claude-vnext-handoff.md`](docs/claude-vnext-handoff.md), both of which stay as history.
 6. [`docs/architecture.md`](docs/architecture.md) — the production baseline still in force.
 7. [`docs/design-system.md`](docs/design-system.md) and [`docs/design-research.md`](docs/design-research.md) — the selected A direction and clean-room boundary.
 8. [`docs/markdown-reference.md`](docs/markdown-reference.md), [`docs/authoring.md`](docs/authoring.md), [`docs/encrypted-posts.md`](docs/encrypted-posts.md) — content capabilities and the privacy flow.

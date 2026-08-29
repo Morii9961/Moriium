@@ -1,9 +1,12 @@
 # 交接：Phase 1 开工
 
+> **已被取代。**当前交接是 [`handoff-codex-phase1.md`](handoff-codex-phase1.md)。
+> 本文件描述的是「Phase 1 已批准、代码尚未开始」的状态，已经不成立：骨架、语料、基线、共享契约、B 的存储层与安全层都已完成。保留为历史依据，不要就地改写。
+
 > 日期：2026-08-29
 > 交出方：Claude（配置与 ADR session）
 > 接手方：下一个 Claude session（写代码）
-> 状态：**Phase 1 已获批准，代码尚未开始**
+> 状态：**已完成移交，见上方指引**
 
 这份文档取代 [`claude-vnext-handoff.md`](claude-vnext-handoff.md) 作为当前交接。那份文档描述的是 Codex 与 Claude 双 agent、且 Phase 1 尚未批准的状态，两点现在都已改变。它保留为历史依据，不要就地改写。
 

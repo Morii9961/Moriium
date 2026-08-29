@@ -90,7 +90,9 @@ A skill's output is advice, never authority. This file, `docs/design-system.md`,
 
 ### Writing
 
-Project documents are mixed-language. `AGENTS.md`, `README.md`, `docs/architecture.md`, `docs/design-system.md`, `docs/design-research.md`, `docs/authoring.md`, `docs/deployment.md`, `docs/encrypted-posts.md`, and `docs/markdown-reference.md` are English. `docs/enouia-todo.md`, `docs/claude-vnext-handoff.md`, `docs/vnext-architecture-plan.md`, and the `docs/adr-*.md` series are Chinese. Match the language of the file being edited.
+Project documents are mixed-language. `AGENTS.md`, `README.md`, `docs/architecture.md`, `docs/design-system.md`, `docs/design-research.md`, `docs/authoring.md`, `docs/deployment.md`, `docs/encrypted-posts.md`, and `docs/markdown-reference.md` are English. `docs/enouia-todo.md`, `docs/vnext-architecture-plan.md`, the `docs/adr-*.md` series, and the `docs/handoff-*.md` and `docs/claude-vnext-handoff.md` handoffs are Chinese. Match the language of the file being edited.
+
+Code, comments, commit messages, and files under `prototypes/` are English, matching `src/`.
 
 | Skill | Invoke when | Do not invoke when |
 | --- | --- | --- |
