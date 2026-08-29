@@ -23,9 +23,10 @@
 
 ## 2. 当前状态（实测，非转述）
 
-分支 `main`，工作树干净。相对上一次推送有 7 个提交，45 个文件，`+3876 / -15`。
+分支 `main`。Claude 的骨干已经在 `origin/main`；Codex 接力后新增了 HTTP 边界提交：
 
 ```text
+fc9e158  Connect prototype B's HTTP boundary
 27985e7  Add the Phase 1 security boundary
 655ad3e  Add prototype B's storage layer with a structural state machine
 0a48f2f  Add the shared contract both prototypes will build against
@@ -44,7 +45,7 @@ pnpm verify                        → 退出码 0
   astro build                      → 46 page(s) built
   check-links / audit-public-tree  → 通过
 pnpm -C prototypes check           → 退出码 0
-pnpm -C prototypes test            → tests 78 / suites 18 / pass 78 / fail 0
+pnpm -C prototypes test            → tests 82 / suites 22 / pass 82 / fail 0
 pnpm -C prototypes fixtures:check  → Fixture corpus is valid.
 pnpm -C prototypes baselines:verify → All 14 markers agree with the built page.
 ```
@@ -109,6 +110,19 @@ SQL 全部收在 `store.ts`，模块外无任何 `node:sqlite` 导入。ADR 3.5 
 
 41 个用例全部写成越权尝试。
 
+### 3.7 原型 B 的 HTTP 边界（`fc9e158`）
+
+`admin-b/src/http/server.ts` 用 `node:http` 接通登录、退出、文章列表与详情、创建、手动保存、自动保存、发布和回滚。没有新依赖，SQL 仍然只在存储层。
+
+四组集成测试启动真实 server 并走 socket 请求，不靠直接调用函数冒充 HTTP：
+
+- 匿名请求读不到草稿；文章发布后产生的新自动保存也不会从公开端点泄漏；
+- Host、Origin、CSRF 任一不对，写操作都在到达存储层之前被拒绝；
+- 自动保存不会改变公开版本，显式发布和回滚会沿同一事务状态机留下审计记录；
+- 登录和退出会真正创建、销毁内存会话。
+
+路由只有结构校验，完整的内容、媒体与翻译发布闸门还没接线；也还没有启动入口和 UI，所以 B 仍不能交给 Morii 操作。
+
 ## 4. 边界
 
 ### 4.1 不要碰
@@ -117,7 +131,7 @@ SQL 全部收在 `store.ts`，模块外无任何 `node:sqlite` 导入。ADR 3.5 
 
 不读 `.private/posts/`、真实口令、原始照片。不写回 `src/content/`。原型只读写 `prototypes/fixtures/`，且语料是**只读输入**。
 
-**仓库已公开发布**（<https://github.com/Morii9961/Moriium>）。没有 Morii 的明确指示，不 commit、不 push、不部署。
+**仓库已公开发布**（<https://github.com/Morii9961/Moriium>）。Morii 本轮明确授权每完成一小块就 commit；push、发布和部署仍未授权。
 
 ### 4.2 唯一一次根配置改动
 
@@ -140,7 +154,7 @@ SQL 全部收在 `store.ts`，模块外无任何 `node:sqlite` 导入。ADR 3.5 
 ```bash
 # 原型
 pnpm -C prototypes check              # 类型检查
-pnpm -C prototypes test               # 78 个用例
+pnpm -C prototypes test               # 82 个用例
 pnpm -C prototypes fixtures:check     # 语料校验（含基线新鲜度）
 pnpm -C prototypes baselines:build    # 重生成基线
 pnpm -C prototypes baselines:verify   # 与 dist/ 比对，需先 pnpm build
@@ -167,11 +181,9 @@ ADR 第 5 节要求「测试必须证明而不是声明」。本轮所有测试�
 
 ## 8. 下一步
 
-**B 的 HTTP 路由。**把存储层与守卫接起来：登录、文章列表、编辑、自动保存、发布、回滚。用 `node:http`，不引入框架。
+**Tiptap 接进 B。**先安装 ADR 3.3 已批准并锁定的 Vue / Tiptap / Vite 依赖，再让 fixture 走 Markdown → 编辑器 → Markdown，建立逐内容块的丢失计数。不要预设 `@tiptap/markdown` 能保留 Moriium 的自定义指令。
 
-对象级授权（草稿不可越权读取）要等路由存在才能测，这是 ADR 第 4 节的硬性否决项之一，不能跳。
-
-之后：Tiptap 接进 B（round-trip 丢失计数的反方向要等它），然后原型 A。
+之后补 B 的可操作 UI、完整发布闸门和启动入口，再进入原型 A。
 
 **存储层与安全层的测试通过，不等于原型 B 完成。**两个原型现在都还不能被 Morii 实际操作，T1–T10 一个都跑不了。
 

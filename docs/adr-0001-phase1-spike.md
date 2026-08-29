@@ -340,6 +340,8 @@ Astro 与 Tiptap 的行为判断继承自 [`vnext-architecture-plan.md`](vnext-a
 
 `@tiptap/markdown` 的 Beta 状态取自该计划文档引用的 [Tiptap Markdown](https://tiptap.dev/docs/editor/markdown)。Phase 1 要做 round-trip corpus，理由正是不预设它保真。
 
+HTTP 层按仓库锁定的 Node 24 实现，接口行为核对了 [Node.js v24 `node:http` 文档](https://nodejs.org/download/release/latest-v24.x/docs/api/http.html)：`IncomingMessage` 是可读流，响应头在写出前通过 `setHeader()` 设置。原型自己负责请求体上限与 JSON 解析，不假设底层会缓冲完整请求。
+
 ## 12. 自审记录
 
 Enouia 退出后由 Claude 自审。以下是自审**实际改掉**的问题，不是确认清单。
@@ -543,3 +545,15 @@ canonical content 是 Markdown，`editor_json` 并存但不作真源，也没有
 41 个新用例，全部写成越权尝试：用错误口令登录、越过次数上限继续猜、拿另一个会话的 CSRF token、从别的 Origin 提交、带着改绑的 Host 到达、穿过 junction 读根目录外的文件。当前总计 78 个用例、18 个套件。
 
 **仍未做**：对象级授权（草稿不可越权读取）要等 HTTP 路由存在后才能测；会话存在内存里，重启即失效——这是尖峰的性质，不是设计主张；速率限制按单一作者账户全局计数，多账户场景需要改。
+
+### 13.9 原型 B 的 HTTP 边界（2026-08-29）
+
+`prototypes/admin-b/src/http/server.ts` 把 13.7 的存储状态机与 13.8 的安全守卫接到 `node:http`。当前路由覆盖登录、退出、文章列表与详情、创建、手动保存、自动保存、发布和回滚，没有引入框架或新依赖。
+
+请求入口只做四件事：校验 Host / Origin / CSRF 与作者会话、限制并解析 JSON 请求体、把输入收窄成存储层接受的类型、把共享错误模型映射成稳定的 HTTP 响应。SQL 仍然只存在于 `store.ts`；`IncomingMessage`、cookie 和 header 也没有渗入存储层。
+
+登录是唯一没有现成会话的写请求，因此先过 Host 与 Origin，再校验口令；其余写路由必须同时带有效 session cookie 和对应的 CSRF token。管理端的列表、详情和版本历史一律要求作者会话。另设的只读公开端点只返回 `published_version_id` 指向的版本，不返回 `editor_json`、版本历史或审计记录。未发布文章得到 404；已发布文章即使后来产生新的自动保存，匿名请求仍只能看到原公开版本。
+
+对象级授权没有停留在函数级断言。`routes.test.ts` 启动真实的 `node:http` server，走 socket 发请求，尝试匿名读取草稿、在发布后读取尚未发布的自动保存、伪造 Host、跨 Origin 提交和漏掉 CSRF token。四组集成测试全部通过，原型测试总数由 78 增至 82，套件由 18 增至 22。测试首次运行时因 `server.ts` 尚不存在按预期失败，补实现后才转绿。
+
+**这一层完成不等于 B 已经可操作。**目前没有启动入口和界面，Tiptap 尚未接入；发布路由也只做请求形状校验，内容、媒体与翻译关系的完整发布闸门还没有接线。它们必须在 Morii 实际执行 T1–T10 前补齐。
