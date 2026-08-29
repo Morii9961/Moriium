@@ -1,0 +1,237 @@
+<script setup lang="ts">
+import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
+import { EditorContent, useEditor } from '@tiptap/vue-3';
+import { moriiumExtensions } from '../editor/extensions.ts';
+import { api, ApiError, type ArticleDetail, type Version } from './api.ts';
+
+const props = defineProps<{ articleId: number }>();
+const emit = defineEmits<{ (event: 'back'): void }>();
+
+const detail = shallowRef<ArticleDetail | null>(null);
+const title = ref('');
+const summary = ref('');
+const status = ref('');
+const failure = ref('');
+const busy = ref(false);
+const readerMarkdown = ref<string | null>(null);
+const readerLoaded = ref(false);
+
+const editor = useEditor({ extensions: moriiumExtensions(), content: '' });
+
+let autosaveTimer: ReturnType<typeof setTimeout> | undefined;
+let dirty = false;
+
+const article = computed(() => detail.value?.article ?? null);
+const isDraft = computed(() => article.value?.publishedVersionId == null);
+const latest = computed(() => detail.value?.latest ?? null);
+const publishedId = computed(() => article.value?.publishedVersionId ?? null);
+
+function report(error: unknown): void {
+  failure.value = error instanceof ApiError ? error.message : String(error);
+}
+
+async function load(): Promise<void> {
+  failure.value = '';
+  try {
+    const loaded = await api.getArticle(props.articleId);
+    detail.value = loaded;
+    title.value = loaded.latest?.title ?? '';
+    summary.value = loaded.latest?.summary ?? '';
+    editor.value?.commands.setContent(loaded.latest?.markdown ?? '', { contentType: 'markdown' });
+    dirty = false;
+    status.value = '';
+    await refreshReaderView();
+  } catch (error) {
+    report(error);
+  }
+}
+
+async function refreshReaderView(): Promise<void> {
+  readerLoaded.value = false;
+  try {
+    const view = await api.readerView(props.articleId);
+    readerMarkdown.value = view?.version.markdown ?? null;
+  } catch (error) {
+    report(error);
+  } finally {
+    readerLoaded.value = true;
+  }
+}
+
+/** The editor's Markdown, which is the canonical content ADR section 8 settled on. */
+function currentMarkdown(): string {
+  return editor.value?.getMarkdown() ?? '';
+}
+
+function payload(): { title: string; summary: string; markdown: string; editorJson: string } {
+  return {
+    title: title.value,
+    summary: summary.value,
+    markdown: currentMarkdown(),
+    editorJson: JSON.stringify(editor.value?.getJSON() ?? {}),
+  };
+}
+
+async function autosave(): Promise<void> {
+  if (!dirty || busy.value) return;
+  try {
+    await api.autosave(props.articleId, payload());
+    dirty = false;
+    status.value = `自动保存于 ${new Date().toLocaleTimeString()}（读者看到的内容不变）`;
+    detail.value = await api.getArticle(props.articleId);
+  } catch (error) {
+    report(error);
+  }
+}
+
+function scheduleAutosave(): void {
+  dirty = true;
+  status.value = '未保存的改动…';
+  if (autosaveTimer) clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(() => void autosave(), 1500);
+}
+
+async function saveVersion(): Promise<void> {
+  busy.value = true;
+  failure.value = '';
+  try {
+    await api.saveVersion(props.articleId, payload());
+    dirty = false;
+    detail.value = await api.getArticle(props.articleId);
+    status.value = '已保存一个手动版本。';
+  } catch (error) {
+    report(error);
+  } finally {
+    busy.value = false;
+  }
+}
+
+async function publishLatest(): Promise<void> {
+  const version = latest.value;
+  if (!version) return;
+  busy.value = true;
+  failure.value = '';
+  try {
+    await api.publish(props.articleId, version.id, '从原型 B 的编辑器发布');
+    detail.value = await api.getArticle(props.articleId);
+    await refreshReaderView();
+    status.value = `已发布版本 #${version.id}。`;
+  } catch (error) {
+    report(error);
+  } finally {
+    busy.value = false;
+  }
+}
+
+async function rollbackTo(version: Version): Promise<void> {
+  busy.value = true;
+  failure.value = '';
+  try {
+    await api.rollback(props.articleId, version.id, '从版本历史回滚');
+    detail.value = await api.getArticle(props.articleId);
+    await refreshReaderView();
+    status.value = `已回滚到版本 #${version.id}。`;
+  } catch (error) {
+    report(error);
+  } finally {
+    busy.value = false;
+  }
+}
+
+function openVersion(version: Version): void {
+  title.value = version.title;
+  summary.value = version.summary;
+  editor.value?.commands.setContent(version.markdown, { contentType: 'markdown' });
+  dirty = false;
+  status.value = `已把版本 #${version.id} 载入编辑器，尚未保存。`;
+}
+
+watch(editor, (instance) => {
+  instance?.on('update', scheduleAutosave);
+});
+watch(() => props.articleId, () => void load(), { immediate: true });
+
+onBeforeUnmount(() => {
+  if (autosaveTimer) clearTimeout(autosaveTimer);
+  editor.value?.destroy();
+});
+</script>
+
+<template>
+  <div class="wrap">
+    <p>
+      <button @click="emit('back')">← 返回列表</button>
+    </p>
+
+    <p v-if="failure" class="error">{{ failure }}</p>
+
+    <template v-if="article">
+      <h2 style="margin-top: 0">
+        {{ article.slug }}
+        <span class="tag" :class="isDraft ? 'draft' : 'live'">{{ isDraft ? '草稿' : '已发布' }}</span>
+      </h2>
+
+      <div class="cols">
+        <div>
+          <div class="field">
+            <label for="title">标题</label>
+            <input id="title" v-model="title" type="text" @input="scheduleAutosave" />
+          </div>
+          <div class="field">
+            <label for="summary">摘要</label>
+            <textarea id="summary" v-model="summary" rows="2" @input="scheduleAutosave"></textarea>
+          </div>
+
+          <div class="field">
+            <label>正文</label>
+            <div class="editor">
+              <EditorContent :editor="editor" />
+            </div>
+          </div>
+
+          <p class="note">{{ status }}</p>
+
+          <p>
+            <button :disabled="busy" @click="saveVersion">保存版本</button>
+            <button
+              class="primary"
+              style="margin-left: 8px"
+              :disabled="busy || !latest || latest.id === publishedId"
+              @click="publishLatest"
+            >
+              发布最新版本
+            </button>
+          </p>
+        </div>
+
+        <div>
+          <div class="panel" style="margin-bottom: 16px">
+            <h2>版本历史</h2>
+            <ul class="versions">
+              <li v-for="version in detail?.versions ?? []" :key="version.id">
+                <span class="grow">
+                  #{{ version.id }}
+                  <span class="tag">{{ version.kind === 'autosave' ? '自动' : '手动' }}</span>
+                  <span v-if="version.id === publishedId" class="tag live">公开</span>
+                </span>
+                <button @click="openVersion(version)">载入</button>
+                <button :disabled="busy || version.id === publishedId" @click="rollbackTo(version)">
+                  回滚
+                </button>
+              </li>
+            </ul>
+          </div>
+
+          <div class="panel">
+            <h2>读者看到的</h2>
+            <p v-if="!readerLoaded" class="note">读取中…</p>
+            <p v-else-if="readerMarkdown === null" class="note">
+              尚未发布，匿名读者会得到 404。自动保存不会改变这里。
+            </p>
+            <pre v-else class="reader">{{ readerMarkdown }}</pre>
+          </div>
+        </div>
+      </div>
+    </template>
+  </div>
+</template>

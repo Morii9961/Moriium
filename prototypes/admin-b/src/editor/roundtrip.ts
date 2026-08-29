@@ -9,13 +9,9 @@
 // afterwards against the shared content-block inventory.
 
 import { Editor, type Extensions, type JSONContent } from '@tiptap/core';
-import { Markdown } from '@tiptap/markdown';
-import StarterKit from '@tiptap/starter-kit';
 import type { marked } from 'marked';
 import { CONTENT_BLOCKS, blocksIn } from '../../../shared/content-blocks.ts';
-import { createIsolatedMarked } from './marked-instance.ts';
-import { MoriiumImage } from './image-node.ts';
-import { MoriiumSourceBlock, MoriiumSourceInline } from './source-nodes.ts';
+import { MORIIUM_NODES, moriiumExtensions } from './extensions.ts';
 
 export type RoundTripBlockResult = {
   id: string;
@@ -41,19 +37,10 @@ export type MarkdownRoundTripReport = {
 function measureWithExtensions(
   markdown: string,
   sourceExtensions: Extensions,
-  markedInstance: typeof marked = createIsolatedMarked(),
+  markedInstance?: typeof marked,
 ): MarkdownRoundTripReport {
   const editor = new Editor({
-    extensions: [
-      StarterKit,
-      ...sourceExtensions,
-      Markdown.configure({
-        // Without an instance of its own, Tiptap registers extension tokenizers
-        // on marked's module singleton and changes editors created later.
-        marked: markedInstance,
-        markedOptions: { gfm: true, breaks: false, pedantic: false },
-      }),
-    ],
+    extensions: moriiumExtensions(sourceExtensions, markedInstance),
     content: markdown,
     contentType: 'markdown',
   });
@@ -113,9 +100,5 @@ export function measureMoriiumMarkdownRoundTrip(
   markdown: string,
   markedInstance?: typeof marked,
 ): MarkdownRoundTripReport {
-  return measureWithExtensions(
-    markdown,
-    [MoriiumImage, MoriiumSourceBlock, MoriiumSourceInline],
-    markedInstance,
-  );
+  return measureWithExtensions(markdown, MORIIUM_NODES, markedInstance);
 }

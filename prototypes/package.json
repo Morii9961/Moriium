@@ -11,6 +11,7 @@
     "fixtures:check": "node tools/validate-fixtures.ts",
     "baselines:build": "node tools/build-baselines.mjs",
     "baselines:verify": "node tools/verify-baseline-pipeline.mjs",
-    "roundtrip:report": "node admin-b/src/editor/roundtrip-report.ts"
+    "roundtrip:report": "node admin-b/src/editor/roundtrip-report.ts",
+    "dev:b": "node admin-b/src/dev/serve.ts"
   }
 }
