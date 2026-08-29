@@ -3,7 +3,9 @@
 > 日期：2026-08-29
 > 交出方：Claude
 > 接手方：Codex
-> 状态：**Phase 1 进行中。基础设施与原型 B 的骨干已完成并验证；两个原型都还不能被实际操作。**
+> 状态：**Phase 1 进行中。基础设施、原型 B 的骨干与 Tiptap round-trip 已完成并验证；两个原型都还不能被实际操作。**
+>
+> 2026-08-29 续：Codex 已按第 8 节接入 Tiptap 并建立丢失计数，额度耗尽时留下一处未提交、类型检查不过的工作树；Claude 接力修复并补齐测试与记录。执行细节见 ADR 13.10、13.11，本文第 2、6、8 节已按新状态更新。
 
 这份文档取代 [`handoff-phase1-start.md`](handoff-phase1-start.md) 作为当前交接。那一份描述的是「Phase 1 已批准、代码尚未开始」的状态，现在已经不成立。它保留为历史依据，不要就地改写。
 
@@ -23,9 +25,12 @@
 
 ## 2. 当前状态（实测，非转述）
 
-分支 `main`。Claude 的骨干已经在 `origin/main`；Codex 接力后新增了 HTTP 边界提交：
+分支 `main`。Claude 的骨干已经在 `origin/main`；Codex 接力后新增了 HTTP 边界与编辑器提交：
 
 ```text
+65f02d2  Measure Tiptap Markdown round-trip losses
+eb3bf36  Install prototype B's editor toolchain
+7caa799  Record prototype B's HTTP boundary
 fc9e158  Connect prototype B's HTTP boundary
 27985e7  Add the Phase 1 security boundary
 655ad3e  Add prototype B's storage layer with a structural state machine
@@ -45,7 +50,7 @@ pnpm verify                        → 退出码 0
   astro build                      → 46 page(s) built
   check-links / audit-public-tree  → 通过
 pnpm -C prototypes check           → 退出码 0
-pnpm -C prototypes test            → tests 82 / suites 22 / pass 82 / fail 0
+pnpm -C prototypes test            → tests 94 / suites 25 / pass 94 / fail 0
 pnpm -C prototypes fixtures:check  → Fixture corpus is valid.
 pnpm -C prototypes baselines:verify → All 14 markers agree with the built page.
 ```
@@ -110,7 +115,7 @@ SQL 全部收在 `store.ts`，模块外无任何 `node:sqlite` 导入。ADR 3.5 
 
 41 个用例全部写成越权尝试。
 
-### 3.7 原型 B 的 HTTP 边界（`fc9e158`）
+### 3.7 原型 B 的 HTTP 边界（`fc9e158`、`7caa799`）
 
 `admin-b/src/http/server.ts` 用 `node:http` 接通登录、退出、文章列表与详情、创建、手动保存、自动保存、发布和回滚。没有新依赖，SQL 仍然只在存储层。
 
@@ -122,6 +127,18 @@ SQL 全部收在 `store.ts`，模块外无任何 `node:sqlite` 导入。ADR 3.5 
 - 登录和退出会真正创建、销毁内存会话。
 
 路由只有结构校验，完整的内容、媒体与翻译发布闸门还没接线；也还没有启动入口和 UI，所以 B 仍不能交给 Morii 操作。
+
+### 3.8 Tiptap round-trip 丢失计数（`eb3bf36`、`65f02d2`）
+
+3.3 批准的 Vue / Tiptap / Vite 依赖按表安装，`@tiptap/static-renderer` 按 ADR 的条件推迟。`admin-b/src/editor/roundtrip.ts` 让夹具走 Markdown → 编辑器 → Markdown，再用 `shared/content-blocks.ts` 的清单逐块比对。
+
+未加扩展的 Beta 基线在中日两篇夹具上都是 11 个块保留 8 个：**图片是彻底的数据丢失**，只剩 alt 文本；GitHub callout 与 spoiler 的 `[` 被转义。另有一处清单看不见的损坏，行内数学 `$H_0$` 被写成 `$H\_0$`。完整证据见 ADR 13.10。
+
+### 3.9 不透明源节点与 marked 隔离（未提交，Claude 接力完成）
+
+`admin-b/src/editor/source-nodes.ts` 用两个 atom 节点把七类 Moriium 语法整段收成不解释的原始源码，序列化时原样吐回。11 个块全部保留，且逐字节一致，只差末尾一个换行。
+
+Tiptap 不注入 marked 实例时会把 tokenizer 注册到模块单例上，污染之后创建的每个编辑器，因此 `marked-instance.ts` 为每个编辑器造一个私有实例，并有测试钉死这条。Codex 留下的工作树在这里类型检查不过（`TS2741`，`getDefaults`），Claude 接力补了 `marked-instance.ts` 与测试。设计理由、依赖代价与类型断言的安全边界见 ADR 13.11。
 
 ## 4. 边界
 
@@ -154,7 +171,8 @@ SQL 全部收在 `store.ts`，模块外无任何 `node:sqlite` 导入。ADR 3.5 
 ```bash
 # 原型
 pnpm -C prototypes check              # 类型检查
-pnpm -C prototypes test               # 82 个用例
+pnpm -C prototypes test               # 94 个用例
+pnpm -C prototypes roundtrip:report   # Markdown round-trip 丢失表
 pnpm -C prototypes fixtures:check     # 语料校验（含基线新鲜度）
 pnpm -C prototypes baselines:build    # 重生成基线
 pnpm -C prototypes baselines:verify   # 与 dist/ 比对，需先 pnpm build
@@ -169,9 +187,12 @@ pnpm verify
 1. **本地 http 下 cookie 没有 `Secure`，`__Host-` 前缀因此也没有。**原因写在 `sessions.ts` 的 `COOKIE_LIMITATIONS` 常量里，并有测试断言它存在。任何可从网络访问的部署必须补上。
 2. **会话存在内存里，重启即失效。**这是尖峰的性质，不是设计主张。
 3. **登录限速按单一作者全局计数**，多账户场景需要改。
-4. **`@tiptap/markdown` 是 Beta**，Moriium 的自定义指令能否 round-trip **完全未知**。这正是 Phase 1 要测的东西，不要预设它能行。
-5. **Vite 大分包警告仍在**，未消失，仍在 Phase 0 的体积测量清单里。
-6. **`scripts/encrypt-post.mjs` 仍有自己的 `featuresOf()`**，与 `shared/content-blocks.ts` 的 `markersFor` 是两份实现。本轮未合并，因为合并要改生产脚本。
+4. **`@tiptap/markdown` 是 Beta，且已实测会破坏 Moriium 的语法。**未加扩展时图片被彻底丢掉，callout 与 spoiler 被转义，行内数学的下划线被转义。当前的 11/11 保真**完全依赖** `source-nodes.ts` 的不透明源节点，不是 Tiptap 自身的能力。升级 Tiptap 时必须重跑 `roundtrip:report`。
+5. **序列化器不吐末尾换行。**round-trip 输出比原文少一个字符，只有这一处差异。接保存路径时要补回，否则每次保存都会给文件添一行无谓 diff。有测试钉死。
+6. **`marked@17.0.6` 是 `admin-b` 的直接依赖，但不在 ADR 3.3 批准的依赖表内。**安装树没有新增包（它本来就是 `@tiptap/markdown` 的依赖），但这条需要 Morii 追认。理由见 ADR 13.11。
+7. **保真与所见即所得的取舍已被事实上选定，但未经定夺。**七类语法在编辑器里是不可编辑的源码块。`enouia-todo.md` 00 节那条决策项仍然开着。
+8. **Vite 大分包警告仍在**，未消失，仍在 Phase 0 的体积测量清单里。
+9. **`scripts/encrypt-post.mjs` 仍有自己的 `featuresOf()`**，与 `shared/content-blocks.ts` 的 `markersFor` 是两份实现。本轮未合并，因为合并要改生产脚本。
 
 ## 7. 测试的写法约定
 
@@ -181,11 +202,11 @@ ADR 第 5 节要求「测试必须证明而不是声明」。本轮所有测试�
 
 ## 8. 下一步
 
-**Tiptap 接进 B。**先安装 ADR 3.3 已批准并锁定的 Vue / Tiptap / Vite 依赖，再让 fixture 走 Markdown → 编辑器 → Markdown，建立逐内容块的丢失计数。不要预设 `@tiptap/markdown` 能保留 Moriium 的自定义指令。
+**先等 Morii 定夺第 6 节的第 6、7 两条**：`marked` 直接依赖是否追认，以及保真与所见即所得的取舍。第 7 条会直接决定下一块怎么做——如果 Morii 要求那七类语法可视化编辑，源节点就只是过渡形态，UI 得另设计。
 
-之后补 B 的可操作 UI、完整发布闸门和启动入口，再进入原型 A。
+之后是 **B 的可操作界面**：启动入口、Vue 编辑器外壳，以及源码块在界面上到底长什么样。round-trip 只证明了文本进出无损，没有证明这个编辑体验可用。再补完整发布闸门（内容、媒体、翻译关系），然后进入原型 A。
 
-**存储层与安全层的测试通过，不等于原型 B 完成。**两个原型现在都还不能被 Morii 实际操作，T1–T10 一个都跑不了。
+**round-trip 保真成立，不等于原型 B 完成。**两个原型现在都还不能被 Morii 实际操作，T1–T10 一个都跑不了。
 
 ## 9. 署名
 

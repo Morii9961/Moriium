@@ -557,3 +557,110 @@ canonical content 是 Markdown，`editor_json` 并存但不作真源，也没有
 对象级授权没有停留在函数级断言。`routes.test.ts` 启动真实的 `node:http` server，走 socket 发请求，尝试匿名读取草稿、在发布后读取尚未发布的自动保存、伪造 Host、跨 Origin 提交和漏掉 CSRF token。四组集成测试全部通过，原型测试总数由 78 增至 82，套件由 18 增至 22。测试首次运行时因 `server.ts` 尚不存在按预期失败，补实现后才转绿。
 
 **这一层完成不等于 B 已经可操作。**目前没有启动入口和界面，Tiptap 尚未接入；发布路由也只做请求形状校验，内容、媒体与翻译关系的完整发布闸门还没有接线。它们必须在 Morii 实际执行 T1–T10 前补齐。
+
+### 13.10 编辑器工具链与 round-trip 基线（2026-08-29）
+
+第 8 节点名的下一块。3.3 批准的依赖按表安装，`@tiptap/static-renderer` 没有装——它的用途是服务端可信渲染，而 3.3 已经写明那要等 round-trip 通过之后才评估，提前装进来只会给锁文件添一个没人 import 的包。
+
+`admin-b/src/editor/roundtrip.ts` 把夹具正文送进 `Editor`，取回 `getMarkdown()`，再用 `shared/content-blocks.ts` 的清单在输入和输出两侧各数一遍。**它不因为解析没抛异常就判定某个块安全**：11 个内容块逐个比对，只有在输入里出现过、输出里也还在，才记为保留。
+
+未加扩展的 Beta 基线，中日两篇夹具结果一致，11 个块保留 8 个，丢 3 个：
+
+```text
+zh-tide-notes.md  unextended  11 blocks  preserved 8  lost 3  1889 -> 1942 chars
+ja-tide-notes.md  unextended  11 blocks  preserved 8  lost 3  2060 -> 2110 chars
+lost: image, admonition-github-callout, spoiler
+```
+
+三条丢法各不相同，值得分开看：
+
+```text
+输入   ![潮位計](/media/fixture.svg "标题")
+输出   潮位計
+
+输入   > [!TIP]
+       > 保留标记。
+输出   > \[!TIP\]
+       > 保留标记。
+
+输入   正文 :spoiler[被遮住] 结尾。
+输出   正文 :spoiler\[被遮住\] 结尾。
+```
+
+图片是**真正的数据丢失**，不是格式退化：文件路径、alt 与 caption 全部消失，只剩 alt 文本变成了普通段落文字。后两条是转义，语法标记还在字面上，但 `[` 前多了反斜杠，再解析就不再是 callout 和 spoiler。字符数增加正是这些反斜杠。
+
+**还有一条块级计数看不见的损坏。**行内数学 `$H_0$` 被写成 `$H\_0$`，因为下划线照通用 Markdown 规则做了转义。`$...$` 的外形没变，所以清单仍然把 math-inline 记作保留，可数学源码已经不是原来那段。由此得出的结论对后面所有测量都成立：**块级清单是必要条件，不是充分条件**，最终仍要拿字符逐位比对来兜底。
+
+### 13.11 不透明源节点与被隔离的 marked 实例（2026-08-29）
+
+13.10 的三处丢失和那处转义损坏，都出在同一个地方：Beta 序列化器在处理它并不拥有的语法。因此 `admin-b/src/editor/source-nodes.ts` 的做法不是教它认识 Moriium 的指令，而是**让它不要碰**。
+
+两个 atom 节点，`moriiumSourceBlock` 与 `moriiumSourceInline`，覆盖图片、块级数学、`::video` / `::github` / `::music`、五种 admonition、GitHub callout、行内数学和 spoiler。它们把原始源码整段收进 `raw` 属性，`renderMarkdown` 再原样吐回，中间不做任何解释。走的是 Tiptap 文档给出的自定义 tokenizer 加 `parseMarkdown` / `renderMarkdown` 扩展点，不是绕过它。
+
+结果是 11 个块全部保留，且比「全部保留」更强：
+
+```text
+zh-tide-notes.md  source-fallback  11 blocks  preserved 11  lost 0  1889 -> 1888 chars
+ja-tide-notes.md  source-fallback  11 blocks  preserved 11  lost 0  2060 -> 2059 chars
+```
+
+少掉的那一个字符是**唯一**的差异。79 行逐行比对，前 78 行完全一致，序列化器只是不吐最后那个换行。测试因此直接断言「序列化结果补回一个换行就等于原文」，而不是断言块清单为空——13.10 已经说明清单看不见转义损坏，这里就不能再靠它下结论。将来接保存路径时要补回这个换行，否则每次保存都会给文件添一行无谓的 diff。
+
+**这个方案实际上替一条尚未定夺的取舍做了选择。**`enouia-todo.md` 00 节那条「优先 Markdown 全量保真，还是优先 Tiptap 所见即所得」，在这里事实上被选成了前者：上述七类语法在编辑器里是不可编辑的源码块，不是所见即所得的富文本。Markdown 保真拿满，代价是这些块的可视化编辑要另想办法。**这一条需要 Morii 定夺**，不要因为丢失计数归零就当成已经通过。
+
+#### 一个隐蔽的跨编辑器污染
+
+Tiptap 的 `MarkdownManager` 用 `markedInstance.use(...)` 注册扩展 tokenizer。不注入实例时它回落到 `marked` 的模块单例，于是**一个编辑器注册的 tokenizer 会留在之后创建的每一个编辑器上**。基线测量因此会被此前跑过的原型配置污染，而报告本身不会有任何异常。
+
+`Markdown.configure({ marked })` 就是为注入而存在的。测试把这条钉死：先跑一遍带源节点的 round-trip，再跑基线，断言基线仍然如实丢掉那三个块。如果污染成立，基线会「正常」地一个都不丢，而那是假的。
+
+#### 新增依赖 `marked@17.0.6`，以及它不在 3.3 的表里
+
+注入需要能 `new Marked()`，因此 `marked` 从传递依赖提升为 `admin-b` 的直接依赖。**它不在 3.3 批准的依赖表内，这里明确记下**。三条事实供 Morii 判断：
+
+- 锁文件只多了 3 行 importer 记录，`marked@17.0.6` 本来就是 `@tiptap/markdown` 的依赖，磁盘上仍然只有一份，安装树没有新增任何包；
+- 版本号必须与 `@tiptap/markdown` 解析到的那份保持一致。将来升级 Tiptap 时若 marked 跨了大版本，这个直接 pin 会造成两份副本，需要一并调整；
+- 不注入的替代方案是接受单例污染，那等于让每次测量取决于此前跑过什么，测量本身就不成立。
+
+#### 类型断言，以及为什么它不是盲的
+
+`marked` 选项的声明类型是 `typeof marked`，即那个可调用的模块命名空间，而 `new Marked()` 是实例。两者相差**恰好一个成员** `getDefaults`，实测确认，不是估计：
+
+```text
+type Gap = Exclude<keyof typeof marked, keyof Marked>   ->  "getDefaults"
+```
+
+而 `MarkdownManager` 从注入实例上只读 `Lexer`、`defaults`、`lexer`、`setOptions`、`use` 五个成员，从不读 `getDefaults`，也从不把实例当函数调用。这五个 `Marked` 实例全都有。所以 `marked-instance.ts` 里那处断言在当前版本下是安全的。
+
+安全的前提是「Tiptap 只读这五个」，而这句话会随升级失效。因此断言配了一个会失败的检查，而不是一句注释：`marked-instance.test.ts` 用 Proxy 包住实例跑一次真实 round-trip，记录 Tiptap 实际读过的每个成员，再断言其中没有任何一个是 `Marked` 实例所缺的。方法返回时绑定回原对象，这样 marked 自己的内部取值不会被误记成 Tiptap 的读取。
+
+这个观察器**当场就证明了自己有用**：第一次运行时它报出一个清单外的读取 `constructor`，来自 Tiptap 合并 options 时的 `isPlainObject` 判断。该成员两个类型都有，与类型缺口无关，因此断言改成按「实例是否缺这个成员」动态判定，而不是比对一份会过期的白名单。另用 `getDefaults` 做了负向验证，确认它确实会被捕获。
+
+`missingMarkedMembers` 单独拆出来，是为了能拿一个空对象去测这个检查器本身。按第 5 节和交接文档第 7 节的约定，只会通过的校验器没有价值。
+
+#### 接手时的实际状态
+
+Codex 的这部分工作**没有提交**，且留下的工作树类型检查不过：
+
+```text
+admin-b/src/editor/roundtrip.ts(47,9): error TS2741:
+  Property 'getDefaults' is missing in type 'Marked<string, string>'
+  but required in type 'typeof marked'
+```
+
+测试当时是绿的，`pnpm -C prototypes check` 是红的。Claude 接手后补了 `marked-instance.ts` 与 `marked-instance.test.ts`，在 `source-nodes.test.ts` 里加了两条逐字节比对，并把注入改成可被测试观察的形式。源节点本身的设计原样保留。
+
+本轮末次验证：
+
+```text
+pnpm -C prototypes check            -> 退出码 0
+pnpm -C prototypes test             -> tests 94 / suites 25 / pass 94 / fail 0
+pnpm -C prototypes fixtures:check   -> Fixture corpus is valid.
+pnpm -C prototypes roundtrip:report -> 见上两张表
+pnpm verify                         -> 退出码 0
+  astro check                       -> Result (60 files): 0 errors, 0 warnings, 0 hints
+  node --test tests/*.test.mjs      -> tests 30 / pass 30 / fail 0
+  astro build                       -> 46 page(s) built
+```
+
+**仍未做**：源节点在界面上还没有可视化呈现，B 依然没有启动入口和 UI；发布闸门、媒体与翻译关系仍未接线。round-trip 保真成立不等于原型 B 可以交给 Morii 操作。
