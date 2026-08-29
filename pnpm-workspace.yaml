@@ -8,3 +8,10 @@ enableGlobalVirtualStore: false
 allowBuilds:
   esbuild: true
   sharp: true
+
+# pnpm 11 reads these here, not from .npmrc. Verified 2026-08-29:
+# `save-exact` in .npmrc is ignored outright, and `engine-strict` there is
+# downgraded to a warning. Keep both settings in this file so that exact
+# version pinning and the Node/pnpm range in `engines` stay enforced.
+saveExact: true
+engineStrict: true
