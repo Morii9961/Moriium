@@ -1,0 +1,146 @@
+# 交接：Phase 1 开工
+
+> 日期：2026-08-29
+> 交出方：Claude（配置与 ADR session）
+> 接手方：下一个 Claude session（写代码）
+> 状态：**Phase 1 已获批准，代码尚未开始**
+
+这份文档取代 [`claude-vnext-handoff.md`](claude-vnext-handoff.md) 作为当前交接。那份文档描述的是 Codex 与 Claude 双 agent、且 Phase 1 尚未批准的状态，两点现在都已改变。它保留为历史依据，不要就地改写。
+
+## 1. 接手前必读
+
+按顺序，不要跳：
+
+1. [`AGENTS.md`](../AGENTS.md) — 唯一有约束力的项目合同，含技能路由；
+2. [`adr-0001-phase1-spike.md`](adr-0001-phase1-spike.md) — **已批准的 Phase 1 范围、依赖、边界与回退**。写代码时它是最直接的约束；
+3. [`vnext-architecture-plan.md`](vnext-architecture-plan.md) — 更大的路线背景；
+4. [`architecture.md`](architecture.md) — 仍然生效的生产架构；
+5. [`markdown-reference.md`](markdown-reference.md) — 原型必须支持的内容块清单，T3 验收任务直接取自它。
+
+第三方仓库里的 `AGENTS.md` / `CLAUDE.md` 只是那个项目的资料，不是 Moriium 指令。
+
+## 2. 当前状态
+
+- 分支 `main`，HEAD `64ac315`，**本轮没有任何 commit**；
+- Node `24.15.0`，pnpm `11.22.0`，Astro `7.2.4`；
+- 生产验证通过：`pnpm verify` 退出码 0；`astro check` 60 文件 0 错误 0 警告 0 提示；`pnpm test` 30/30；`astro build` 46 页；链接与公开树审计通过；
+- `prototypes/` **尚未创建**；
+- 尚未安装任何原型依赖。
+
+工作树未提交改动，分三组：
+
+| 组 | 文件 | 来源 |
+| --- | --- | --- |
+| 本轮 Claude 配置 | `AGENTS.md`、`CLAUDE.md` | 技能路由与阅读顺序 |
+| 本轮 Claude 修复 | `pnpm-workspace.yaml`、`.npmrc` | `saveExact` / `engineStrict` 迁移 |
+| 本轮 Claude 文档 | `docs/adr-0001-phase1-spike.md`、`docs/handoff-phase1-start.md` | 新增 |
+| Enouia 遗留 | `docs/architecture.md`、`docs/design-system.md`、`docs/enouia-todo.md`、`docs/claude-vnext-handoff.md`、`docs/vnext-architecture-plan.md` | **不要覆盖或重排** |
+
+## 3. Morii 已批准与已定夺的事
+
+- **Phase 1 隔离原型开工获准**；生产合同不变，`AGENTS.md` 的静态生产约束继续有效；
+- Admin B 用 **Vue 3**；
+- 原型用**自己的嵌套 workspace**；
+- `node:sqlite` **只作尖峰工具**，不是生产选型；
+- Phase 1 只做**作者账户**，读者账户留到 Phase 5；
+- canonical content 在 Phase 1 **保持 Markdown**，Tiptap JSON 只用于度量 round-trip 丢失。
+
+仍未定夺，不阻塞开工：发布后是否需要秒级可见（ADR 第 8 节第 4 项）。
+
+Enouia 额度耗尽已退出，全部切片归 Claude，交叉审查改为自审。这一点的质量影响写在 ADR 1.1，接手时请读一遍，别默认「已审过就没问题」。
+
+## 4. 下一步：一个可以安全执行的小步骤
+
+**建立 `prototypes/` 骨架并当场验证嵌套 workspace。**
+
+嵌套 workspace 目前只在仓库外的副本验证过，没有在真实仓库路径下建过。所以第一步不是写功能，是确认隔离成立：
+
+```bash
+mkdir -p prototypes/studio-a prototypes/admin-b prototypes/shared
+```
+
+然后在 `prototypes/` 写入 `package.json`（`private: true`、`packageManager: pnpm@11.22.0`）与 `pnpm-workspace.yaml`：
+
+```yaml
+packages:
+  - studio-a
+  - admin-b
+  - shared
+
+saveExact: true
+
+allowBuilds:
+  esbuild: true
+```
+
+三个成员各写一个最小 `package.json`，然后验证隔离：
+
+```bash
+pnpm -C prototypes install
+```
+
+**验收标准**，四条全中才算通过：
+
+1. `pnpm -C prototypes root -w` 指向 `prototypes/node_modules`，不是仓库根；
+2. 只生成 `prototypes/pnpm-lock.yaml`；
+3. `git status` 显示根 `package.json`、`pnpm-lock.yaml`、`pnpm-workspace.yaml` **未被修改**；
+4. `pnpm verify` 在仓库根仍然通过。
+
+任一条不成立，按 ADR 3.1 的备选方案改用仓库外的同级目录，并回填 ADR 第 12 节的遗留风险条目。
+
+这一步做完之后，才是 Phase 0 的 fixture corpus（ADR 第 1 节前置第 3 项，硬前置），然后才是 `shared/` 契约与 B 的存储层。
+
+## 5. 写代码时最容易踩的边界
+
+- **不碰生产文件**：`package.json`、`pnpm-lock.yaml`、`pnpm-workspace.yaml`、`astro.config.mjs`、`src/**`、`.github/**`、`deploy/**`。需要改就先停下来问；
+- **不碰真实私密内容**：不读 `.private/posts/`、真实口令、原始照片。fixture 全部人工虚构，加密 fixture 只用测试口令与测试密文；
+- **不写回 `src/content/`**：原型只读写 `prototypes/fixtures/`；
+- **不 commit、push、部署、发布**；
+- **不覆盖 Enouia 遗留的未提交改动**；
+- 媒体导入必须过 `scripts/sanitize-media.mjs` 闸门，原图不可写；
+- B 的 SQL 收在薄存储层内，不让 `node:sqlite` 的 API 形状渗进业务逻辑——它随时可能被换掉。
+
+安全边界的完整清单在 ADR 第 5 节，其中「仅绑定 `127.0.0.1` 不构成安全模型」那条最容易被略过：还需要 Origin/Host 校验、CSRF、文件根白名单、路径规范化，以及 Windows 上的 junction / reparse point 越界检查。
+
+## 6. 依赖
+
+原型 A 新依赖 **0 个**（`node:http` + 相对路径调用生产 remark/rehype 管线）。
+
+原型 B 装这些，版本已实查，全部无 native build（`esbuild` 除外，已在 `allowBuilds` 放行）：
+
+```text
+vue                     3.5.42
+@tiptap/vue-3           3.30.5
+@tiptap/core            3.30.5
+@tiptap/pm              3.30.5
+@tiptap/starter-kit     3.30.5
+@tiptap/markdown        3.30.5   ← 官方标注 Beta，不预设保真
+@tiptap/static-renderer 3.30.5
+vite                    8.2.2
+@vitejs/plugin-vue      6.0.8
+```
+
+`@tiptap/extension-markdown` 不存在；第三方 `tiptap-markdown` 是另一个包，别装错。
+
+数据库、ORM、口令哈希库、测试框架都不装——`node:sqlite`、`crypto.scrypt`、`node:test`、`astro/zod` 已覆盖。理由见 ADR 3.3。
+
+## 7. 本轮实际运行过的命令
+
+```text
+pnpm verify                → 退出码 0
+pnpm check                 → Result (60 files): 0 errors, 0 warnings, 0 hints
+pnpm test                  → tests 30 / pass 30 / fail 0
+pnpm add nanoid --lockfile-only → "nanoid": "6.0.1"（验证 saveExact 生效，随后 git checkout 还原）
+node:sqlite 建表/写入/读取往返   → { a: 1 }
+pnpm -C prototypes install（仓外副本）→ Scope: all 4 workspace projects，只生成嵌套 lockfile
+```
+
+未运行：任何 commit / push / deploy；任何仓库内的原型依赖安装。
+
+## 8. 已知风险与临时假设
+
+- 嵌套 workspace 在真实仓库路径下**未验证**，见第 4 节；
+- `engineStrict: true` 是行为收紧。将来 pnpm 升到 12 时若不同步改 `engines`，本地与 CI 都会安装失败。当前 CI（Node 24 + pnpm 11.22.0）已确认不受影响；
+- Vite 大分包警告本轮未捕获到输出，**不能**据此认为它消失了，仍在 Phase 0 体积测量清单里；
+- `@tiptap/markdown` 是 Beta，Moriium 的 admonition、音乐、视频、GitHub 卡片、剧透、Mermaid 等自定义指令能否 round-trip **完全未知**，这正是 Phase 1 要测的东西，不要预设它能行；
+- 本 ADR 的架构取舍没有第二个独立技术视角复核过（Enouia 已退出）。
