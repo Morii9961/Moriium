@@ -7,6 +7,8 @@
   "scripts": {
     "check": "node ../node_modules/typescript/bin/tsc -p .",
     "fixtures:build": "node tools/build-protected-fixture.mjs",
-    "fixtures:check": "node tools/validate-fixtures.ts"
+    "fixtures:check": "node tools/validate-fixtures.ts",
+    "baselines:build": "node tools/build-baselines.mjs",
+    "baselines:verify": "node tools/verify-baseline-pipeline.mjs"
   }
 }

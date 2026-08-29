@@ -69,9 +69,43 @@ pnpm -C prototypes fixtures:build
 - the envelope decrypts with the published test password, and **fails** with a
   wrong one.
 
+## The baseline
+
+`baseline/` holds each fixture body rendered through the **public article**
+pipeline. ADR 0001 section 4 measures round-trip loss and task T5's
+preview-versus-production diff against it, so it has to match what the deployed
+site emits.
+
+```sh
+pnpm -C prototypes baselines:build    # regenerate
+pnpm -C prototypes baselines:verify   # prove the renderer still matches dist/
+```
+
+Two things make the baseline trustworthy rather than merely present:
+
+- The renderer imports `astro.config.mjs` and uses the plugin lists the site is
+  configured with, instead of restating them. `scripts/lib/render-markdown.mjs`
+  would have been the wrong source: that is the protected-post path, and it
+  disables smartypants and syntax highlighting.
+- `baselines:verify` renders a real production post and compares it against the
+  page in `dist/`. That check earned its place immediately — the first baseline
+  emitted `pre.astro-code`, while the built site contains `div.expressive-code`
+  and no `astro-code` at all, because Expressive Code arrives as an Astro
+  integration and is not in the markdown plugin chain. It is now wired in
+  explicitly, and `fixtures:check` fails if the production `expressiveCode({…})`
+  options change without the baseline being regenerated.
+
+Injected `<style>` and `<script>` blocks are stripped. Expressive Code inlines
+them, the Astro integration extracts them to `/_astro/`, and left in they were
+24 KB of a 48 KB file — the content would have been a rounding error inside its
+own diff.
+
+`fixtures:check` fails if any stored baseline no longer matches a fresh render.
+When it does, read the diff before regenerating: it means public rendering
+changed.
+
 ## Known gap
 
-There is no recorded baseline of the production HTML for these bodies yet, so
-round-trip loss through Tiptap cannot be counted automatically. ADR 0001 section
-4 needs that count. Generating and storing the baseline is the next piece of
-corpus work, not something already done.
+The baseline covers rendering. Counting round-trip loss through Tiptap also
+needs the reverse direction — markdown out of the editor compared against
+markdown in — and that cannot be built until prototype B exists.

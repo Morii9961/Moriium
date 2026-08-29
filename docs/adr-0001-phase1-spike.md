@@ -463,3 +463,22 @@ pnpm verify                              → 退出码 0
 ```
 
 关键的一条是中间那两行：原型里存在一个坏文件时，原型自查会失败而生产验证依然干净。3.1 的隔离主张到此才真正覆盖类型检查，而不只是覆盖文件改动。
+
+### 13.5 渲染基线（2026-08-29）
+
+第 4 节的「内容保真」与 T5 的「预览与生产渲染逐项比对」都需要一份基准 HTML。基线存在 `prototypes/fixtures/baseline/`，由 `pnpm -C prototypes baselines:build` 生成。
+
+**基准取公开文章管线，由 Morii 定夺。**这不是形式问题：`scripts/lib/render-markdown.mjs` 是受保护文章的路径，它关掉了 `smartypants` 与 `syntaxHighlight`，拿它当基准会让所有保真度数字朝同一方向系统性偏移。生成器改为导入 `astro.config.mjs` 并使用站点自身配置的插件列表，而不是另抄一份，因此不存在「改了一边忘了另一边」的漂移。
+
+**这里出过一个真实的错误，值得记下来。**第一版基线渲出的代码块是 `<pre class="astro-code">`，也就是 Astro 默认的 Shiki。但把真实文章 `reader-capabilities.md` 的构建产物拿来一比，`dist/` 里是 `<div class="expressive-code">`，`astro-code` 出现 0 次。原因是 Expressive Code 以 **Astro 集成**的身份接入，不在 `markdown.processor` 的插件链里。如果没做这次比对，两个原型的每一个代码块都会被记成一项渲染差异，而根因在基线自己。
+
+因此新增 `pnpm -C prototypes baselines:verify`：它把生产文章过一遍基线渲染器，与 `dist/` 的真实产物逐项比对结构标记。当前 14 项标记全部一致。**推理插件顺序无法确立这件事，比对输出可以**，这个工具的价值就在于此。
+
+由此带来两处必须记录的取舍：
+
+1. Expressive Code 的选项在 `build-baselines.mjs` 里是**重复**的一份，因为 Astro 集成把选项关在闭包里、不交还。`validate-fixtures.ts` 因此增加了一条守卫：`astro.config.mjs` 的 `expressiveCode({...})` 调用一旦改变就报错，要求同步更新并重生成基线。
+2. 基线剥掉了注入的 `<style>` 与 `<script>`。Expressive Code 的 rehype 版会内联它们，而 Astro 集成抽成 `/_astro/ec.*` 外链，构建产物里并没有内联块。不剥的话，48 KB 的基线里有 24 KB 是这些资产，正文会淹没在自己的 diff 里。剥掉之后基线离 `dist/` 更近而不是更远。
+
+`fixtures:check` 现在还会校验每份基线与当前渲染结果一致，不一致即失败。这条同样做过负向测试：改动一篇夹具正文后，校验器如期报出 1 份基线过期并以退出码 1 结束，还原后恢复。基线过期意味着公开渲染发生了变化，应当先读 diff 再重生成。
+
+**仍未完成**：基线只覆盖「渲染出去」这一半。round-trip 丢失计数还需要反方向——编辑器吐回的 Markdown 与原文对比——那要等原型 B 存在之后才能做。

@@ -123,7 +123,7 @@ Morii 定夺后已实施：`prototypes/` 排除出根 `tsconfig.json`，并自�
 
 按 ADR 顺序往下是：
 
-1. 给语料生成生产 HTML 的基线快照——round-trip 丢失项计数的前提，第 4 节的评分维度依赖它。**基准取公开文章管线**（Morii 定夺，2026-08-29）：`astro.config.mjs` 的 `markdown.processor`，不是 `scripts/lib/render-markdown.mjs` 那条加密文章路径，后者关掉了 smartypants 与语法高亮，拿它当基准会让所有保真度数字系统性偏移；
+1. ~~给语料生成生产 HTML 的基线快照~~ — **已完成**，见 [ADR 13.5](adr-0001-phase1-spike.md)。基准取公开文章管线（Morii 定夺）。`pnpm -C prototypes baselines:verify` 会把基线渲染器与 `dist/` 的真实产物逐项比对，当前 14 项标记一致；这个比对第一次跑就抓到了一个真实错误（漏了 Expressive Code）。反方向的 round-trip 计数要等原型 B 才能做；
 2. `shared/` 契约补齐三语关系、媒体 asset 形状与错误模型（frontmatter schema 已落地）；
 3. 原型 B 的薄存储层，SQL 收在里面，不让 `node:sqlite` 的 API 形状渗进业务逻辑。
 

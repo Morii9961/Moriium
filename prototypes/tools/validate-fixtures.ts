@@ -21,6 +21,16 @@ import {
   protectedMetadata,
 } from '../shared/content-schema.ts';
 import { FIXTURE_PASSWORD } from './fixture-password.ts';
+import { baselinePathFor, createPublicRenderer, renderPost } from './build-baselines.mjs';
+
+// Whitespace-normalised copy of the expressiveCode({...}) call in
+// astro.config.mjs. Section 7 fails if the real call no longer matches.
+const EXPECTED_EXPRESSIVE_CODE_CALL =
+  "expressiveCode({ plugins: [pluginLineNumbers(), pluginCollapsibleSections()], " +
+  "defaultProps: { wrap: true, showLineNumbers: false, }, " +
+  "themes: ['github-light', 'github-dark'], " +
+  "themeCssSelector: (theme) => theme.name === 'github-dark' ? '[data-theme=\"dark\"]' : " +
+  "'[data-theme=\"light\"]', })";
 
 const here = import.meta.dirname;
 const repoRoot = resolve(here, '../..');
@@ -65,6 +75,7 @@ async function exists(path: string) {
 // ---------------------------------------------------------------------------
 
 const productionConfig = await readFile(join(repoRoot, 'src/content.config.ts'), 'utf8');
+const productionAstroConfig = await readFile(join(repoRoot, 'astro.config.mjs'), 'utf8');
 
 /** Capture group 1 of every match, dropping the ones the engine left unset. */
 function captures(source: string, pattern: RegExp): string[] {
@@ -287,7 +298,46 @@ for (const file of protectedFiles) {
 }
 
 // ---------------------------------------------------------------------------
-// 7. No orphaned media
+// 7. Baselines are current, and the pipeline they came from has not drifted
+// ---------------------------------------------------------------------------
+
+// The expressiveCode({...}) options are duplicated in build-baselines.mjs
+// because an Astro integration keeps its options in a closure. Guard the copy:
+// if the production call changes, the baseline silently stops matching the site.
+const ecCall = productionAstroConfig.match(/expressiveCode\(\{[\s\S]*?\n {4}\}\)/)?.[0];
+check(ecCall !== undefined, 'Could not locate the expressiveCode({...}) call in astro.config.mjs.');
+if (ecCall !== undefined) {
+  const normalised = ecCall.replace(/\s+/g, ' ').trim();
+  check(
+    normalised === EXPECTED_EXPRESSIVE_CODE_CALL,
+    'The expressiveCode({...}) options in astro.config.mjs changed. ' +
+      'Update EXPRESSIVE_CODE_OPTIONS in prototypes/tools/build-baselines.mjs and regenerate the ' +
+      `baselines, then update EXPECTED_EXPRESSIVE_CODE_CALL.\n      now: ${normalised}`,
+  );
+}
+
+const renderer = await createPublicRenderer();
+let staleBaselines = 0;
+for (const post of posts) {
+  const target = baselinePathFor(post.file);
+  if (!(await exists(target))) {
+    failures.push(`${rel(post.file)}: no baseline at ${rel(target)}. Run pnpm -C prototypes baselines:build.`);
+    continue;
+  }
+  const fresh = await renderPost(renderer, post.file);
+  const stored = (await readFile(target, 'utf8')).replace(/\n$/, '');
+  if (fresh.replace(/\n$/, '') !== stored) staleBaselines += 1;
+}
+check(
+  staleBaselines === 0,
+  `${staleBaselines} baseline(s) no longer match a fresh render. Either the fixtures or the ` +
+    'production pipeline changed. Run pnpm -C prototypes baselines:build and review the diff — ' +
+    'a change here means public rendering changed.',
+);
+if (staleBaselines === 0) notes.push(`baselines: ${posts.length} current against the public pipeline`);
+
+// ---------------------------------------------------------------------------
+// 8. No orphaned media
 // ---------------------------------------------------------------------------
 
 const mediaFiles = (await walk(mediaRoot, '.svg')).map((f) => basename(f));

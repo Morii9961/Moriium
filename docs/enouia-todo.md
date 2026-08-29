@@ -215,6 +215,8 @@ fixture corpus 已完成，`shared/` 的 frontmatter 契约也已随校验器落
 
 类型检查的隔离也已完成：`prototypes/` 排除出根 `tsconfig.json`，自带一份同等严格的配置由 `pnpm -C prototypes check` 运行（ADR 13.4，L2 单独提交）。
 
-之后按 ADR 顺序是：语料的生产 HTML 基线快照（round-trip 丢失计数的前提，基准取公开文章管线），然后 `shared/` 契约补齐三语与媒体部分，再是原型 B 的存储层。
+语料的渲染基线也已完成（ADR 13.5，基准取公开文章管线，并与 `dist/` 的真实产物比对过）。
+
+之后按 ADR 顺序是：`shared/` 契约补齐三语关系、媒体 asset 形状与错误模型（frontmatter schema 已落地），然后原型 B 的薄存储层。round-trip 丢失计数的反方向要等原型 B 存在后才能建。
 
 00 节其余未完成项——固定口径的体积/构建测量、体验任务评分表、把 07–12 的人工验收测试化——不阻塞原型开工，但必须在 Morii 实际操作 T1–T10 之前就位，否则没有可对照的基线。
