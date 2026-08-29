@@ -1,0 +1,4 @@
+# Prototype B's SQLite file and its WAL/journal siblings. ADR 0001 section 3.5
+# keeps the database out of the repository. A nested .gitignore is used here so
+# the root one stays untouched.
+.data/

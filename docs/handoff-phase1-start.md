@@ -125,7 +125,11 @@ Morii 定夺后已实施：`prototypes/` 排除出根 `tsconfig.json`，并自�
 
 1. ~~给语料生成生产 HTML 的基线快照~~ — **已完成**，见 [ADR 13.5](adr-0001-phase1-spike.md)。基准取公开文章管线（Morii 定夺）。`pnpm -C prototypes baselines:verify` 会把基线渲染器与 `dist/` 的真实产物逐项比对，当前 14 项标记一致；这个比对第一次跑就抓到了一个真实错误（漏了 Expressive Code）。反方向的 round-trip 计数要等原型 B 才能做；
 2. ~~`shared/` 契约补齐三语关系、媒体 asset 形状与错误模型~~ — **已完成**，见 [ADR 13.6](adr-0001-phase1-spike.md)。四个模块加 20 个测试（`pnpm -C prototypes test`）。翻译查询在类型上就无法回退到别的语言，媒体 manifest 结构上放不下原图路径；
-3. 原型 B 的薄存储层，SQL 收在里面，不让 `node:sqlite` 的 API 形状渗进业务逻辑。
+3. ~~原型 B 的薄存储层~~ — **已完成**，见 [ADR 13.7](adr-0001-phase1-spike.md)。状态机由结构承担：草稿等于「没有已发布版本」，保存只追加、API 上够不到 `published_version_id`，发布与回滚是同一个原子操作指向不同版本。17 个用例。
+
+**下一块是 B 的 HTTP 层**，也是安全边界真正开始生效的地方。ADR 第 5 节那一条最容易被略过：仅绑定 `127.0.0.1` 不构成安全模型，还需要 Origin/Host 校验、CSRF token、文件根白名单、路径规范化后再校验，以及 Windows 上的 junction / reparse point 越界检查（NTFS junction 不是 symlink，容易漏）。B 还要加 scrypt 口令哈希、`HttpOnly` + `SameSite=Strict` 会话 cookie、登录失败速率限制、对象级授权。
+
+存储层测试通过**不等于** 3.5 完成——认证与授权都还没有。
 
 `prototypes/` 目前的命令：
 
