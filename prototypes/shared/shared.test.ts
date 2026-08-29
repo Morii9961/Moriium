@@ -127,7 +127,7 @@ describe('media', () => {
   });
 
   it('rejects a disk path where a public URL belongs', () => {
-    assert.throws(() => mediaAsset.parse({ ...base, publicPath: 'E:\\Moriium\\photo.webp' }));
+    assert.throws(() => mediaAsset.parse({ ...base, publicPath: 'D:\\photos\\photo.webp' }));
   });
 });
 
