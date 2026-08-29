@@ -17,7 +17,7 @@ const rows = fixtures.flatMap((file) => {
   const body = bodyOf(file);
   return [
     ['unextended', measureMarkdownRoundTrip(body)] as const,
-    ['source-fallback', measureMoriiumMarkdownRoundTrip(body)] as const,
+    ['moriium-nodes', measureMoriiumMarkdownRoundTrip(body)] as const,
   ].map(([mode, report]) => ({
     fixture: basename(file),
     mode,
@@ -30,4 +30,4 @@ const rows = fixtures.flatMap((file) => {
 });
 
 console.table(rows);
-console.log('The unextended row is the Beta baseline; source-fallback must close losses without exemptions.');
+console.log('The unextended row is the Beta baseline; moriium-nodes must close losses without exemptions.');

@@ -1,12 +1,17 @@
-// Opaque source nodes for Moriium syntax that Tiptap does not model natively.
+// Editable source nodes for Moriium syntax that Tiptap does not model natively.
 //
 // Tiptap's Markdown extension documents custom tokenizers plus parseMarkdown /
 // renderMarkdown as the supported extension boundary:
 // https://tiptap.dev/docs/editor/markdown/guides/integrate-markdown-in-your-extension
 //
-// These nodes intentionally do not interpret their payload. They make the raw
-// source visible and editable as one atomic unit while guaranteeing that the
-// Beta serializer cannot escape, normalize, or drop syntax it does not own.
+// These nodes do not interpret their payload. They hold the raw source as
+// ordinary editable text, so the author can correct a path or an attribute in
+// place, while the Beta serializer never gets a chance to escape, normalize or
+// drop syntax it does not own. The node shape follows Tiptap's own CodeBlock:
+// `content: 'text*'` with `marks: ''` and `code: true`.
+//
+// Images are not handled here. They get a real node with a rendered preview,
+// see image-node.ts.
 
 import {
   Node,
@@ -17,7 +22,6 @@ import {
 } from '@tiptap/core';
 
 type SourceKind =
-  | 'image'
   | 'math-block'
   | 'directive'
   | 'admonition'
@@ -40,10 +44,22 @@ const BLOCK_PATTERNS: readonly { kind: SourceKind; pattern: RegExp }[] = [
   },
   { kind: 'math-block', pattern: /^\$\$\r?\n[\s\S]*?\r?\n\$\$(?:\r?\n|$)/ },
   { kind: 'directive', pattern: /^::(?:video|github|music)\{[^\r\n]*\}(?:\r?\n|$)/ },
-  { kind: 'image', pattern: /^!\[[^\]\r\n]*\]\([^\r\n]+\)(?:\r?\n|$)/ },
 ];
 
-const BLOCK_START = /^(?:!\[|\$\$|::(?:video|github|music)\{|:::(?:note|tip|important|warning|caution)\b|>\s*\[!(?:NOTE|TIP|IMPORTANT|WARNING|CAUTION)\])/m;
+const BLOCK_START = /^(?:\$\$|::(?:video|github|music)\{|:::(?:note|tip|important|warning|caution)\b|>\s*\[!(?:NOTE|TIP|IMPORTANT|WARNING|CAUTION)\])/m;
+
+/** Splits a token's raw source into the text the author edits and the newline that follows it. */
+export function splitTrailingNewline(raw: string): { body: string; trailing: string } {
+  const match = /(\r?\n)$/.exec(raw);
+  return match
+    ? { body: raw.slice(0, -match[0].length), trailing: match[0] }
+    : { body: raw, trailing: '' };
+}
+
+/** The editable text a source node currently holds. */
+export function sourceTextOf(node: JSONContent): string {
+  return (node.content ?? []).map((child) => child.text ?? '').join('');
+}
 
 const blockTokenizer: MarkdownTokenizer = {
   name: 'moriiumSourceBlock',
@@ -79,19 +95,26 @@ const inlineTokenizer: MarkdownTokenizer = {
   },
 };
 
-function rawNode(
+function sourceNode(
   name: 'moriiumSourceBlock' | 'moriiumSourceInline',
   token: MarkdownToken,
   helpers: MarkdownParseHelpers,
 ): JSONContent {
   const source = token as SourceToken;
-  return helpers.createNode(name, { raw: source.raw ?? '', kind: source.kind });
+  const { body, trailing } = splitTrailingNewline(source.raw ?? '');
+  return helpers.createNode(
+    name,
+    { kind: source.kind, trailing },
+    body ? [helpers.createTextNode(body)] : [],
+  );
 }
 
 function sourceAttributes() {
   return {
-    raw: { default: '', rendered: false },
     kind: { default: 'directive', rendered: false },
+    // Held so the round trip returns the author's file unchanged rather than
+    // whatever block separation the serializer would otherwise choose.
+    trailing: { default: '', rendered: false },
   };
 }
 
@@ -99,21 +122,22 @@ export const MoriiumSourceBlock = Node.create({
   name: 'moriiumSourceBlock',
   priority: 1_000,
   group: 'block',
-  atom: true,
+  content: 'text*',
+  marks: '',
+  code: true,
+  defining: true,
   isolating: true,
-  selectable: true,
   addAttributes: sourceAttributes,
+  parseHTML() {
+    return [{ tag: 'pre[data-moriium-source-block]', preserveWhitespace: 'full' as const }];
+  },
   renderHTML({ node }) {
-    return [
-      'pre',
-      { 'data-moriium-source-block': String(node.attrs.kind) },
-      ['code', {}, String(node.attrs.raw)],
-    ];
+    return ['pre', { 'data-moriium-source-block': String(node.attrs.kind) }, ['code', {}, 0]];
   },
   markdownTokenName: 'moriiumSourceBlock',
   markdownTokenizer: blockTokenizer,
-  parseMarkdown: (token, helpers) => rawNode('moriiumSourceBlock', token, helpers),
-  renderMarkdown: (node) => String(node.attrs?.raw ?? ''),
+  parseMarkdown: (token, helpers) => sourceNode('moriiumSourceBlock', token, helpers),
+  renderMarkdown: (node) => sourceTextOf(node) + String(node.attrs?.trailing ?? ''),
 });
 
 export const MoriiumSourceInline = Node.create({
@@ -121,18 +145,18 @@ export const MoriiumSourceInline = Node.create({
   priority: 1_000,
   group: 'inline',
   inline: true,
-  atom: true,
-  selectable: true,
+  content: 'text*',
+  marks: '',
+  code: true,
   addAttributes: sourceAttributes,
+  parseHTML() {
+    return [{ tag: 'code[data-moriium-source-inline]', preserveWhitespace: 'full' as const }];
+  },
   renderHTML({ node }) {
-    return [
-      'code',
-      { 'data-moriium-source-inline': String(node.attrs.kind) },
-      String(node.attrs.raw),
-    ];
+    return ['code', { 'data-moriium-source-inline': String(node.attrs.kind) }, 0];
   },
   markdownTokenName: 'moriiumSourceInline',
   markdownTokenizer: inlineTokenizer,
-  parseMarkdown: (token, helpers) => rawNode('moriiumSourceInline', token, helpers),
-  renderMarkdown: (node) => String(node.attrs?.raw ?? ''),
+  parseMarkdown: (token, helpers) => sourceNode('moriiumSourceInline', token, helpers),
+  renderMarkdown: (node) => sourceTextOf(node) + String(node.attrs?.trailing ?? ''),
 });

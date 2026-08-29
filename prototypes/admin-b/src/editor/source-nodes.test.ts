@@ -2,8 +2,25 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, it } from 'node:test';
+import { Markdown } from '@tiptap/markdown';
+import StarterKit from '@tiptap/starter-kit';
+import { getSchema } from '@tiptap/core';
+import type { Node as PMNode } from '@tiptap/pm/model';
 import { CONTENT_BLOCKS } from '../../../shared/content-blocks.ts';
+import { MoriiumImage } from './image-node.ts';
+import { MoriiumSourceBlock, MoriiumSourceInline } from './source-nodes.ts';
 import { measureMarkdownRoundTrip, measureMoriiumMarkdownRoundTrip } from './roundtrip.ts';
+
+const schema = getSchema([StarterKit, MoriiumImage, MoriiumSourceBlock, MoriiumSourceInline, Markdown]);
+
+function nodesOfType(markdown: string, type: string): PMNode[] {
+  const found: PMNode[] = [];
+  schema.nodeFromJSON(measureMoriiumMarkdownRoundTrip(markdown).editorJson).descendants((node) => {
+    if (node.type.name === type) found.push(node);
+    return true;
+  });
+  return found;
+}
 
 function fixtureBody(language: 'zh' | 'ja'): string {
   const file = resolve(import.meta.dirname, `../../../fixtures/posts/${language}/${language}-tide-notes.md`);
@@ -65,6 +82,57 @@ describe('Moriium source nodes', () => {
       assert.equal(report.markdown.length, body.length - 1);
     });
   }
+
+  // Morii chose editable source over atomic blocks, so this is the claim that
+  // matters: the cursor has somewhere to go inside these nodes. A ProseMirror
+  // textblock is by definition a block whose content is inline, and a node that
+  // is not an atom is one a selection can enter. Asserting both is what
+  // separates "editable source" from the atom this used to be.
+  it('lets the cursor into a block source node instead of sealing it', () => {
+    const blocks = nodesOfType(fixtureBody('zh'), 'moriiumSourceBlock');
+
+    assert.ok(blocks.length > 0, 'the zh fixture must produce block source nodes');
+    for (const block of blocks) {
+      assert.equal(block.isTextblock, true, `${String(block.attrs.kind)} is not a textblock`);
+      assert.equal(block.isAtom, false, `${String(block.attrs.kind)} is still an atom`);
+      assert.ok(block.textContent.length > 0, 'the source must be editable text, not an attribute');
+    }
+  });
+
+  it('lets the cursor into an inline source node as well', () => {
+    const inlines = nodesOfType(fixtureBody('zh'), 'moriiumSourceInline');
+
+    assert.ok(inlines.length > 0, 'the zh fixture must produce inline source nodes');
+    for (const inline of inlines) {
+      assert.equal(inline.isAtom, false, `${String(inline.attrs.kind)} is still an atom`);
+      assert.equal(inline.type.spec.content, 'text*');
+      assert.ok(inline.textContent.length > 0);
+    }
+  });
+
+  it('keeps an edit made inside a source block', () => {
+    const before = '::video{provider="youtube" id="old" title="潮汐" ratio="16/9"}\n';
+    const report = measureMoriiumMarkdownRoundTrip(before);
+    const json = report.editorJson;
+    const block = json.content?.[0];
+
+    assert.equal(block?.type, 'moriiumSourceBlock');
+    assert.equal(block?.content?.[0]?.text, before.trimEnd());
+
+    // Retype the id the way an author would, then confirm the schema accepts
+    // the edited document and the change is what comes back out.
+    const edited = schema.nodeFromJSON({
+      ...json,
+      content: [
+        {
+          ...block,
+          content: [{ type: 'text', text: before.trimEnd().replace('id="old"', 'id="new"') }],
+        },
+      ],
+    });
+    edited.check();
+    assert.match(edited.textContent, /id="new"/);
+  });
 
   it('does not leak custom tokenizers into a later baseline editor', () => {
     measureMoriiumMarkdownRoundTrip(fixtureBody('zh'));

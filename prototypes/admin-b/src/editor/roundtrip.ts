@@ -14,6 +14,7 @@ import StarterKit from '@tiptap/starter-kit';
 import type { marked } from 'marked';
 import { CONTENT_BLOCKS, blocksIn } from '../../../shared/content-blocks.ts';
 import { createIsolatedMarked } from './marked-instance.ts';
+import { MoriiumImage } from './image-node.ts';
 import { MoriiumSourceBlock, MoriiumSourceInline } from './source-nodes.ts';
 
 export type RoundTripBlockResult = {
@@ -114,7 +115,7 @@ export function measureMoriiumMarkdownRoundTrip(
 ): MarkdownRoundTripReport {
   return measureWithExtensions(
     markdown,
-    [MoriiumSourceBlock, MoriiumSourceInline],
+    [MoriiumImage, MoriiumSourceBlock, MoriiumSourceInline],
     markedInstance,
   );
 }
