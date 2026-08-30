@@ -79,11 +79,14 @@
 
 ### 05　B Hybrid 生产架构 ADR
 
+草稿已成文：[`adr-0002-phase5-production.md`](adr-0002-phase5-production.md)。**未获批准**，批准前 `architecture.md` 的静态架构继续有效。
+
 - [x] Morii 已根据实际操作选择 B Hybrid 全栈，原型 A 取消。见 ADR 0001 第 13.14 节。
-- [ ] 固定 B 的初始逐路由策略，明确哪些公开路由预渲染或缓存，哪些路由按需渲染。
-- [ ] 明确作者与读者账户、canonical content、逐路由渲染策略和发布时效。
-- [ ] ADR 定义 API、数据库、renderer、媒体、认证、备份、监控、安全和回退。
-- [ ] 同步修改 `AGENTS.md` 与部署合同后才能进入生产实现。
+- [x] 固定 B 的初始逐路由策略。ADR 0002 第 5 节：公开路由**全部**预渲染，只有 `/admin/*` 与 `/api/*` 按需。读者路径因此完全不经过 Node 与数据库。
+- [x] 明确作者与读者账户、canonical content、逐路由渲染策略和发布时效。2026-08-30 Morii 定夺：只做作者账户但建两个（Morii、Enouia）、发布分钟级可见、Admin 只走隧道、后端用 Astro 内置。canonical content 继续是 Markdown，见 ADR 0002 第 6.1 节。
+- [x] ADR 定义 API、数据库、renderer、媒体、认证、备份、监控、安全和回退。ADR 0002 第 4 到 14 节。
+- [ ] 同步修改 `AGENTS.md` 与部署合同后才能进入生产实现。改法已在 ADR 0002 第 15、16 节逐条写出（`AGENTS.md` 有五处、部署合同有四处），**但一个字都还没改**——要等 Morii 批准 ADR。
+- [?] Morii 批准或退回 ADR 0002。未决问题见其第 18 节：隧道具体用什么、告警发到哪里。
 
 ### 06A　全栈 Hybrid 影子系统
 
@@ -249,6 +252,12 @@ Tiptap 接入与 round-trip 丢失计数见 ADR 13.10、13.11：未加扩展的 
 
 验收清单现在的分布：**五项通过、四项部分、两项不能过、零项未验**。
 
-**下一块由 Morii 定。**能做的有三条：给自动保存加退避重试（B10 剩下的那半）、把生产渲染接到匿名侧做出真正的阅读页（B11）、或者直接进 05 的 B Hybrid 生产架构 ADR。B2（存不下完整 frontmatter）与 B7（没有媒体导入）都必须在那份 ADR 里连同数据库模型和媒体管线一起定，不要在尖峰里就地补。
+**Phase 5 的 ADR 已成草稿**：[`adr-0002-phase5-production.md`](adr-0002-phase5-production.md)。它把运行拓扑、逐路由策略、数据库模型、可信 renderer、媒体导入、两个作者账户、Admin 暴露面、备份恢复、监控、威胁模型、四级回退，以及 `AGENTS.md` 与部署合同的逐条改法都固定下来了。B2 与 B7 那两项「不能过」的修法也在里面。
+
+写的过程中查出六处初稿的错，都已改（见其第 20 节自审）。最值得记的两处：Astro 的会话默认落在应用目录，而现在的发布布局会在第 7 次发布时把它连同数据库一起删掉；Astro 的 `security.checkOrigin` 只覆盖三种表单 content-type，不含 `application/json`，所以尖峰那道显式 CSRF token 不能删。
+
+**下一块要等 Morii 批准或退回 ADR 0002。**批准前不改 `AGENTS.md`、不改部署合同、不加 adapter，一个字都不动。
+
+批准之后是 06A 影子系统；退回的话按意见改 ADR。ADR 里还有两个问题只有 Morii 能答：隧道具体用 Tailscale 还是 WireGuard 还是 SSH 转发，以及告警发到哪里（牵涉新的第三方服务，按 `AGENTS.md` 要单独批准）。
 
 00 节其余未完成项——固定口径的体积/构建测量、把 07–12 的人工验收测试化、安全与恢复要求——仍须在影子系统前补齐。

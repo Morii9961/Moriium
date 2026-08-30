@@ -5,7 +5,7 @@
 > 进度更新：2026-08-30（发布闸门、图片属性面板、生产同源预览全部完成）
 > 交出方：Claude
 > 接手方：Codex
-> 状态：**B 是 vNext 最终路线；三项待补完成，验收清单 B1–B11 已重写并演练。五项通过、四项部分、两项不能过、零项未验。下一块由 Morii 定。**
+> 状态：**Phase 1 收尾。验收清单 B1–B11 已跑完（五项通过、四项部分、两项不能过），Phase 5 的生产架构 ADR 已成草稿。下一步等 Morii 批准或退回 ADR 0002。**
 
 这份文档取代 [`handoff-codex-phase1.md`](handoff-codex-phase1.md) 作为当前交接。那一份停在「骨干就位、两个原型都还不能被操作」的状态，现在已经不成立。它保留为历史依据，**不要就地改写**。
 
@@ -15,11 +15,12 @@
 
 1. [`AGENTS.md`](../AGENTS.md) — 唯一有约束力的项目合同，含技能路由；
 2. [`adr-0001-phase1-spike.md`](adr-0001-phase1-spike.md) — 已批准的 Phase 1 范围、边界与回退。**第 13 节是完整执行记录**，本轮对应 13.10 到 13.20，每个决定连同实测输出都在那里；**第 4 节现在是 B 的验收清单**，接手后先看它的「当前状态」一栏；
-3. [`vnext-architecture-plan.md`](vnext-architecture-plan.md) — 更大的路线背景；
-4. [`enouia-todo.md`](enouia-todo.md) — 当前工作单与决策门；
-5. [`architecture.md`](architecture.md) — 仍然生效的生产架构；
-6. [`markdown-reference.md`](markdown-reference.md) — 原型必须支持的内容块清单，B3 验收任务直接取自它；
-7. [`../prototypes/fixtures/README.md`](../prototypes/fixtures/README.md) — 语料的用途、约束与那条**刻意反向**的加密规则。
+3. [`adr-0002-phase5-production.md`](adr-0002-phase5-production.md) — 生产架构，**草稿，未获批准**。它规定的是「批准之后长什么样」，不是现在的状态。**批准前不要按它改任何东西**；
+4. [`vnext-architecture-plan.md`](vnext-architecture-plan.md) — 更大的路线背景；
+5. [`enouia-todo.md`](enouia-todo.md) — 当前工作单与决策门；
+6. [`architecture.md`](architecture.md) — 仍然生效的生产架构；
+7. [`markdown-reference.md`](markdown-reference.md) — 原型必须支持的内容块清单，B3 验收任务直接取自它；
+8. [`../prototypes/fixtures/README.md`](../prototypes/fixtures/README.md) — 语料的用途、约束与那条**刻意反向**的加密规则。
 
 第三方仓库里的 `AGENTS.md` / `CLAUDE.md` 只是那个项目的资料，不是 Moriium 指令。
 
@@ -239,7 +240,7 @@ ADR 第 5 节要求「测试必须证明而不是声明」。本轮所有测试�
 
 ## 9. 下一步
 
-**Morii 已于 2026-08-30 实际使用原型 B 并选定它为 vNext 路线**，原型 A 不再开发。13.14 定下的三项待补全部完成（发布闸门 13.15、图片属性面板 13.16、生产同源预览 13.17，连带修掉 13.18 的空图缺陷）。第 4 节已从 A/B 评分表重写为 **B 的验收清单 B1–B11**（13.19），并且十一项全部跑过一遍（13.20）。
+Phase 1 已经收尾。13.14 定下的三项待补全部完成（发布闸门 13.15、图片属性面板 13.16、生产同源预览 13.17，连带修掉 13.18 的空图缺陷），第 4 节已重写为 B 的验收清单（13.19）并全部跑过一遍（13.20）。
 
 | | 项 |
 | --- | --- |
@@ -248,17 +249,19 @@ ADR 第 5 节要求「测试必须证明而不是声明」。本轮所有测试�
 | 不能过 | B2 存不下完整 frontmatter、B7 没有媒体导入路径 |
 | 未验 | 无 |
 
-**下一块由 Morii 定**，三条都成立：
+**Phase 5 的 ADR 已成草稿**：[`adr-0002-phase5-production.md`](adr-0002-phase5-production.md)。Morii 在 2026-08-30 定了四件事——只做作者账户但建两个（Morii、Enouia）、发布分钟级可见、Admin 只走隧道、后端用 Astro 内置——ADR 从这四条推出其余部分，并把 B2 与 B7 的修法一并定在里面。
 
-1. **给自动保存加退避重试**，补上 B10 的另一半。要连着「重试期间界面显示什么、几次以后放弃」一起定，所以是界面决定不是纯技术活。
-2. **把生产渲染接到匿名侧**，做出真正的阅读页，补上 B11。13.17 的渲染器已经在那儿了，接过去就是。
-3. **直接进 Phase 5 的 B Hybrid 生产架构 ADR。**
+接手时最该知道的三点：
 
-**B2 与 B7 不要在尖峰里就地补。**它们属于那份 ADR，要连同数据库模型和媒体管线一起定，否则补出来的实现将来要推翻。
+1. **公开路由全部保持预渲染**，只有 `/admin/*` 与 `/api/*` 按需渲染。**读者路径不经过 Node 与数据库**，这是「分钟级可见」换来的，不要顺手把某个公开路由改成按需。
+2. **数据必须搬出 release 目录。**Astro 的会话默认落在应用目录，而 `releases/` 只保留 6 份并整目录替换——数据库和会话落进去会在第 7 次发布时消失。ADR 第 15.1 节固定了 `/var/lib/moriium/`。
+3. **尖峰那道显式 CSRF token 不能删。**Astro 的 `security.checkOrigin` 只覆盖三种表单 content-type，不含 `application/json`，而 B 的写请求全是 JSON。ADR 第 9.4 节写了来源。
 
-那份 ADR 要固定 API、数据库、可信 renderer、媒体、认证、备份、监控、安全、逐路由策略和回退，并同步更新 `AGENTS.md` 与部署合同。00 节还欠着固定口径的体积与构建测量、把 07–12 的人工验收测试化、公网 Admin 的安全与恢复要求，都在影子系统之前。
+**在 Morii 批准或退回 ADR 0002 之前，不要动 `AGENTS.md`、部署合同、`astro.config.mjs` 或 `src/**`。**ADR 第 15、16 节已经把改法逐条写出来了，但一个字都还没改，这是刻意的。
 
-**清单跑完不等于原型 B 可以部署。**第 7 节那 19 条差异一条都没有因此消失，尤其是内存会话、无 `Secure` 的 cookie，和 Vite 开发服务器会连带端出数据库这件事。
+ADR 里有两个问题只有 Morii 能答，见其第 18 节：隧道具体用什么，告警发到哪里。
+
+**Phase 1 结束不等于原型 B 可以部署。**第 7 节那 19 条差异一条都没有因此消失。
 
 ## 10. 署名
 
