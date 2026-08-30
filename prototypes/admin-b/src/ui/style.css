@@ -177,6 +177,12 @@ tbody tr:hover { background: var(--panel); }
 }
 .editor .ProseMirror-selectednode { outline: 2px solid var(--accent); }
 
+.image-properties { margin-top: 12px; }
+.image-properties .field:last-of-type { margin-bottom: 0; }
+.image-properties .error { margin: 4px 0 0; }
+.image-properties .note { margin-bottom: 0; }
+.image-properties-hint { margin: 8px 0 0; }
+
 .reader {
   font: 13px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   white-space: pre-wrap;

@@ -4,8 +4,10 @@ import { resolve } from 'node:path';
 import { describe, it } from 'node:test';
 import { Markdown } from '@tiptap/markdown';
 import StarterKit from '@tiptap/starter-kit';
-import { getSchema } from '@tiptap/core';
+import { Editor, getSchema } from '@tiptap/core';
 import type { Node as PMNode } from '@tiptap/pm/model';
+import { moriiumExtensions } from './extensions.ts';
+import { selectedImageAttributes, updateSelectedImage } from './image-properties.ts';
 import { MoriiumImage } from './image-node.ts';
 import { MoriiumSourceBlock, MoriiumSourceInline } from './source-nodes.ts';
 import { measureMoriiumMarkdownRoundTrip } from './roundtrip.ts';
@@ -80,5 +82,47 @@ describe('the image node', () => {
 
     assert.equal(report.markdown.includes('/media/a.svg'), false);
     assert.deepEqual(report.lostBlockIds, ['image']);
+  });
+
+  it('updates the selected image attributes without losing its path or trailing newline', () => {
+    const editor = new Editor({
+      extensions: moriiumExtensions(),
+      content: '![Old alt](/media/a.svg "Old caption")\n',
+      contentType: 'markdown',
+    });
+    editor.commands.setNodeSelection(0);
+
+    assert.deepEqual(selectedImageAttributes(editor), {
+      src: '/media/a.svg',
+      alt: 'Old alt',
+      title: 'Old caption',
+    });
+    assert.equal(
+      updateSelectedImage(editor, {
+        src: '/media/a.svg',
+        alt: 'New alt',
+        title: '',
+      }),
+      true,
+    );
+    assert.equal(editor.getMarkdown(), '![New alt](/media/a.svg)\n');
+    editor.destroy();
+  });
+
+  it('does not update an image when the selection is ordinary text', () => {
+    const editor = new Editor({
+      extensions: moriiumExtensions(),
+      content: 'Paragraph.\n\n![Old alt](/media/a.svg)\n',
+      contentType: 'markdown',
+    });
+    editor.commands.setTextSelection(1);
+
+    assert.equal(selectedImageAttributes(editor), null);
+    assert.equal(
+      updateSelectedImage(editor, { src: '/media/b.svg', alt: 'Wrong image', title: null }),
+      false,
+    );
+    assert.match(editor.getMarkdown(), /\/media\/a\.svg/);
+    editor.destroy();
   });
 });

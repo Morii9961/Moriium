@@ -2,6 +2,11 @@
 import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
 import { EditorContent, useEditor } from '@tiptap/vue-3';
 import { moriiumExtensions } from '../editor/extensions.ts';
+import {
+  selectedImageAttributes,
+  updateSelectedImage,
+  type MoriiumImageAttributes,
+} from '../editor/image-properties.ts';
 import { api, ApiError, type ArticleDetail, type Version } from './api.ts';
 
 const props = defineProps<{ articleId: number }>();
@@ -15,6 +20,7 @@ const failure = ref('');
 const busy = ref(false);
 const readerMarkdown = ref<string | null>(null);
 const readerLoaded = ref(false);
+const selectedImage = ref<MoriiumImageAttributes | null>(null);
 
 const editor = useEditor({ extensions: moriiumExtensions(), content: '' });
 
@@ -30,6 +36,18 @@ function report(error: unknown): void {
   failure.value = error instanceof ApiError ? error.message : String(error);
 }
 
+function syncSelectedImage(): void {
+  const instance = editor.value;
+  selectedImage.value = instance ? selectedImageAttributes(instance) : null;
+}
+
+function applySelectedImage(): void {
+  const instance = editor.value;
+  const attributes = selectedImage.value;
+  if (!instance || !attributes) return;
+  updateSelectedImage(instance, attributes);
+}
+
 async function load(): Promise<void> {
   failure.value = '';
   try {
@@ -38,6 +56,7 @@ async function load(): Promise<void> {
     title.value = loaded.latest?.title ?? '';
     summary.value = loaded.latest?.summary ?? '';
     editor.value?.commands.setContent(loaded.latest?.markdown ?? '', { contentType: 'markdown' });
+    syncSelectedImage();
     dirty = false;
     status.value = '';
     await refreshReaderView();
@@ -142,17 +161,24 @@ function openVersion(version: Version): void {
   title.value = version.title;
   summary.value = version.summary;
   editor.value?.commands.setContent(version.markdown, { contentType: 'markdown' });
+  syncSelectedImage();
   dirty = false;
   status.value = `已把版本 #${version.id} 载入编辑器，尚未保存。`;
 }
 
 watch(editor, (instance) => {
   instance?.on('update', scheduleAutosave);
+  // selectionUpdate is the documented event for reflecting the current node
+  // in external controls. https://tiptap.dev/docs/editor/api/events
+  instance?.on('selectionUpdate', syncSelectedImage);
+  syncSelectedImage();
 });
 watch(() => props.articleId, () => void load(), { immediate: true });
 
 onBeforeUnmount(() => {
   if (autosaveTimer) clearTimeout(autosaveTimer);
+  editor.value?.off('update', scheduleAutosave);
+  editor.value?.off('selectionUpdate', syncSelectedImage);
   editor.value?.destroy();
 });
 </script>
@@ -188,6 +214,32 @@ onBeforeUnmount(() => {
               <EditorContent :editor="editor" />
             </div>
           </div>
+
+          <div v-if="selectedImage" class="panel image-properties">
+            <h2>图片属性</h2>
+            <div class="field">
+              <label for="image-src">公开路径</label>
+              <input id="image-src" v-model="selectedImage.src" type="text" @input="applySelectedImage" />
+            </div>
+            <div class="field">
+              <label for="image-alt">替代文字（必填）</label>
+              <textarea
+                id="image-alt"
+                v-model="selectedImage.alt"
+                rows="2"
+                @input="applySelectedImage"
+              ></textarea>
+              <p v-if="selectedImage.alt.trim().length === 0" class="error">
+                替代文字为空时，发布闸门会拒绝这篇文章。
+              </p>
+            </div>
+            <div class="field">
+              <label for="image-title">说明文字（可选）</label>
+              <input id="image-title" v-model="selectedImage.title" type="text" @input="applySelectedImage" />
+            </div>
+            <p class="note">路径必须存在于媒体清单；留空说明文字会从 Markdown 中移除标题。</p>
+          </div>
+          <p v-else class="note image-properties-hint">选中正文中的图片后，可在这里修改路径、替代文字和说明。</p>
 
           <p class="note">{{ status }}</p>
 
