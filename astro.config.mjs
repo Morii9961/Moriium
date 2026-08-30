@@ -1,4 +1,5 @@
 import { defineConfig } from 'astro/config';
+import node from '@astrojs/node';
 import { unified } from '@astrojs/markdown-remark';
 import sitemap from '@astrojs/sitemap';
 import expressiveCode from 'astro-expressive-code';
@@ -12,7 +13,13 @@ import { rehypeMoriiumContent } from './src/markdown/rehype-moriium-content.mjs'
 
 export default defineConfig({
   site: 'https://morii9961.top',
+  // `static` stays. ADR 0002 section 4 admits the adapter for exactly one
+  // purpose: letting `/admin` and `/api` opt out with `prerender = false`.
+  // Every public route stays prerendered, so the reader path never reaches
+  // this process. Do not switch to `output: 'server'`; that inverts the
+  // default and puts the whole site behind Node.
   output: 'static',
+  adapter: node({ mode: 'standalone' }),
   trailingSlash: 'always',
   build: {
     format: 'directory',

@@ -623,3 +623,75 @@ Enouia 已退出，这份 ADR 与 ADR 0001 一样是自审。以下是自审**�
 | 12 | 上一版写死「改公网就必须先做 TOTP」 | 写那句时「公网可达」在我脑子里等于「除口令外一无所有」，而实际方案有长随机口令、按账户限速、全局阀门和 fail2ban。第 10.5 节明确收回那句，把 TOTP 降为可选纵深 |
 
 **自审覆盖不到的地方**，需要 Morii 补位：这份 ADR 的架构取舍没有第二个独立技术视角复核过；第 11 节的 RPO/RTO 是我给的默认值，不是从 Morii 的实际容忍度推出来的；第 18 节第 1、2 两项直接依赖 Morii 的偏好，我给不出。
+
+## 21. 执行记录
+
+### 21.1 混合渲染成立，并且会自己红（2026-08-30）
+
+Phase 6A 的第一块刻意不是数据库，而是第 4、5 节那面承重墙：**公开路由全部预渲染，只有 `/admin` 与 `/api` 按需**。它要是不成立，后面每一块都建在沙上。
+
+装 `@astrojs/node@11.1.4`（peer 要求 `astro: ^7.2.1`，本仓库是 `7.2.4`），`output` 保持 `static`，加 `adapter: node({ mode: 'standalone' })`，再加一个 `src/pages/admin/index.astro` 占位页写明 `export const prerender = false`。
+
+构建产物按官方文档所述一分为二：
+
+```text
+dist/client/   46 个 HTML 加静态资源      读者要的全在这里
+dist/server/   entry.mjs                 按需渲染的入口
+dist/client/admin/   不存在              占位页没有被静态化
+```
+
+页数没有变（之前 46，现在 46）。
+
+#### 分裂的代价是四个脚本加一条流水线
+
+产物换了位置，凡是读 `dist/` 的东西都要跟着改。这些不是琐事，漏掉任何一条都会安静地失效：
+
+| 位置 | 问题 |
+| --- | --- |
+| `scripts/check-links.mjs` | 会去 `dist/` 找页面，找不到 |
+| `scripts/audit-public-tree.mjs` | 隐私审计会漏掉真正的公开产物，同时开始扫服务端 bundle |
+| `scripts/audit-design-fonts.mjs` | 同上 |
+| `prototypes/tools/verify-baseline-pipeline.mjs` | 拿不到 `dist/` 里的真实文章 |
+| `.github/workflows/ci.yml` | **`tar -C dist .` 会把 `client/`、`server/` 打成子目录，部署上去全站 404** |
+
+前四个统一走新的 `scripts/lib/public-output.mjs`，一处解析，并且在没有 adapter 时回退到 `dist/`——第 14 节留着移除 adapter 这条回退路径，一个会在回退时坏掉的检查会让回退更难，那正好是最不该更难的时候。
+
+CI 改成 `tar -C dist/client .`。**VPS 目前没有 Node 进程，所以只发布预渲染的那一半，release 的形状与加 adapter 之前完全一致。**第 15 节描述的那套（发布服务端、systemd、Nginx 反代）留到真正部署 Admin 时再动。
+
+#### 把承重墙做成会红的检查
+
+`scripts/check-render-split.mjs`，进 `pnpm verify`。它检查的是**构建出来的树**，不是那份本该产出它的配置：
+
+```text
+1. 每个公开路由都是磁盘上的一个文件
+2. 三语搜索索引都在
+3. admin、api 不在公开产物里
+4. 有按需路由时，server entry 必须存在
+5. 公开产物里不含 admin 专用代码（@tiptap、prosemirror、createApp、vue.runtime）
+```
+
+第 1 条是 `AGENTS.md` 新增那条质量门的可检验形式。那条门要求「停掉进程来证明公开站还在，而不是声称它在」——**一个路由如果解析到磁盘上的文件，停掉 Node 就不可能影响它**，所以文件存在就是那个证明。
+
+**做过负向测试**：把占位页的 `prerender` 改成 `true` 重新构建，检查当场报「`/admin/` was prerendered」；改回来就绿。写这条检查的过程里它还抓到我自己的一个错——我把搜索索引的路径写成了 `zh.json` 而不是 `search/zh.json`，第一次运行就红了。
+
+第 5 条现在是**平凡成立**的，因为占位页不带任何客户端 JS。它存在是为了等真编辑器进来那天，泄漏会让构建失败，而不是让每个读者下载一兆的编辑器。
+
+另有两条源码级断言进 `tests/render-split.test.mjs`：`output` 必须是 `static` 且不得是 `server`；`src/pages/admin`、`src/pages/api` 下每个页面都必须声明 `prerender = false`，并且断言「至少检查到一个页面」——否则目录改名之后这条检查会平凡通过，那正是这类检查腐烂的方式。
+
+写第一条时踩了个小坑值得记：配置文件里那段解释「不要用 `output: 'server'`」的注释，让 `doesNotMatch` 断言失败了。断言现在先剥掉行注释再看代码。
+
+#### 本轮验证
+
+```text
+pnpm verify                       -> 退出码 0
+  astro check                     -> Result (64 files): 0 errors, 0 warnings, 0 hints
+  node --test tests/*.test.mjs    -> tests 32 / pass 32 / fail 0
+  astro build                     -> dist/client 46 个 HTML，dist/server/entry.mjs
+  check-links / audit-public-tree -> 通过
+  check-render-split              -> Rendering split holds: 155 public files serve without Node
+pnpm -C prototypes test           -> tests 118 / suites 30 / pass 118 / fail 0
+```
+
+#### 仍未做
+
+Admin 只是个占位页，没有数据库、没有认证、没有编辑器。下一块是生产形态的数据库 schema：第 6.3 节那张表、迁移器、以及 B2 要求的完整 frontmatter。

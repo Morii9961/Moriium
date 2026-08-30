@@ -1,8 +1,10 @@
 import { access, readFile, readdir } from 'node:fs/promises';
 import { dirname, extname, join, resolve } from 'node:path';
+import { publicOutputRoot } from './lib/public-output.mjs';
 
 const root = resolve(import.meta.dirname, '..');
-const dist = resolve(root, 'dist');
+// Only the reader-facing half. See scripts/lib/public-output.mjs.
+const dist = publicOutputRoot(root);
 const errors = [];
 
 async function htmlFiles(directory) {

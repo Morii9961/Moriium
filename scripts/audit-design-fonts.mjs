@@ -1,8 +1,13 @@
 import assert from 'node:assert/strict';
 import { readFile, readdir, stat } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 
 const root = new URL('../', import.meta.url);
+// The Node adapter moved the prerendered output under dist/client/ (ADR 0002
+// section 4). Resolved once here so the rest of the file reads unchanged, and
+// falling back to dist/ keeps this tool working if the adapter is removed.
+const built = existsSync(new URL('dist/client/', root)) ? 'dist/client/' : 'dist/';
 
 async function read(relativePath) {
   return readFile(new URL(relativePath, root), 'utf8');
@@ -56,8 +61,8 @@ async function matchingChunks(cssPath, fileDirectory, text) {
 }
 
 const [home, article] = await Promise.all([
-  read('dist/design/a/index.html'),
-  read('dist/design/a/article/index.html'),
+  read(`${built}design/a/index.html`),
+  read(`${built}design/a/article/index.html`),
 ]);
 
 const allPageText = `${plainText(home)} ${plainText(article)}`;
@@ -87,10 +92,10 @@ const [noto, wenkai, sora, ibm] = await Promise.all([
   stat(new URL('node_modules/@fontsource/ibm-plex-mono/files/ibm-plex-mono-latin-400-normal.woff2', root)),
 ]);
 
-const builtAssets = await readdir(new URL('dist/_astro/', root), { withFileTypes: true });
+const builtAssets = await readdir(new URL(`${built}_astro/`, root), { withFileTypes: true });
 const builtFonts = builtAssets.filter((entry) => entry.isFile() && entry.name.endsWith('.woff2'));
 let builtFontBytes = 0;
-for (const entry of builtFonts) builtFontBytes += (await stat(new URL(`dist/_astro/${entry.name}`, root))).size;
+for (const entry of builtFonts) builtFontBytes += (await stat(new URL(`${built}_astro/${entry.name}`, root))).size;
 
 const cssHref = home.match(/href="(\/_astro\/[^"?]+\.css)"/)?.[1];
 assert(cssHref, 'A prototype CSS asset was not found in built HTML.');

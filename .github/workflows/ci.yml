@@ -56,12 +56,18 @@ jobs:
       - name: Confirm static output contains no protected source directory
         shell: bash
         run: |
-          test ! -e dist/.private
-          ! grep -R --line-number --fixed-string '.private/posts' dist
+          test ! -e dist/client/.private
+          ! grep -R --line-number --fixed-string '.private/posts' dist/client
 
+      # Only the prerendered half is deployed. ADR 0002 admits the Node adapter,
+      # which splits the build into dist/client (what a reader gets) and
+      # dist/server (the on-demand entry). The VPS runs no Node process yet, so
+      # shipping dist/client alone keeps the release identical in shape to every
+      # release before the adapter. Section 15 of that ADR covers what changes
+      # when the admin is actually deployed; until then this stays static-only.
       - name: Package verified output
         if: github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
-        run: tar -czf "moriium-${GITHUB_SHA}.tar.gz" -C dist .
+        run: tar -czf "moriium-${GITHUB_SHA}.tar.gz" -C dist/client .
 
       - name: Configure deployment key
         if: github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'

@@ -1,0 +1,27 @@
+---
+// The author admin, rendered on demand.
+//
+// ADR 0002 section 4: this and /api are the only routes that opt out of
+// prerendering. Everything public stays a static file so the reader path never
+// depends on this process.
+//
+// Phase 6A placeholder. It exists to prove the hybrid split works and to give
+// the public-tree audit something to check against; the real admin arrives with
+// the database layer.
+export const prerender = false;
+---
+
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Moriium Admin</title>
+  </head>
+  <body>
+    <h1>Moriium Admin</h1>
+    <p>Rendered on demand at {new Date().toISOString()}.</p>
+    <p>Phase 6A placeholder. The editor is not wired up yet.</p>
+  </body>
+</html>

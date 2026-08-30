@@ -20,7 +20,12 @@ import { parseFrontmatter } from '@astrojs/markdown-remark';
 import { createPublicRenderer } from './build-baselines.mjs';
 
 const SOURCE = '../../src/content/posts/zh/reader-capabilities.md';
-const BUILT = '../../dist/zh/posts/reader-capabilities/index.html';
+// dist/client/ since the Node adapter split the build (ADR 0002 section 4);
+// dist/ is the pre-adapter layout and stays as a fallback.
+const BUILT_CANDIDATES = [
+  '../../dist/client/zh/posts/reader-capabilities/index.html',
+  '../../dist/zh/posts/reader-capabilities/index.html',
+];
 
 // Structural markers, one per capability the fixtures exercise. Counts may
 // legitimately differ because dist/ wraps the article in the site shell, so
@@ -46,9 +51,15 @@ const here = import.meta.dirname;
 const resolveHere = (path) => new URL(path, `file:///${here.replace(/\\/g, '/')}/`);
 
 let built;
-try {
-  built = await readFile(resolveHere(BUILT), 'utf8');
-} catch {
+for (const candidate of BUILT_CANDIDATES) {
+  try {
+    built = await readFile(resolveHere(candidate), 'utf8');
+    break;
+  } catch {
+    // try the next layout
+  }
+}
+if (built === undefined) {
   console.error('dist/ is missing or stale. Run `pnpm build` at the repository root first.');
   process.exit(1);
 }

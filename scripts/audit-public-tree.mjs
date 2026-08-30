@@ -2,6 +2,7 @@ import { execFile } from 'node:child_process';
 import { readdir, readFile } from 'node:fs/promises';
 import { extname, join, relative, resolve } from 'node:path';
 import { promisify } from 'node:util';
+import { publicOutputRoot } from './lib/public-output.mjs';
 
 const execFileAsync = promisify(execFile);
 const root = resolve(import.meta.dirname, '..');
@@ -37,7 +38,7 @@ try {
 
 const inspected = [
   ...await filesUnder(resolve(root, 'src/content'), new Set(['.md', '.json'])),
-  ...await filesUnder(resolve(root, 'dist'), new Set(['.html', '.xml', '.json', '.js'])),
+  ...await filesUnder(publicOutputRoot(root), new Set(['.html', '.xml', '.json', '.js'])),
 ];
 
 for (const file of inspected) {

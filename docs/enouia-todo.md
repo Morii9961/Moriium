@@ -92,6 +92,10 @@
 
 > 只有 Morii 批准 05 的全栈 ADR 后才能开始。
 
+> 已开工（2026-08-30）。第一块是渲染分裂，见 ADR 0002 第 21.1 节。
+
+- [x] 加 `@astrojs/node` adapter 并证明混合渲染成立：`output` 仍是 `static`，46 个公开页全部预渲染进 `dist/client/`，只有 `/admin` 按需。`scripts/check-render-split.mjs` 已进 `pnpm verify`，把这条做成会自己红的检查（负向测试：把 `prerender` 改回 `true` 当场报错）。
+- [x] 修好产物分裂带来的连带损坏：四个读 `dist/` 的脚本改走 `scripts/lib/public-output.mjs`，CI 的打包从 `-C dist .` 改成 `-C dist/client .`——不改的话部署上去全站 404。
 - [ ] 只迁移 fixture 和测试文章，不先迁移正式内容。
 - [ ] 实现作者认证、版本化 Public/Admin DTO、服务端可信 renderer、数据库迁移和备份恢复。
 - [ ] Admin 与权限草稿按需渲染；公开文章优先预渲染或缓存。
@@ -252,12 +256,12 @@ Tiptap 接入与 round-trip 丢失计数见 ADR 13.10、13.11：未加扩展的 
 
 验收清单现在的分布：**五项通过、四项部分、两项不能过、零项未验**。
 
-**Phase 5 的 ADR 已成草稿**：[`adr-0002-phase5-production.md`](adr-0002-phase5-production.md)。它把运行拓扑、逐路由策略、数据库模型、可信 renderer、媒体导入、两个作者账户、Admin 暴露面、备份恢复、监控、威胁模型、四级回退，以及 `AGENTS.md` 与部署合同的逐条改法都固定下来了。B2 与 B7 那两项「不能过」的修法也在里面。
+**Phase 5 的 ADR 已获批准并开始实施**：[`adr-0002-phase5-production.md`](adr-0002-phase5-production.md)。它把运行拓扑、逐路由策略、数据库模型、可信 renderer、媒体导入、两个作者账户、Admin 暴露面、备份恢复、监控、威胁模型、四级回退，以及 `AGENTS.md` 与部署合同的逐条改法都固定下来了。B2 与 B7 那两项「不能过」的修法也在里面。
 
 写的过程中查出六处初稿的错，都已改（见其第 20 节自审）。最值得记的两处：Astro 的会话默认落在应用目录，而现在的发布布局会在第 7 次发布时把它连同数据库一起删掉；Astro 的 `security.checkOrigin` 只覆盖三种表单 content-type，不含 `application/json`，所以尖峰那道显式 CSRF token 不能删。
 
-**下一块要等 Morii 批准或退回 ADR 0002。**批准前不改 `AGENTS.md`、不改部署合同、不加 adapter，一个字都不动。
+Morii 于 2026-08-30 批准，并定夺三条：暂不做告警、不做移动端证书、**客户端证书整个撤掉改为公网开放**（见 ADR 第 1.1 与 10.1 节）。`AGENTS.md` 的五处已按第 16 节改完；部署合同留到真正部署 Admin 时再改。
 
-批准之后是 06A 影子系统；退回的话按意见改 ADR。ADR 里还有一个问题只有 Morii 能答：告警发到哪里（牵涉新的第三方服务，按 `AGENTS.md` 要单独批准）。另有一项要他亲手验：客户端证书在手机上导入一遍到底有多麻烦。
+**06A 已开工。**第一块（渲染分裂）完成，见 ADR 第 21.1 节。**下一块是生产形态的数据库 schema**（第 6.3、6.4 节）：完整 14 个 frontmatter 字段、`version_tags`、`media_assets`、`accounts`、审计带 actor，加迁移器。B2 那项「不能过」就是在这里被修掉的。
 
 00 节其余未完成项——固定口径的体积/构建测量、把 07–12 的人工验收测试化、安全与恢复要求——仍须在影子系统前补齐。

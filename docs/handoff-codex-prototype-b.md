@@ -15,7 +15,7 @@
 
 1. [`AGENTS.md`](../AGENTS.md) — 唯一有约束力的项目合同，含技能路由；
 2. [`adr-0001-phase1-spike.md`](adr-0001-phase1-spike.md) — 已批准的 Phase 1 范围、边界与回退。**第 13 节是完整执行记录**，本轮对应 13.10 到 13.20，每个决定连同实测输出都在那里；**第 4 节现在是 B 的验收清单**，接手后先看它的「当前状态」一栏；
-3. [`adr-0002-phase5-production.md`](adr-0002-phase5-production.md) — 生产架构，**草稿，未获批准**。它规定的是「批准之后长什么样」，不是现在的状态。**批准前不要按它改任何东西**；
+3. [`adr-0002-phase5-production.md`](adr-0002-phase5-production.md) — 生产架构，**已批准并开始实施**。第 21 节是 Phase 6A 的执行记录；**动 `src/`、`astro.config.mjs` 或 CI 之前先读第 4、5、21.1 节**，那里写着渲染分裂为什么不能被顺手破坏；
 4. [`vnext-architecture-plan.md`](vnext-architecture-plan.md) — 更大的路线背景；
 5. [`enouia-todo.md`](enouia-todo.md) — 当前工作单与决策门；
 6. [`architecture.md`](architecture.md) — 仍然生效的生产架构；
@@ -260,6 +260,10 @@ Phase 1 已经收尾。13.14 定下的三项待补全部完成（发布闸门 13
 **在 Morii 批准或退回 ADR 0002 之前，不要动 `AGENTS.md`、部署合同、`astro.config.mjs` 或 `src/**`。**ADR 第 15、16 节已经把改法逐条写出来了，但一个字都还没改，这是刻意的。
 
 批准时 Morii 定了三条：**暂不做告警**（第 12 节因此降级为「可以查，不会通知你」，残余风险写在 12.2）、不做移动端证书、**撤掉客户端证书改为公网开放**。最后一条是加风险的，接手时要知道：后台代码自身的漏洞现在直接暴露在公网上，ADR 0001 第 5 节的测试标准在这里比之前更重要。ADR 第 18 节剩下的三项都不需要 Morii 拍板。
+
+**Phase 6A 已开工**，第一块是渲染分裂（ADR 0002 第 21.1 节）：`@astrojs/node` adapter 装上，`output` 仍是 `static`，46 个公开页全部预渲染，只有 `/admin` 按需。产物因此分成 `dist/client/` 与 `dist/server/`，四个读 `dist/` 的脚本和 CI 的打包都跟着改了——**CI 那条不改的话，部署上去全站 404**。
+
+`scripts/check-render-split.mjs` 已进 `pnpm verify`，把「读者不需要 Node」做成会自己红的检查。要改渲染策略先看它。
 
 **Phase 1 结束不等于原型 B 可以部署。**第 7 节那 19 条差异一条都没有因此消失。
 
