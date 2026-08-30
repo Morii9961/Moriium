@@ -49,7 +49,15 @@ const MUST_BE_ON_DEMAND = ['admin', 'api'];
  * client JavaScript. It is here so that the day the real editor arrives, a leak
  * fails the build instead of shipping a megabyte of editor to every reader.
  */
-const ADMIN_ONLY = ['@tiptap', 'prosemirror', 'createApp', 'vue.runtime'];
+const ADMIN_ONLY = [
+  '@tiptap',
+  'prosemirror',
+  'createApp',
+  'vue.runtime',
+  // The database layer. src/server/db/open.ts states that this check is what
+  // keeps it out of a public route, so the marker has to actually be here.
+  'node:sqlite',
+];
 
 async function filesUnder(directory) {
   const found = [];

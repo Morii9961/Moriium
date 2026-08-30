@@ -263,7 +263,9 @@ Phase 1 已经收尾。13.14 定下的三项待补全部完成（发布闸门 13
 
 **Phase 6A 已开工**，第一块是渲染分裂（ADR 0002 第 21.1 节）：`@astrojs/node` adapter 装上，`output` 仍是 `static`，46 个公开页全部预渲染，只有 `/admin` 按需。产物因此分成 `dist/client/` 与 `dist/server/`，四个读 `dist/` 的脚本和 CI 的打包都跟着改了——**CI 那条不改的话，部署上去全站 404**。
 
-`scripts/check-render-split.mjs` 已进 `pnpm verify`，把「读者不需要 Node」做成会自己红的检查。要改渲染策略先看它。
+`scripts/check-render-split.mjs` 已进 `pnpm verify`，把「读者不需要 Node」做成会自己红的检查。要改渲染策略先看它。它同时挡住 Tiptap、Vue 与 `node:sqlite` 进入公开产物。
+
+第二块是生产数据库（ADR 0002 第 21.2 节）：`src/server/` 下的 schema、迁移器与两个作者账户。**B2 那项「不能过」修掉了**——14 个 frontmatter 字段全部有列，并有用例直接读 `src/content.config.ts` 比对。注意 `src/server/` 是生产代码，不随 `prototypes/` 一起删。
 
 **Phase 1 结束不等于原型 B 可以部署。**第 7 节那 19 条差异一条都没有因此消失。
 

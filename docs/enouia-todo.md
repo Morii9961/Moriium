@@ -96,6 +96,9 @@
 
 - [x] 加 `@astrojs/node` adapter 并证明混合渲染成立：`output` 仍是 `static`，46 个公开页全部预渲染进 `dist/client/`，只有 `/admin` 按需。`scripts/check-render-split.mjs` 已进 `pnpm verify`，把这条做成会自己红的检查（负向测试：把 `prerender` 改回 `true` 当场报错）。
 - [x] 修好产物分裂带来的连带损坏：四个读 `dist/` 的脚本改走 `scripts/lib/public-output.mjs`，CI 的打包从 `-C dist .` 改成 `-C dist/client .`——不改的话部署上去全站 404。
+- [x] 生产形态的数据库 schema 与迁移器（ADR 0002 第 21.2 节）：六张表全 `STRICT`，frontmatter 挂 version、tags 单独成表、`articles` 带 `published_version_id` 与 `live_version_id`；迁移只向前且连记账行同事务；WAL 与 `busy_timeout` 配上并被用例读回来断言。
+- [x] **B2 修掉了**：14 个 frontmatter 字段全部有列，并有用例直接读 `src/content.config.ts` 逐个比对（负向测试：改个列名当场红）。往 content config 加字段而不加迁移会在构建时失败。
+- [x] 两个作者账户（Morii、Enouia），scrypt 参数写进哈希本身，口令下限 24 位，未知/停用/口令错返回同一结果且都跑一次哈希比对。
 - [ ] 只迁移 fixture 和测试文章，不先迁移正式内容。
 - [ ] 实现作者认证、版本化 Public/Admin DTO、服务端可信 renderer、数据库迁移和备份恢复。
 - [ ] Admin 与权限草稿按需渲染；公开文章优先预渲染或缓存。
@@ -262,6 +265,10 @@ Tiptap 接入与 round-trip 丢失计数见 ADR 13.10、13.11：未加扩展的 
 
 Morii 于 2026-08-30 批准，并定夺三条：暂不做告警、不做移动端证书、**客户端证书整个撤掉改为公网开放**（见 ADR 第 1.1 与 10.1 节）。`AGENTS.md` 的五处已按第 16 节改完；部署合同留到真正部署 Admin 时再改。
 
-**06A 已开工。**第一块（渲染分裂）完成，见 ADR 第 21.1 节。**下一块是生产形态的数据库 schema**（第 6.3、6.4 节）：完整 14 个 frontmatter 字段、`version_tags`、`media_assets`、`accounts`、审计带 actor，加迁移器。B2 那项「不能过」就是在这里被修掉的。
+**06A 已开工。**第一块（渲染分裂）完成，见 ADR 第 21.1 节。第二块（数据库 schema、迁移器、两个账户）也完成，见第 21.2 节，**B2 那项「不能过」就此修掉**。
+
+**下一块是文章与版本的状态机**：把尖峰里已经验证过的语义（追加版本、自动保存不碰公开指针、发布与回滚同事务加审计行）搬到这张生产 schema 上。之后才是会话与真正的 Admin 界面。
+
+还欠一条只能在服务器上跑的建账户命令——现在 `accounts.ts` 有函数但没有入口。
 
 00 节其余未完成项——固定口径的体积/构建测量、把 07–12 的人工验收测试化、安全与恢复要求——仍须在影子系统前补齐。

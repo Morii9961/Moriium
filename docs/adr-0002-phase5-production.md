@@ -695,3 +695,79 @@ pnpm -C prototypes test           -> tests 118 / suites 30 / pass 118 / fail 0
 #### 仍未做
 
 Admin 只是个占位页，没有数据库、没有认证、没有编辑器。下一块是生产形态的数据库 schema：第 6.3 节那张表、迁移器、以及 B2 要求的完整 frontmatter。
+
+### 21.2 生产形态的数据库：schema、迁移器、两个账户（2026-08-30）
+
+第 6.3 与 6.4 节落地。代码在 `src/server/`，不在 `prototypes/`——第 14 节 L1 的回退是删掉 `prototypes/`，而这部分要活下来。
+
+#### schema
+
+`src/server/db/schema.sql`，六张表加 `schema_migrations`。全部 `STRICT`。三处形状值得单说，因为不写下来会被当成随手写的：
+
+- **frontmatter 挂在 `versions` 上，不挂在 `articles` 上。**改标题、改分类、改标签都要产生新版本并且可回滚。挂在文章上的话，回滚正文会把新元数据留下。
+- **`tags` 单独成表。**标签页和标签目录要按标签查询与聚合，JSON 列会把可以建索引的事逼成字符串匹配。
+- **`articles` 同时有 `published_version_id` 与 `live_version_id`。**前者是库里的真相，后者是上一次成功构建真正包含的版本。第 4.2 节那个「发布了但还没上线」的状态靠这两列的差值表达，不靠猜。
+
+`cover` 与 `cover_alt` 的关系用 CHECK 约束表达，与 `src/content.config.ts` 里那条 `superRefine` 对齐。
+
+#### 迁移器
+
+只向前，不写回退迁移（第 6.4 节）。每个迁移连同它的记账行在**同一个事务**里跑：抛异常就回滚，数据库停在上一个版本，而不是「改了一半但标记成已完成」。
+
+有用例钉住这一条：往迁移表里塞一个语法错误的迁移，断言抛 `transaction-failed` 且版本号不变。
+
+#### 两条 pragma，以及一条写错的注释
+
+第 6.2 节点名的两条尖峰从来没配过：`journal_mode = WAL`、`busy_timeout`。现在都配了，而且**用例把它们读回来断言**——一条没生效的 pragma 和一条生效了的长得一模一样。
+
+写第三条 `foreign_keys` 时我把注释写错了，实测才发现：
+
+```text
+node:sqlite 默认 foreign_keys        = 1     （裸 SQLite 是 0）
+事务内执行 PRAGMA foreign_keys = ON  = no-op （SQLite 明确忽略）
+```
+
+两个后果。一，我原来写的「SQLite 默认关闭，没有这句 REFERENCES 全是摆设」对这个驱动是错的，已改。二，`schema.sql` 里原本也有一句 `PRAGMA foreign_keys = ON`，**它在迁移事务里执行，什么都没做**——留着会让人以为是它在保证外键。已经删掉并注明为什么不能放那里。
+
+外键那条用例因此也标注清楚了它到底在防什么：不是防我们漏写 pragma（驱动默认已经覆盖），而是防驱动改默认值、或有人传了 `enableForeignKeyConstraints: false`——两种都会让 schema 里每条 REFERENCES 变成注释而没有别的症状。
+
+#### B2 被修掉了，而且是可检验地修掉
+
+尖峰只存 14 个 frontmatter 字段里的 5 个，这是验收清单里两项「不能过」之一。
+
+现在有一条用例直接读 `src/content.config.ts`，解析出 `sharedMetadata` 声明的字段，逐个断言它们在数据库里有对应的列：`tags` 认 `version_tags`，`slug` / `lang` / `translationKey` 认 `articles`（它们是身份不是内容，不该逐版本变），其余认 `versions`。**做过负向测试**：把 `copy_protection` 列改个名，用例当场失败。
+
+所以往 `src/content.config.ts` 加字段而不加迁移，会在构建时红，而不是在发布时变成一个被悄悄丢掉的值。
+
+#### 两个账户
+
+`src/server/accounts.ts`。第 9 节：Morii 与 Enouia 权限相同，不做角色也不做逐篇授权，区分靠审计的 `actor_id`。
+
+- scrypt 参数写进哈希本身（`scrypt$N$r$p$salt$hash`），所以以后调高成本不会让已有哈希失效；
+- **口令下限 24 位**，因为第 10.4 节把口令强度定成了这套东西真正的地基；
+- 未知账户、已停用账户、口令错误返回同一个结果，且未知账户也照跑一次哈希比对——**否则响应时间会回答那个消息拒绝回答的问题**；
+- 账户停用而不是删除，否则历史版本与审计行的作者引用会断。
+
+#### 严格类型检查抓到的一处
+
+`astro check` 在 `src/` 上跑，所以这些新代码要过 `exactOptionalPropertyTypes` 与 `noUncheckedIndexedAccess`。它抓到 `derive()` 的成本参数被推成了字面量类型（`r: 8, p: 1`），于是从存储哈希里解析出来的数字塞不进去——而那正是「旧哈希用它自己的成本验证」这条要求所依赖的路径。改成显式的 `ScryptCost`。
+
+#### 顺带补上一个我自己说过头的地方
+
+`open.ts` 的文件头写着「`scripts/check-render-split.mjs` 会在 `node:sqlite` 进入公开产物时让构建失败」。写的时候那句是**假的**——那个检查当时只认 Tiptap 和 Vue 的标记。现在 `node:sqlite` 也在标记表里了。
+
+**做过负向测试**：往一个公开页面里塞进 `node:sqlite` 这个字符串再构建，检查报 `dist/client/leak-probe/index.html contains admin-only code (node:sqlite)`；删掉就绿。
+
+#### 本轮验证
+
+```text
+pnpm verify                    -> 退出码 0
+  astro check                  -> Result (68 files): 0 errors, 0 warnings, 0 hints
+  node --test tests/*.test.mjs -> tests 44 / pass 44 / fail 0
+  check-render-split           -> Rendering split holds
+pnpm -C prototypes test        -> tests 118 / pass 118 / fail 0
+```
+
+#### 仍未做
+
+没有建账户的入口（要一条只能在服务器上跑的命令）；没有文章与版本的读写 API；没有会话；Admin 仍是占位页。下一块是文章与版本的状态机，把尖峰里那套已经验证过的语义搬到这张 schema 上。
