@@ -1,0 +1,13 @@
+[moriium-admin]
+enabled = true
+filter = moriium-admin
+port = http,https
+logpath = /var/log/nginx/morii9961.top.access.log
+backend = auto
+
+# A conservative launch value: the app already limits one account after five
+# failures and all accounts after twenty in fifteen minutes. Inspect real logs
+# after launch and tune this jail between those two application boundaries.
+findtime = 15m
+maxretry = 10
+bantime = 1h

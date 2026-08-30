@@ -1131,4 +1131,102 @@ pnpm verify                    → 退出码 0
 - **`.gitignore` 需要 Morii 决定**：`src/content/posts/exported/`、`public/media/`、`src/generated/` 三条。在加上之前，**不要把仓库工作副本当作 release 的 workspace**，否则一次 release 会在工作树里留下未跟踪的暂存内容；
 - `package.json` 的两个脚本已由 Morii 于 2026-08-30 批准并加上：`pnpm content:export` 与 `pnpm site:release`，命名沿用既有的 `namespace:verb`；
 - manifest 生成了、复制到位了，但公开页面仍然不读它；
-- 第 11 块（备份与恢复演练）与第 12 块（部署）未开始。
+- 第 11 块已在代码层面接通，见 21.11；第 12 块（部署）未开始。
+
+### 21.11 第 11 块：进程内在线备份与隔离恢复演练（2026-08-30）
+
+第 11 块在代码层面完成，但这句话有明确边界：本机已经真的生成、读回并恢复过 SQLite 备份，**还没有从真实异地副本在 VPS 上计时恢复**。异地传输、媒体每日同步、systemd 与真实目录权限都属于第 12 块；这里没有假装一台不存在的备份服务器。
+
+#### 备份只用常驻连接
+
+`src/server/backup/database-backup.ts` 直接接收 `getDatabase()` 返回的那一个 `DatabaseSync`。`src/server/db/runtime.ts` 第一次打开生产库时立即启动一份备份，之后每小时一次；重叠触发共享同一个进行中的 Promise，不会同时写两份。计时器调用 `unref()`，不会为了等下一小时而把本来要退出的进程吊住。
+
+这不是风格选择。Node 24 的 `sqlite.backup()` 文档说明：同一个连接的写入会立即反映到备份，别的连接写入会让备份重新开始。若从 cron 另开生产库，正好丢掉这一条保证。因此外部任务以后只负责搬走已经完成的副本，不能自己打开 `admin.db` 做在线备份。
+
+每次备份的顺序是：
+
+1. 在 `MORIIUM_BACKUP_ROOT` 内写一个随机名的 staging 文件；
+2. 用只读 `DatabaseSync` 重开它，跑 `PRAGMA integrity_check`，并确认存在 migration 记录；
+3. 通过后才 rename 成带 UTC 毫秒时间的正式文件；
+4. 最后按文件名排序，只删除同目录内符合固定格式的旧备份，保留 48 份。
+
+任何一步失败都会删 staging，已经完成的备份不动。备份根目录默认是 Linux 的 `/var/lib/moriium/backups/`，Windows 本地开发是 `.astro/backups/`；`.env.example` 增加了对应变量。
+
+#### 恢复脚本故意不能换生产库
+
+`scripts/drill-database-restore.mjs` 只接受 `--backup`、可选 `--parent` 和 `--keep`。它没有 `--target MORIIUM_DATABASE_PATH` 这样的入口，也不会停进程或替换线上文件；真正 L3 恢复仍必须按第 14 节由运维显式执行。
+
+演练先在新目录写一个故意损坏的数据库，确认校验器拒绝它；若损坏样本反而被接受，整次演练立即失败。然后才复制给定备份，在副本上依次完成完整性检查、向前迁移、读取、持久写入、关闭、只读重开与再次读取。输出带实测毫秒数，而不是一句没有口径的「通过」。默认清理演练副本，`--keep` 只用于人工查验。
+
+#### 本轮验证与真实阻塞
+
+备份专项用例使用真实文件数据库和真实 `node:sqlite`：在线备份、常驻连接身份、读回、失败保留上一份、48 份清理、并发合并、损坏副本拒绝、持久写入后重开全部成立。
+
+```text
+node --test --test-isolation=none tests/admin-backup.test.mjs
+  → tests 7 / suites 2 / pass 7 / fail 0
+```
+
+本轮不能记 `pnpm verify` 通过。运行时工作树里另有一组尚未提交的「版心」设计研究并行改动；`pnpm check` 在 `src/pages/design/hanshin/[lang]/index.astro` 报 4 个 `cover` / `coverAlt` 类型错误，并在 `src/layouts/HanshinArticle.astro` 报 1 个未使用导入提示。它们不属于第 11 块，未在本轮越界修改。
+
+Node 全套测试第一次在沙箱内被既有 release-host 用例的 `spawnSync EPERM` 挡住；同一命令获准在沙箱外重跑后，140 例里 139 例通过、0 例失败，剩下 1 例仍是 Windows 没有符号链接权限的既有跳过项。第 11 块新增的 7 例全部执行。
+
+另用真实命令行入口生成并恢复了一份临时数据库；损坏对照先被拒绝，随后 schema 1 的读写与重开完成，数据库部分耗时 20.57 ms。这个数字只覆盖本机副本校验，不能拿来替代 VPS 上包含停服务、异地下载、换库、重启和重建站点的完整 RTO。
+
+`pnpm build` 在沙箱外成功，内容、媒体隐私与静态构建均完成；`pnpm run audit` 与 `pnpm split` 也通过，当前含并行设计页的产物仍有 187 个公开静态文件，185 个公开可达 HTML/CSS/JS 文件不含 Admin 代码。`pnpm links` 被同一组未完成的「版心」页面挡住：它们指向尚未建立的 `/design/hanshin/` 说明页和文章页。这些链接不来自第 11 块，本轮没有越界补页面。
+
+#### 仍未做
+
+- 尚未把每小时完成的数据库副本和每日媒体快照送到异地；保留 30 天的异地策略还没有落在真实存储上；
+- 尚未在 VPS 上从异地副本做一次包含停服务、换库、起服务与重建静态站的完整演练，因此不能宣称 RTO ≤ 30 分钟已经得到生产证据；
+- 会话按第 9.3 节继续不备份，源码继续由 Git 承担；
+- 第 12 块才修改 systemd、Nginx、fail2ban、CI 构建位置与 `docs/deployment.md`。
+
+### 21.12 第 12 块：仓库侧部署合同（2026-08-30）
+
+第 12 块已经把部署需要的文件和失败边界写进仓库，但没有连接 VPS，也没有打开 GitHub 的 `DEPLOY_ENABLED`。以下“完成”都只指仓库侧实现；真实安装、换站和恢复仍要另留命令输出。
+
+#### 静态 release 与常驻服务各守一边
+
+`current` 继续只指向不可变的 `dist/client` 副本，Nginx 的 `root` 没变。`deploy/systemd/moriium-admin.service` 虽然按第 15.4 节把 `WorkingDirectory` 放在 `current`，实际入口是 `workspace/dist/server/entry.mjs`。这样做沿用第 10 块已经实现的 release 形状，`node_modules` 只在 workspace 保留一份；Node 停止时，Nginx 仍能直接读取 `current`，公开路由不会跟着 502。
+
+服务只监听 `127.0.0.1:4321`。systemd 以非特权 `moriium` 用户运行，代码树只读，唯一写入边界是 `/var/lib/moriium`，并使用 `Restart=on-failure`。Nginx 只新增两条 `^~` 反代：`/admin/` 与 `/api/`。公开页面、静态资源和搜索继续走 `try_files`，没有被交给 Node。
+
+#### fail2ban 只看登录失败
+
+新增 filter 只匹配 Nginx combined log 中 `POST /api/login/` 的 401 和 429；文章 API 的 401、登录成功的 200、GET 请求都不算。jail 的初始值是 15 分钟内 10 次、封 1 小时，放在应用的“单账户 5 次”与“全局 20 次”之间。这个数字只是上线起点，`docs/deployment.md` 已写明按真实日志调整，以及误封后用 `fail2ban-client set moriium-admin unbanip <ip>` 解封。
+
+#### CI 上传源码，VPS 在数据库旁构建
+
+`.github/workflows/ci.yml` 仍先跑完整 `pnpm verify`，部署产物从 `dist/client` tar 改为 `git archive` 源码包。VPS 上的 `deploy/bin/deploy-code.sh` 取得同一把 `release.lock`，暂存新 workspace，停掉 Node 后再换服务端文件，然后调用第 10 块的 `pnpm site:release`。lockfile 没变时复用原来的 `node_modules`；变了就保留旧 workspace 的依赖，让新 workspace 做冻结安装，失败可以完整换回。
+
+脚本在静态换站以前失败，会恢复旧 workspace 并重新启动旧服务。若静态站已经换好、Node 却启动或探测失败，脚本不会把健康的公开站退回去；它让 CI 失败并保留现场，符合 L1“后台可停、读者不受影响”的边界。这里没有把“公开站已上线但后台失败”记成整次成功。
+
+作者在 Admin 点发布目前只会得到“等待导出”。自动触发或重试按钮还没有单独评审，所以运行手册给的是带 `flock` 的运维命令，没有悄悄让公网请求直接 spawn 构建进程。
+
+#### 部署手册与本轮证据
+
+`docs/deployment.md` 已从旧的纯静态说明改为完整 runbook：目录与权限、环境文件、最小 sudoers、systemd、Nginx、fail2ban、GitHub secrets、首次验收、停 Node 验证静态站、原子回滚、隔离恢复、L3 换库和日常检查。外部行为引用 Astro、Nginx、systemd 与 fail2ban 的官方文档，不靠记忆猜参数。
+
+专项检查结果：
+
+```text
+node --test --test-isolation=none tests/deployment-contract.test.mjs
+  → tests 5 / suites 1 / pass 5 / fail 0
+
+Git Bash: bash -n deploy/bin/deploy-code.sh
+  → exit 0
+
+git diff --check
+  → exit 0（只有工作树换行提示）
+```
+
+部署契约用例覆盖静态根、两条反代、回环 upstream、systemd 写入边界、fail2ban 的正反样本、CI 源码归档和发布锁。它不能替代 `nginx -t`、`systemd-analyze verify`、`fail2ban-client -t`，因为当前 Windows 环境没有那三套 Linux 服务。
+
+#### 仍未做
+
+- 配置尚未安装到 VPS，符号链接换站、停 Node 后三语公开页继续可用、Admin 探测和 L1/L2/L3 都没有生产记录；
+- 异地目标、凭据和保留机制尚未选定，数据库每日异地 30 天与媒体每日同步没有假装完成；
+- 没有从真实异地副本计时恢复，因此 RTO ≤ 30 分钟仍是目标，不是结果；
+- fail2ban 的 10 次初值还没用真实访问日志校准；
+- 工作树里另有未完成的版心研究，完整 `pnpm verify` 仍受那组类型和链接错误阻塞。第 11、12 块提交前必须分开归属并重跑完整门禁。
