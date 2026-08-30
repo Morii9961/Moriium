@@ -43,15 +43,20 @@ pnpm -C prototypes fixtures:build
 
 ## What each fixture is for
 
+`Serves` names the acceptance task in ADR 0001 section 4. Those tasks were
+renumbered T1-T10 to B1-B11 on 2026-08-30, when Morii chose prototype B and the
+list stopped being an A/B comparison. The mapping is one to one, so an older
+handoff saying T3 means B3.
+
 | Fixture | Serves | Why it is shaped this way |
 | --- | --- | --- |
-| `posts/zh/zh-tide-notes.md` | T3, T5 | Exercises every block in `docs/markdown-reference.md`: fence metadata with title, line numbers, a marked line and a collapsed range; inline and display math; Mermaid; all five admonition kinds plus a GitHub callout; spoiler; `::github`; `::video`; `::music`; an image with alt and caption; and a paragraph of mixed Chinese, Japanese and English punctuation. |
-| `posts/ja/ja-tide-notes.md` | T3, T5, T6 | Same `translationKey`, same blocks, Japanese prose. Gives round-trip fidelity a non-Latin body to lose characters in. |
-| *(no English `tide-notes`)* | T6 | The absent third language is the fixture. "Unavailable" has to be distinguishable from "not written yet", and `AGENTS.md` forbids fabricating or copying a translation. |
-| `posts/zh/zh-darkroom-log.md` | T6 | Deliberately single-language. T6 asks Morii to author the Japanese translation during the task, so one group has to start incomplete. |
-| `posts/zh/zh-winter-drafts.md` | T8, veto check | `draft: true` with `unlisted: false`, so a leak test proves filtering keys on `draft` rather than being masked by `unlisted`. Draft leakage into public routes, RSS, sitemap or search is a hard veto in ADR section 4. |
-| `protected/zh-sealed-notebook.json` | T3, unlock flow | Real AES-256-GCM envelope from the production `scripts/lib/crypto.mjs`. Carries an image and math so the `features` markers are not all false. |
-| `media/*.svg` | T7 | Referenced under `/media/fixtures/`, mapping to this `media/` directory. `/fixtures/` was already taken by `public/fixtures/reader-image.svg` in production. |
+| `posts/zh/zh-tide-notes.md` | B3, B5 | Exercises every block in `docs/markdown-reference.md`: fence metadata with title, line numbers, a marked line and a collapsed range; inline and display math; Mermaid; all five admonition kinds plus a GitHub callout; spoiler; `::github`; `::video`; `::music`; an image with alt and caption; and a paragraph of mixed Chinese, Japanese and English punctuation. |
+| `posts/ja/ja-tide-notes.md` | B3, B5, B6 | Same `translationKey`, same blocks, Japanese prose. Gives round-trip fidelity a non-Latin body to lose characters in. |
+| *(no English `tide-notes`)* | B6 | The absent third language is the fixture. "Unavailable" has to be distinguishable from "not written yet", and `AGENTS.md` forbids fabricating or copying a translation. |
+| `posts/zh/zh-darkroom-log.md` | B6 | Deliberately single-language. B6 asks Morii to author the Japanese translation during the task, so one group has to start incomplete. |
+| `posts/zh/zh-winter-drafts.md` | B8, veto check | `draft: true` with `unlisted: false`, so a leak test proves filtering keys on `draft` rather than being masked by `unlisted`. Draft leakage into public routes, RSS, sitemap or search is a hard veto in ADR section 4. |
+| `protected/zh-sealed-notebook.json` | B3, unlock flow | Real AES-256-GCM envelope from the production `scripts/lib/crypto.mjs`. Carries an image and math so the `features` markers are not all false. |
+| `media/*.svg` | B7 | Referenced under `/media/fixtures/`, mapping to this `media/` directory. `/fixtures/` was already taken by `public/fixtures/reader-image.svg` in production. |
 
 ## What the validator actually checks
 
@@ -72,7 +77,7 @@ pnpm -C prototypes fixtures:build
 ## The baseline
 
 `baseline/` holds each fixture body rendered through the **public article**
-pipeline. ADR 0001 section 4 measures round-trip loss and task T5's
+pipeline. ADR 0001 section 4 measures round-trip loss and task B5's
 preview-versus-production diff against it, so it has to match what the deployed
 site emits.
 

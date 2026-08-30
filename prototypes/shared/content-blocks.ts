@@ -2,7 +2,7 @@
 //
 // docs/markdown-reference.md is the authority for the syntax; this file makes
 // the same list machine-readable so coverage can be asserted instead of
-// claimed. ADR 0001 section 4 draws task T3's checklist from that document, and
+// claimed. ADR 0001 section 4 draws task B3's checklist from that document, and
 // validate-fixtures.ts fails if the inventory and the document disagree, or if
 // the fixture corpus stops exercising a block.
 //

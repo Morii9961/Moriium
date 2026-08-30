@@ -166,7 +166,7 @@ for (const file of postFiles) {
 }
 
 // ---------------------------------------------------------------------------
-// 3. Translation relationships (ADR section 4, task T6)
+// 3. Translation relationships (ADR section 4, task B6)
 // ---------------------------------------------------------------------------
 
 // Built through the shared module rather than a local map, so the contract the
@@ -190,7 +190,7 @@ for (const [key, group] of [...groups].sort(([a], [b]) => a.localeCompare(b))) {
   );
 }
 
-// T6 needs a group that already has two languages and is genuinely missing a
+// B6 needs a group that already has two languages and is genuinely missing a
 // third, so "unavailable" can be told apart from "not built yet".
 const tide = groups.get('tide-notes');
 check(
@@ -202,12 +202,12 @@ check(
   'tide-notes must NOT ship en. The absent English version is the fixture for "translation unavailable".',
 );
 
-// T6 asks Morii to author a Japanese translation during the task, so one group
+// B6 asks Morii to author a Japanese translation during the task, so one group
 // has to start out single-language.
 const darkroom = groups.get('darkroom-log');
 check(
   JSON.stringify(availableLanguages(darkroom)) === JSON.stringify(['zh']),
-  'darkroom-log must offer zh only; it is the starting state for task T6.',
+  'darkroom-log must offer zh only; it is the starting state for task B6.',
 );
 
 // A draft must never be reported as an available translation.
@@ -235,7 +235,7 @@ const covered = new Set(posts.flatMap((post) => blocksIn(post.body)));
 const uncovered = CONTENT_BLOCKS.filter((block) => !covered.has(block.id)).map((b) => b.id);
 check(
   uncovered.length === 0,
-  `The corpus does not exercise: ${uncovered.join(', ')}. Task T3 checks every block, so a ` +
+  `The corpus does not exercise: ${uncovered.join(', ')}. Task B3 checks every block, so a ` +
     'block no fixture contains would go untested.',
 );
 if (uncovered.length === 0) notes.push(`content blocks: all ${CONTENT_BLOCKS.length} exercised`);

@@ -4,7 +4,7 @@
 //   pnpm -C prototypes baselines:build
 //
 // The baseline is what ADR 0001 section 4 compares against: round-trip loss
-// through Tiptap, and task T5's preview-versus-production diff. It therefore
+// through Tiptap, and task B5's preview-versus-production diff. It therefore
 // has to come from the pipeline that actually renders public articles.
 //
 // Morii settled this on 2026-08-29. scripts/lib/render-markdown.mjs is NOT the

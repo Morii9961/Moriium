@@ -9,7 +9,7 @@
 // Dependency direction is fixed: this module imports nothing from studio-a or
 // admin-b.
 
-/** Failure modes task T10 exercises, plus the security refusals from section 5. */
+/** Failure modes task B10 exercises, plus the security refusals from section 5. */
 export const ERROR_CODES = [
   // Studio A: the filesystem path.
   'file-write-failed',
