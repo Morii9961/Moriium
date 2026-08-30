@@ -7,6 +7,7 @@ import { ArticleStore, type NewArticle, type SaveInput, type VersionFields } fro
 import { requireAuthor, verifyCsrfToken, type AuthorSession } from '../auth/session.ts';
 import { AdminError, describeForLog, isAdminError } from '../errors.ts';
 import { preparePublishValidator } from '../publishing/publish-gate.ts';
+import { renderPreview } from '../rendering/public-renderer.mjs';
 import { adminBoundaryAllows, adminJson, readJsonObject } from './boundary.ts';
 import { toArticleDetailDto, toArticleListDto } from './article-dtos.ts';
 
@@ -53,8 +54,15 @@ const pointAtVersion = z
   .strict();
 
 const noteOnly = z.object({ note: z.string().max(2_000).optional() }).strict();
+const previewInput = z.object({ markdown: z.string().optional() }).strict();
 
-export type ArticleAction = 'versions' | 'autosave' | 'publish' | 'rollback' | 'unpublish';
+export type ArticleAction =
+  | 'versions'
+  | 'autosave'
+  | 'preview'
+  | 'publish'
+  | 'rollback'
+  | 'unpublish';
 
 class RequestBodyError extends Error {
   readonly status: 400 | 413 | 415;
@@ -175,6 +183,17 @@ export async function handleArticleResource(
     }
 
     const body = await bodyObject(request);
+    if (action === 'preview') {
+      const input = parsed(previewInput.safeParse(body));
+      const article = store.getArticle(articleId);
+      const latest = article ? store.getLatest(articleId) : null;
+      if (!article || !latest) {
+        throw new AdminError('validation-failed', 'That article does not exist.');
+      }
+      const markdown = input.markdown ?? latest.markdown;
+      return adminJson({ html: await renderPreview(markdown) }, 200);
+    }
+
     if (action === 'versions' || action === 'autosave') {
       const input = parsed(versionFields.safeParse(body));
       const saveInput = { ...input, authorId: auth.authorId } satisfies SaveInput;

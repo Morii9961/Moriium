@@ -337,4 +337,40 @@ describe('author article HTTP API', () => {
     assert.equal(crossed.status, 403);
     assert.equal(store.listArticles().length, 0);
   });
+
+  it('renders an unsaved author preview through the production pipeline without storing it', async () => {
+    const { db, store, author, session } = await freshContext();
+    const article = store.createArticle({
+      authorId: author.id,
+      ...createInput(),
+    });
+    const before = store.listVersions(article.id).length;
+
+    const preview = await handleArticleResource(
+      request(`/api/articles/${article.id}/preview`, {
+        body: { markdown: '```ts\nexport const tide = 1;\n```\n' },
+      }),
+      session,
+      store,
+      db,
+      article.id,
+      'preview',
+    );
+    assert.equal(preview.status, 200);
+    assert.match((await json(preview)).html, /expressive-code/);
+    assert.equal(store.listVersions(article.id).length, before);
+    assert.equal(store.getArticle(article.id).publishedVersionId, null);
+
+    const anonymous = await handleArticleResource(
+      request(`/api/articles/${article.id}/preview`, {
+        body: { markdown: 'secret draft' },
+      }),
+      new FakeSession(),
+      store,
+      db,
+      article.id,
+      'preview',
+    );
+    assert.equal(anonymous.status, 401);
+  });
 });

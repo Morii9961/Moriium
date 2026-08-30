@@ -9,7 +9,7 @@ import { adminJson } from '../../../server/http/boundary.ts';
 
 export const prerender = false;
 
-const ARTICLE_PATH = /^(\d+)(?:\/(versions|autosave|publish|rollback|unpublish))?$/;
+const ARTICLE_PATH = /^(\d+)(?:\/(versions|autosave|preview|publish|rollback|unpublish))?$/;
 
 const handle: APIRoute = async ({ request, session, params }) => {
   if (!session) return adminJson({ error: 'Session storage unavailable.' }, 500);
