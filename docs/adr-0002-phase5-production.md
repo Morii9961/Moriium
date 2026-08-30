@@ -1204,3 +1204,63 @@ pnpm verify                    → 退出码 0
 - 会话不备份，源码不备份，与第 11.2 节一致；
 - `package.json` 没有加演练脚本的入口，要先问 Morii；当前用 `node scripts/restore-drill.mjs`；
 - 真实 RTO 未在 VPS 上实测。
+
+### 21.12 第 12.1 节的运维面板（2026-08-30）
+
+不是第 12 块。这一节把第 11 块留下的那条风险补上：**在面板接上之前，备份失败是完全看不见的。**第 12.2 节已经把这个代价写下来了，但写下来不等于减轻。
+
+`src/server/status.ts` 收集观测项，`src/server/http/status-handlers.ts` 与 `/api/status` 是作者态只读端点，面板在 `src/admin/App.ts` 的文章列表上方。
+
+#### 五项，其中两项如实报告为「未观测」
+
+| 项 | 判据 | 来源 |
+| --- | --- | --- |
+| 备份 | 没有备份，或最新一份超过 2 小时，或上次尝试失败 | `backupStatus()` 与最新文件的年龄 |
+| 站点重建 | 已发布但未上线，且最近一次发布动作已超过 15 分钟 | `isAwaitingExport()` 加审计行的时间 |
+| 磁盘 | 数据所在分区剩余空间低于 2 GiB | `statfsSync` |
+| 异地副本 | **未观测** | 还没有做，见 21.11 |
+| 服务与健康端点 | **未观测** | 正在应答这个请求的进程报告自己在运行，是同义反复不是观测 |
+
+后两项**列出来而不是省掉**，这是有意的：一个悄悄跳过自己不做的检查的面板，读起来就是「一切正常」，而那正是这个面板要防的那件事。用例专门钉住了这一条。
+
+「等待导出」的时长从**审计行**算，不是从某个内存里的计时器——审计是作者何时真的动手的唯一记录，而且能扛住进程重启。
+
+#### 面板加载失败要自己说出来
+
+`loadStatus()` 与 `refresh()` 分开，并且吞掉自己的异常，把失败渲染成面板里的一行。理由和备份调度那条一样：**面板报告的是备份和导出，它自己加载不出来不能挡住作者写作**。但它也不能安静地不显示——那又变回「一切正常」了。
+
+#### 顺带补上一条模板检查
+
+第 8 块的教训是「登录壳挂载成功」这句话是真的，却什么也没说明。模板编译失败是同一种安静：壳照样渲染，面板只是不在那里。所以 `tests/admin-status.test.mjs` 用 Vue 自己的 `compileTemplate` 编译 `App.ts`、`ArticleEditor.ts`、`MediaLibrary.ts` 三份运行时模板，并做过反向验证——临时插入一个 `v-for="x in"` 当场变红。
+
+这三份模板此前没有任何提交进仓库的编译检查。
+
+#### 本轮验证
+
+```text
+pnpm verify                    → 退出码 0
+  astro check                  → Result (129 files): 0 errors / warnings / hints
+  node --test tests/*.test.mjs → tests 169 / suites 36 / pass 168 / fail 0 / skipped 1
+  astro build                  → 46 个公开页面、Admin 与 API server entry 构建成功
+  check-render-split           → 158 个公开文件不依赖 Node；156 个公开可达文件不含 Admin 代码
+```
+
+另外用 `astro dev` 起真实运行时，在一个一次性数据库里建了一个一次性账户（**不是 Morii 的账户，也不是 Morii 的口令**），走真实 HTTP 登录后请求 `/api/status/`：
+
+```text
+login=200
+ok         Backups       Newest backup less than a minute old, keeping 48.
+ok         Site rebuild  Every published article is live.
+ok         Disk          27.1 GB free where the data lives.
+unknown    Offsite copy  Not configured yet. Backups exist only on this machine.
+unknown    Service…      Not observed from inside the process that would be reporting on itself.
+```
+
+随后删掉那一份备份再请求一次，备份项当场变成 `attention -- No backup has been written yet.`，确认面板读的是当下状态而不是快照。
+
+#### 仍未做
+
+- **没有登录后的浏览器验证。**面板的渲染依据是模板编译加端点集成用例，不是真的点开看过。视觉、响应式与键盘可达性都未经人工验收；
+- 「站点重建」只看得见指针差值，看不见上一次 release 为什么失败——release 的结果没有落库，属于第 12 块；
+- 异地副本与服务/健康端点仍然是未观测，不是通过；
+- 阈值（2 小时、15 分钟、2 GiB）是按 ADR 第 11.1 与 12.1 节推的，**没有真实运行数据支撑**，上线后要按实际调。

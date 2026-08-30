@@ -50,6 +50,20 @@ export type AuditEntry = {
   readonly note: string | null;
 };
 
+export type Verdict = 'ok' | 'attention' | 'unknown';
+
+export type StatusItem = {
+  readonly id: string;
+  readonly label: string;
+  readonly verdict: Verdict;
+  readonly detail: string;
+};
+
+export type OperationalStatus = {
+  readonly checkedAt: string;
+  readonly items: StatusItem[];
+};
+
 export type ArticleRow = {
   readonly article: Article;
   readonly latest: Pick<Version, 'id' | 'kind' | 'createdAt' | 'title' | 'summary'> | null;
@@ -238,6 +252,16 @@ export const api = {
 
   listMedia(): Promise<{ assets: MediaAsset[] }> {
     return send('GET', '/api/media/');
+  },
+
+  /**
+   * Operational observations for the panel.
+   *
+   * Morii decided against alerting, so this screen is the only place a failed
+   * backup or a stuck export becomes visible (ADR 0002 section 12.2).
+   */
+  status(): Promise<OperationalStatus> {
+    return send('GET', '/api/status/');
   },
 
   importMedia(upload: MediaUpload): Promise<{ asset: MediaAsset }> {
