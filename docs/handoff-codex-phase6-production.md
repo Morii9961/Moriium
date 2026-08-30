@@ -1,9 +1,11 @@
 # 交接：Phase 6A 生产后端，9/12
 
+> 当前反向交接见 [`handoff-claude-phase6-production.md`](handoff-claude-phase6-production.md)。本文保留九块生产实现的详细执行记录。
+
 > 日期：2026-08-30
 > 交出方：Claude
 > 接手方：Codex
-> 状态：**生产后端 12 块里做完 9 块；前 8 块已推上 `origin/main`，第 9 块是当前本地提交。读者站一直可用。服务器现在能正规建立或停用 Morii、Enouia 两个作者账户，生产 Admin 的登录、写作、媒体、预览、发布、回滚与撤下链路已经接通。下一块是导出、构建与原子换站。**
+> 状态：**生产后端 12 块里做完 9 块，全部提交已推上 `origin/main`。读者站一直可用。服务器现在能正规建立或停用 Morii、Enouia 两个作者账户，生产 Admin 的登录、写作、媒体、预览、发布、回滚与撤下链路已经接通。下一块是导出、构建与原子换站。**
 
 这份文档取代 [`handoff-codex-prototype-b.md`](handoff-codex-prototype-b.md) 作为当前交接。那一份停在「Phase 1 收尾、等 Morii 批准 ADR 0002」的状态，现在已经不成立。它保留为历史依据，**不要就地改写**——里面第 7 节那 19 条差异仍然有效，本文第 8 节按新阶段重新分了类。
 
@@ -35,7 +37,7 @@ Morii 已于 2026-08-30 用过原型 B 后**选定 B 路线、取消原型 A**�
 
 ## 2. 当前状态（实测，非转述）
 
-分支 `main`，**本地与 `origin/main` 一致**：2026-08-30 经 Morii 逐次授权推送过一次，把第 5 到第 8 块共 11 个提交一起推了上去（`50a59d0..32a0c9d`）。接手时先跑这条确认没有落后：
+分支 `main`，**本地与 `origin/main` 一致**：2026-08-30 经 Morii 明确授权，生产第 5 到第 9 块及反向交接报告已经全部推送。接手时先跑这条确认没有落后：
 
 ```bash
 git fetch origin && git log --oneline origin/main..HEAD && git status --short
@@ -161,7 +163,7 @@ Vue/Tiptap 只从按需 `/admin` 加载。`check-render-split` 改为扫描从�
 
 不读 `.private/posts/`、真实口令、原始照片。`prototypes/fixtures/` 是只读输入。
 
-**仓库已公开发布**（<https://github.com/Morii9961/Moriium>）。Morii 授权每完成一小块就 commit。**push 是逐次授权的**：2026-08-30 Morii 明确要求推送，第 5 到第 8 块共 11 个提交已推上去；那次授权只覆盖那一次，**下次推送仍要先问**。部署仍未授权。
+**仓库已公开发布**（<https://github.com/Morii9961/Moriium>）。Morii 授权每完成一小块就 commit。**push 是逐次授权的**：2026-08-30 的两次明确授权分别覆盖第 5 到第 8 块，以及第 9 块和反向交接报告；都不构成后续授权，**下次推送仍要先问**。部署仍未授权。
 
 `.env.example` 本阶段被改过两次（数据库与会话路径由 Codex 加，媒体根由第 8 块加）。它不在上面那张「先问 Morii」的表里，但改它等于改部署合同的输入面，**只在新增一个运行时确实需要的变量时动它**，并且同一轮要在 ADR 或本文里说明这个变量是什么。
 
