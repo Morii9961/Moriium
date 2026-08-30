@@ -96,11 +96,11 @@ describe('the admin database', () => {
 
   // This is the B2 fix made checkable. ADR 0001 section 4 recorded that the
   // spike stored 5 of the 14 production frontmatter fields; adding a field to
-  // src/content.config.ts without a migration must now fail here rather than
+  // src/content-schema.ts without a migration must now fail here rather than
   // surface as a silently dropped value at publish time.
-  it('stores every frontmatter field src/content.config.ts declares', () => {
-    const config = readFileSync(new URL('../src/content.config.ts', import.meta.url), 'utf8');
-    const shared = config.slice(config.indexOf('const sharedMetadata'), config.indexOf('const posts'));
+  it('stores every frontmatter field src/content-schema.ts declares', () => {
+    const schema = readFileSync(new URL('../src/content-schema.ts', import.meta.url), 'utf8');
+    const shared = schema.slice(schema.indexOf('const sharedMetadata'), schema.indexOf('publicPostMetadataSchema'));
     const declared = [...shared.matchAll(/^\s{2}([a-zA-Z]+):/gm)].map((match) => match[1]);
 
     assert.equal(declared.length, 14, `expected 14 frontmatter fields, parsed ${declared.join(', ')}`);

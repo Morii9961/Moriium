@@ -65,7 +65,7 @@ handoff saying T3 means B3.
 - every post validates against the shared frontmatter schema;
 - `slug` prefix and containing directory both agree with `lang`;
 - the mirrored schema in `../shared/content-schema.ts` declares the same field
-  names as `src/content.config.ts`, so the mirror cannot drift silently;
+  names as `src/content-schema.ts`, so the mirror cannot drift silently;
 - `tide-notes` ships zh and ja and **not** en; `darkroom-log` ships zh only;
 - a draft fixture exists and keeps `unlisted: false`;
 - every referenced media file exists, every image has non-empty alt text, and no

@@ -1,11 +1,8 @@
 // Frontmatter contract shared by prototype A and prototype B.
 //
-// This MIRRORS src/content.config.ts. It cannot import it: that file imports
-// `astro:content`, a virtual module that only exists inside an Astro build.
-// ADR 0001 section 3.6 accepts the mirror and requires the rules to stay the
-// same as production. validate-fixtures.ts enforces that by comparing the field
-// names declared here against the ones parsed out of src/content.config.ts, so
-// a field added on either side fails loudly instead of drifting quietly.
+// This mirrors src/content-schema.ts. Prototype-specific publish schemas still
+// live here, while validate-fixtures.ts compares the shared field names so a
+// field added on either side fails loudly instead of drifting quietly.
 //
 // Dependency direction is fixed: this module imports nothing from studio-a or
 // admin-b.

@@ -56,7 +56,7 @@ CREATE TABLE IF NOT EXISTS versions (
   kind            TEXT    NOT NULL CHECK (kind IN ('autosave', 'manual')),
   created_at      TEXT    NOT NULL,
 
-  -- Frontmatter. One column per field in src/content.config.ts, except `tags`,
+  -- Frontmatter. One column per field in src/content-schema.ts, except `tags`,
   -- which is version_tags below. A test asserts this list against that file, so
   -- adding a field there without adding a migration here fails the build.
   title           TEXT    NOT NULL,
@@ -75,7 +75,7 @@ CREATE TABLE IF NOT EXISTS versions (
   markdown        TEXT    NOT NULL,
   editor_json     TEXT,
 
-  -- src/content.config.ts requires coverAlt whenever cover is present.
+  -- src/content-schema.ts requires coverAlt whenever cover is present.
   CHECK (cover IS NULL OR cover_alt IS NOT NULL)
 ) STRICT;
 

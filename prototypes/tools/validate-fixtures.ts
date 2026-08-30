@@ -82,7 +82,7 @@ async function exists(path: string) {
 // 1. Schema drift against production
 // ---------------------------------------------------------------------------
 
-const productionConfig = await readFile(join(repoRoot, 'src/content.config.ts'), 'utf8');
+const productionSchema = await readFile(join(repoRoot, 'src/content-schema.ts'), 'utf8');
 const productionAstroConfig = await readFile(join(repoRoot, 'astro.config.mjs'), 'utf8');
 
 /** Capture group 1 of every match, dropping the ones the engine left unset. */
@@ -93,10 +93,10 @@ function captures(source: string, pattern: RegExp): string[] {
     .sort();
 }
 
-const sharedBody = productionConfig.match(/const sharedMetadata = z\.object\(\{([\s\S]*?)\n\}\);/)?.[1];
+const sharedBody = productionSchema.match(/(?:export )?const sharedMetadata = z\.object\(\{([\s\S]*?)\n\}\);/)?.[1];
 check(
   sharedBody !== undefined,
-  'Could not locate sharedMetadata in src/content.config.ts; the drift check is blind.',
+  'Could not locate sharedMetadata in src/content-schema.ts; the drift check is blind.',
 );
 
 if (sharedBody !== undefined) {
@@ -114,8 +114,8 @@ if (sharedBody !== undefined) {
   notes.push(`schema mirror: ${productionFields.length} shared fields match production`);
 }
 
-const omitBody = productionConfig.match(/\.omit\(\{([^}]*)\}\)/)?.[1];
-check(omitBody !== undefined, 'Could not locate the protected .omit() list in src/content.config.ts.');
+const omitBody = productionSchema.match(/\.omit\(\{([^}]*)\}\)/)?.[1];
+check(omitBody !== undefined, 'Could not locate the protected .omit() list in src/content-schema.ts.');
 if (omitBody !== undefined) {
   const omitted = captures(omitBody, /(\w+):\s*true/g);
   check(
@@ -124,8 +124,8 @@ if (omitBody !== undefined) {
   );
 }
 
-const extendBody = productionConfig.match(/\.extend\(\{([\s\S]*?)\n\s{2}\}\)/)?.[1];
-check(extendBody !== undefined, 'Could not locate the protected .extend() block in src/content.config.ts.');
+const extendBody = productionSchema.match(/\.extend\(\{([\s\S]*?)\n\s{2}\}\)/)?.[1];
+check(extendBody !== undefined, 'Could not locate the protected .extend() block in src/content-schema.ts.');
 if (extendBody !== undefined) {
   const added = captures(extendBody, /^\s{4}(\w+):/gm);
   check(

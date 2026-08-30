@@ -1,6 +1,6 @@
 // Turning one published version back into a Markdown file.
 //
-// The database stores frontmatter as columns, but src/content.config.ts reads
+// The database stores frontmatter as columns, but src/content-schema.ts defines
 // it as YAML, so the export has to serialize it again. Two decisions here are
 // deliberate and would otherwise look like carelessness:
 //
@@ -10,7 +10,7 @@
 //     CJK sentence -- without this module owning a quoting heuristic. A quoting
 //     heuristic is exactly the kind of code that works until the first title
 //     that starts with `- `.
-//   * Field order follows sharedMetadata in src/content.config.ts. Nothing
+//   * Field order follows sharedMetadata in src/content-schema.ts. Nothing
 //     depends on it, but an exported file that reads like a hand-written one is
 //     a file Morii can still edit by hand if the admin is ever unavailable.
 //
