@@ -1,6 +1,14 @@
 import { computed, defineComponent, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
 import { EditorContent, useEditor } from '@tiptap/vue-3';
-import { api, ApiError, type ArticleDetail, type Version, type VersionFields } from './api.ts';
+import MediaLibrary from './MediaLibrary.ts';
+import {
+  api,
+  ApiError,
+  type ArticleDetail,
+  type MediaAsset,
+  type Version,
+  type VersionFields,
+} from './api.ts';
 import { moriiumExtensions } from './editor/extensions.ts';
 import {
   selectedImageAttributes,
@@ -28,7 +36,7 @@ function blankFields(): VersionFields {
 
 export default defineComponent({
   name: 'ArticleEditor',
-  components: { EditorContent },
+  components: { EditorContent, MediaLibrary },
   props: { articleId: { type: Number, required: true } },
   emits: ['back'],
   setup(props, { emit }) {
@@ -66,6 +74,52 @@ export default defineComponent({
     function applySelectedImage(): void {
       if (!editor.value || !selectedImage.value) return;
       updateSelectedImage(editor.value, selectedImage.value);
+      scheduleAutosave();
+    }
+
+    /**
+     * Inserts a library image at the cursor.
+     *
+     * `trailing` carries the newline the Markdown serializer writes after the
+     * image. Leaving it empty would run the next block onto the same line, and
+     * the round-trip tests are what noticed that the attribute is content, not
+     * decoration.
+     */
+    function insertAsset(asset: MediaAsset): void {
+      const instance = editor.value;
+      if (!instance) return;
+      if (selectedImage.value) {
+        // An image is selected, so the author is repointing it rather than
+        // adding one. Both paths go through the library; neither types a path.
+        selectedImage.value = { src: asset.publicPath, alt: asset.alt, title: asset.caption };
+        applySelectedImage();
+        status.value = `选中的图片已改为 ${asset.publicPath}。`;
+        return;
+      }
+      instance
+        .chain()
+        .focus()
+        .insertContent({
+          type: 'moriiumImage',
+          attrs: {
+            src: asset.publicPath,
+            alt: asset.alt,
+            title: asset.caption,
+            trailing: '\n',
+          },
+        })
+        .run();
+      syncImageSelection();
+      scheduleAutosave();
+      status.value = `已插入 ${asset.publicPath}。`;
+    }
+
+    /** Points the cover at a library image, alt text included. */
+    function useAsCover(asset: MediaAsset): void {
+      fields.value.cover = asset.publicPath;
+      fields.value.coverAlt = asset.alt;
+      scheduleAutosave();
+      status.value = `封面已指向 ${asset.publicPath}。`;
     }
 
     function currentMarkdown(): string {
@@ -275,6 +329,8 @@ export default defineComponent({
       editor,
       scheduleAutosave,
       applySelectedImage,
+      insertAsset,
+      useAsCover,
       closeEditor,
       saveVersion,
       publishCurrent,
@@ -334,7 +390,8 @@ export default defineComponent({
 
           <section v-if="selectedImage" class="subpanel image-properties">
             <h2>图片属性</h2>
-            <label><span>公开路径</span><input v-model="selectedImage.src" @input="applySelectedImage" /></label>
+            <label><span>公开路径（由媒体库决定）</span><input :value="selectedImage.src" readonly /></label>
+            <p class="note">路径不再手填。要换图，在右侧媒体库里选一张，它会替换当前选中的图片。</p>
             <label><span>替代文字（必填）</span><textarea v-model="selectedImage.alt" rows="2" @input="applySelectedImage"></textarea></label>
             <label><span>说明文字（可选）</span><input v-model="selectedImage.title" @input="applySelectedImage" /></label>
             <p v-if="!selectedImage.alt.trim()" class="field-error">替代文字为空时，发布门禁会拒绝。</p>
@@ -367,6 +424,13 @@ export default defineComponent({
               </li>
             </ul>
           </section>
+
+          <MediaLibrary
+            :group="article.slug.split('/').pop()"
+            :replacing="selectedImage !== null"
+            @insert="insertAsset"
+            @cover="useAsCover"
+          />
 
           <section class="subpanel">
             <h2>生产渲染预览</h2>

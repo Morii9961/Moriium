@@ -128,6 +128,19 @@ dd { min-width: 0; margin: 0; overflow-wrap: anywhere; }
 .version-list .row-actions button { min-height: 36px; padding: 6px 10px; font-size: 12px; }
 .preview { width: 100%; height: 360px; margin-top: 12px; border: 1px solid var(--admin-line); background: #fff; resize: vertical; }
 
+.media-upload { display: grid; gap: 10px; margin: 12px 0 16px; }
+.media-upload input[type="file"] { padding: 8px 0; font-size: 12px; }
+.media-list { margin: 0; padding: 0; list-style: none; }
+.media-list li { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 10px; padding: 10px 0; border-top: 1px solid var(--admin-line); }
+.media-list li:first-child { border-top: 0; }
+.media-list img { width: 72px; height: 72px; border: 1px solid var(--admin-line); background: var(--admin-soft); object-fit: cover; }
+.media-facts { display: grid; gap: 4px; min-width: 0; }
+.media-facts code { font-size: 11px; overflow-wrap: anywhere; }
+.media-facts small { color: var(--admin-muted); font-size: 11px; }
+.media-list .row-actions { grid-column: 2; }
+.media-list .row-actions button { min-height: 36px; padding: 6px 10px; font-size: 12px; }
+.image-properties input[readonly] { color: var(--admin-muted); background: var(--admin-soft); }
+
 @media (max-width: 980px) {
   .editor-grid { grid-template-columns: minmax(0, 1fr); }
   .editor-aside { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); }

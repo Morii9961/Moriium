@@ -68,6 +68,30 @@ export type ArticleDetail = {
   readonly awaitingExport: boolean;
 };
 
+export type MediaAsset = {
+  readonly id: number;
+  readonly publicPath: string;
+  readonly format: string;
+  readonly width: number | null;
+  readonly height: number | null;
+  readonly alt: string;
+  readonly caption: string | null;
+  readonly copyright: string | null;
+  readonly exif: Readonly<Record<string, string>>;
+  readonly sanitizedAt: string | null;
+  readonly createdAt: string;
+};
+
+export type MediaUpload = {
+  file: File;
+  alt: string;
+  // Explicitly `| undefined` because exactOptionalPropertyTypes otherwise
+  // refuses the caller passing an absent field as undefined.
+  group?: string | undefined;
+  caption?: string | undefined;
+  copyright?: string | undefined;
+};
+
 export type NewArticleInput = VersionFields & {
   translationKey: string;
   lang: Language;
@@ -113,10 +137,45 @@ async function send<T>(method: string, path: string, body?: unknown): Promise<T>
   return payload as T;
 }
 
+/**
+ * Sends a multipart upload.
+ *
+ * Content-Type is deliberately left unset: the browser has to add the
+ * multipart boundary, and naming the type by hand produces a body no parser
+ * can read. The CSRF header is still explicit, because Astro's own origin
+ * check does not cover the request shapes this API uses.
+ */
+async function sendForm<T>(path: string, form: FormData): Promise<T> {
+  const headers: Record<string, string> = {};
+  if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
+  const response = await fetch(path, {
+    method: 'POST',
+    headers,
+    body: form,
+    credentials: 'same-origin',
+  });
+  const text = await response.text();
+  let payload: unknown = {};
+  try {
+    payload = text ? JSON.parse(text) : {};
+  } catch {
+    throw new ApiError(response.status, 'The author API returned an unreadable response.');
+  }
+  if (!response.ok) {
+    if (response.status === 401) csrfToken = '';
+    const message =
+      typeof payload === 'object' && payload !== null && 'error' in payload
+        ? String((payload as { error: unknown }).error)
+        : `Request failed with ${response.status}.`;
+    throw new ApiError(response.status, message);
+  }
+  return payload as T;
+}
+
 export const api = {
   async session(): Promise<Author | null> {
     try {
-      const result = await send<{ author: Author; csrfToken: string }>('GET', '/api/session');
+      const result = await send<{ author: Author; csrfToken: string }>('GET', '/api/session/');
       csrfToken = result.csrfToken;
       return result.author;
     } catch (error) {
@@ -126,7 +185,7 @@ export const api = {
   },
 
   async login(name: string, password: string): Promise<Author> {
-    const result = await send<{ author: Author; csrfToken: string }>('POST', '/api/login', {
+    const result = await send<{ author: Author; csrfToken: string }>('POST', '/api/login/', {
       name,
       password,
     });
@@ -135,45 +194,69 @@ export const api = {
   },
 
   async logout(): Promise<void> {
-    await send<void>('POST', '/api/logout');
+    await send<void>('POST', '/api/logout/');
     csrfToken = '';
   },
 
   listArticles(): Promise<{ articles: ArticleRow[] }> {
-    return send('GET', '/api/articles');
+    return send('GET', '/api/articles/');
   },
 
   getArticle(id: number): Promise<ArticleDetail> {
-    return send('GET', `/api/articles/${id}`);
+    return send('GET', `/api/articles/${id}/`);
   },
 
   createArticle(input: NewArticleInput): Promise<{ article: Article; latest: Version }> {
-    return send('POST', '/api/articles', input);
+    return send('POST', '/api/articles/', input);
   },
 
   saveVersion(id: number, input: VersionFields): Promise<{ version: Version }> {
-    return send('POST', `/api/articles/${id}/versions`, input);
+    return send('POST', `/api/articles/${id}/versions/`, input);
   },
 
   autosave(id: number, input: VersionFields): Promise<{ version: Version }> {
-    return send('POST', `/api/articles/${id}/autosave`, input);
+    return send('POST', `/api/articles/${id}/autosave/`, input);
   },
 
   publish(id: number, versionId: number, note?: string): Promise<{ article: Article; published: Version }> {
     const body = note === undefined ? { versionId } : { versionId, note };
-    return send('POST', `/api/articles/${id}/publish`, body);
+    return send('POST', `/api/articles/${id}/publish/`, body);
   },
 
   rollback(id: number, versionId: number, note?: string): Promise<{ article: Article; published: Version }> {
     const body = note === undefined ? { versionId } : { versionId, note };
-    return send('POST', `/api/articles/${id}/rollback`, body);
+    return send('POST', `/api/articles/${id}/rollback/`, body);
   },
 
   unpublish(id: number, note?: string): Promise<{ article: Article }> {
-    return send('POST', `/api/articles/${id}/unpublish`, note === undefined ? {} : { note });
+    return send('POST', `/api/articles/${id}/unpublish/`, note === undefined ? {} : { note });
   },
 
   preview(id: number, markdown: string): Promise<{ html: string }> {
-    return send('POST', `/api/articles/${id}/preview`, { markdown });
+    return send('POST', `/api/articles/${id}/preview/`, { markdown });
+  },
+
+  listMedia(): Promise<{ assets: MediaAsset[] }> {
+    return send('GET', '/api/media/');
+  },
+
+  importMedia(upload: MediaUpload): Promise<{ asset: MediaAsset }> {
+    const form = new FormData();
+    form.set('file', upload.file, upload.file.name);
+    form.set('alt', upload.alt);
+    if (upload.group) form.set('group', upload.group);
+    if (upload.caption) form.set('caption', upload.caption);
+    if (upload.copyright) form.set('copyright', upload.copyright);
+    return sendForm('/api/media/', form);
+  },
+
+  /**
+   * Where an author can see an imported file before the next export.
+   *
+   * `publicPath` is where a reader will find it once the site is rebuilt; until
+   * then only this route can resolve it, and only for a signed-in author.
+   */
+  mediaFileUrl(asset: MediaAsset): string {
+    return `/api/media/${asset.id}/file/`;
   },
 };
