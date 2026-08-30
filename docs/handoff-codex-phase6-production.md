@@ -1,9 +1,9 @@
-# 交接：Phase 6A 生产后端，8/12
+# 交接：Phase 6A 生产后端，9/12
 
 > 日期：2026-08-30
 > 交出方：Claude
 > 接手方：Codex
-> 状态：**生产后端 12 块里做完 8 块，全部已推上 `origin/main`。读者站一直可用。生产 Admin 能登录、写作、导入并选择图片、预览、发布、回滚、撤下——但只对数据库里已存在的账户，因为建账户还没有入口。下一块就是补那个入口。**
+> 状态：**生产后端 12 块里做完 9 块；前 8 块已推上 `origin/main`，第 9 块是当前本地提交。读者站一直可用。服务器现在能正规建立或停用 Morii、Enouia 两个作者账户，生产 Admin 的登录、写作、媒体、预览、发布、回滚与撤下链路已经接通。下一块是导出、构建与原子换站。**
 
 这份文档取代 [`handoff-codex-prototype-b.md`](handoff-codex-prototype-b.md) 作为当前交接。那一份停在「Phase 1 收尾、等 Morii 批准 ADR 0002」的状态，现在已经不成立。它保留为历史依据，**不要就地改写**——里面第 7 节那 19 条差异仍然有效，本文第 8 节按新阶段重新分了类。
 
@@ -49,21 +49,21 @@ d8274d4  Pick images from the media library instead of typing paths      编辑�
 32a0c9d  Record the media import block and the route defect it uncovered 文档
 ```
 
-第 8 块的末次生产验证，2026-08-30 跑出来的：
+第 9 块完成后的生产验证，2026-08-30 跑出来的：
 
 ```text
-pnpm check                                      → 107 files，0 errors / warnings / hints
-pnpm test                                       → tests 89 / suites 17 / pass 89 / fail 0
+pnpm check                                      → 110 files，0 errors / warnings / hints
+pnpm test                                       → tests 95 / suites 18 / pass 95 / fail 0
 pnpm build                                      → 46 个公开页面与 Admin、API server entry 构建成功
 pnpm split                                      → 158 个公开文件不依赖 Node；156 个公开可达资源不含 Admin 代码
 check-links / audit-public-tree                 → 均通过
 ```
 
-另用 `astro dev` 起真实运行时逐条验证了 13 条作者 API 路径全部返回 JSON 而不是 404 页面。
+第 8 块曾用 `astro dev` 起真实运行时逐条验证 13 条作者 API 路径全部返回 JSON 而不是 404 页面；第 9 块另用真实 PTY 验证了密码管理器整段粘贴能正常结束且不回显。
 
 **没有做的两件，别当成做过了**：一是没有登录后的浏览器验证——代 Morii 输入口令不在可做的范围内，所以媒体库面板的渲染依据是处理器层集成用例加三份运行时模板通过 Vue 编译器，不是端到端点击；二是没有重跑原型 118 例。本轮构建没有再遇到沙箱里那次 esbuild `spawn EPERM`，但文件系统那边遇到了一个新的等价陷阱，见 5.4 第三条。
 
-## 3. 生产后端：12 块里做完 8 块
+## 3. 生产后端：12 块里做完 9 块
 
 | | 块 | 状态 | 记录 |
 | --- | --- | --- | --- |
@@ -75,14 +75,14 @@ check-links / audit-public-tree                 → 均通过
 | 6 | HTTP 读写 API + 发布闸门搬迁 | 完成 | ADR 21.5 |
 | 7 | Admin 界面 | 完成 | ADR 21.6 |
 | 8 | 媒体导入链路（修 B7） | 完成 | ADR 21.7 |
-| 9 | **建账户命令（只能在服务器上跑）** | **下一块** | — |
-| 10 | 导出 + 构建 + 原子换站 | 未开始 | ADR 第 4.2、15.3 节已定 |
+| 9 | 建立/停用账户命令（只能在服务器上跑） | 完成 | ADR 21.8 |
+| 10 | **导出 + 构建 + 原子换站** | **下一块** | ADR 第 4.2、15.3 节已定 |
 | 11 | 备份与恢复演练 | 未开始 | ADR 第 11 节已定 |
 | 12 | 部署（systemd / Nginx / 构建迁到 VPS） | 未开始 | ADR 第 15 节已定 |
 
-**5 到 8 做完就是「本机能用」**：能登录、写作、导入图片、发布，跑在生产代码上。**9 到 12 才是「真正上线」。**
+**5 到 9 做完就是「本机能用」**：能正规建号、登录、写作、导入图片、发布，跑在生产代码上。**10 到 12 才是「真正上线」。**
 
-## 4. 已完成的八块，接手需要知道的
+## 4. 已完成的九块，接手需要知道的
 
 ### 4.1 渲染分裂（`7192684`，ADR 21.1）
 
@@ -121,7 +121,7 @@ check-links / audit-public-tree                 → 均通过
 - 登录成功先轮换 session id，再存 `{ id, name }` 与独立 CSRF token；cookie 显式保留 `Secure`、`HttpOnly`、`SameSite=Lax`；
 - 同一账户 15 分钟失败 5 次只锁该账户，Morii 与 Enouia 不会相互拖死；另有 20 次/15 分钟的全局阀门挡轮换假用户名；
 - 登录/登出检查 Host 与 Origin，登出必须带 CSRF token；登录体超过 4 KiB 会在 JSON 解析前被拒；
-- `/admin` 已经接上作者 API、列表与编辑器。没有建账户命令时，仍只能使用数据库中已经存在的账户。
+- `/admin` 已经接上作者 API、列表与编辑器；账户通过服务器侧 `account:create` 建立，通过 `account:disable` 停用。
 
 ### 4.5 文章 API、发布闸门与 Admin（ADR 21.5、21.6）
 
@@ -191,7 +191,7 @@ Vue/Tiptap 只从按需 `/admin` 加载。`check-render-split` 改为扫描从�
 
 ```bash
 # 生产（当前工作面）
-pnpm verify                           # astro check + 89 个用例 + 构建 + 渲染分裂 + 链接 + 公开树审计
+pnpm verify                           # astro check + 95 个用例 + 构建 + 渲染分裂 + 链接 + 公开树审计
 pnpm build                            # 产物分 dist/client 与 dist/server
 pnpm dev                              # 真实运行时；astro dev stop 停掉
 node --test --test-isolation=none tests/admin-*.test.mjs   # 只跑后台那几套
@@ -213,24 +213,24 @@ pnpm -C prototypes baselines:verify   # 与 dist/ 比对，需先 pnpm build
 | `MORIIUM_SESSION_DIRECTORY` | `.astro/sessions/` | Astro session driver |
 | `MORIIUM_MEDIA_ROOT` | `.astro/media/` | 已净化的公开衍生图 |
 
-**本机登录目前没有正规办法**，这正是第 9 块要修的。第 8 块期间用过的临时办法是起一个 Node 进程直接调 `createAccount(db, { name, password }, now)`，验完随手把 `.astro/admin.db` 删掉——**不要把这个办法写进任何脚本或文档当作流程**，它只是第 9 块存在的理由。
+服务器现在有两条正规命令：`pnpm account:create Morii`（或 `Enouia`）从隐藏 TTY 读取两次口令并建号；`pnpm account:disable Morii`（或 `Enouia`）只写停用时间，不删账户。两条命令都服从 `MORIIUM_DATABASE_PATH`；不要把口令放进参数。
 
-## 7. 下一块：建账户命令（第 9 块）
+## 7. 第 9 块已完成：建立与停用账户命令
 
-媒体导入已完成，见 ADR 21.7。剩下的四块里，第 9 块最小，也最挡路：**后台已经完整可用，却没有正规办法造出第一个账户。**
+媒体导入完成后，第 9 块补上了后台的本地账户入口：**服务器能正规建立第一个账户，也能在保留历史引用的前提下停用账户。**
 
-`src/server/accounts.ts` 里 `createAccount`、`findAccount`、`listAccounts`、`authenticate` 都在，缺的只是外壳。写它的时候有六件事已经知道：
+实现落在 `scripts/create-author-account.mjs` 与 `src/server/accounts.ts`。六条约束的结果如下：
 
-1. **`createAccount(db, input, now)` 的第三个参数是必填的。**漏掉不会在调用处报错，会在插入时抛 `now is not a function`——第 8 块实测踩过。
-2. **口令下限 24 位**（ADR 第 10.4 节把口令强度定成整套东西的地基）。命令要在读口令**之前**说清这一条，而不是让人输完再拒绝。
-3. **口令不得进入日志、命令行历史或数据库以外的任何文件。**因此不要用 `--password` 这样的参数位——它会留在 shell 历史和 `ps` 输出里。从 stdin 读，不回显，读两遍比对。
-4. **不要为了方便加一条 HTTP 建账户入口。**账户创建留在服务器本机，是第 10.1 节那套「公网加口令」暴露面推论的一部分；加一个远程入口等于把那段推理作废。
-5. **命令要能停用账户，不能删除账户。**`accounts.disabled_at` 是停用而非删除，因为历史版本和审计行引用作者（schema 注释里写了理由）。删账户会打断那条引用。
-6. **两个账户权限完全相同**，不做角色（ADR 第 9.1 节）。命令不要引入 role 参数。
+1. `createAccount(db, input, now)` 收到显式时钟，没有漏掉第三个参数。
+2. 第一次提示口令前先说明密码管理器、24 位下限与不得复用。
+3. 口令不接受参数，只从交互 TTY 隐藏读取两次；所有输出均不含口令。
+4. 没有新增 HTTP 建号或停用入口。
+5. `account:disable` 只写 `disabled_at`，没有删除命令，账户行与外键引用保留。
+6. 只接受 Morii、Enouia，不接受 role。
 
-按第 9 节的写法，先让它失败一次：短口令被拒、重名被拒、停用后 `authenticate` 返回空、口令不出现在任何输出里——每条都要有能红的用例，不要只写一条「能建出来」。
+测试先红后绿，覆盖短口令、重名、两次输入不一致、停用后 `authenticate` 返回空、账户行仍存在、参数不带口令、输出不含口令。复用加密文章的隐藏输入器时还用真实 PTY 复现并修掉一个旧问题：密码管理器整段粘贴会把「口令 + 回车」放在同一输入块里，必须逐字符消费，不能把整块当单个字符。
 
-做完第 9 块之后是第 10 块（导出 + 构建 + 原子换站），它的两处已知入口：`markLive()` 是导出成功之后才调用的第二步；ADR 第 8.2 节要求 manifest 从 `media_assets` 生成而不是手写，那件事现在仍然没做。
+**下一块是第 10 块（导出 + 构建 + 原子换站）**。两处已知入口不变：`markLive()` 是成功换站之后才调用的第二步；ADR 第 8.2 节要求 manifest 从 `media_assets` 生成而不是手写。
 
 ## 8. 必须随结论报告、不得当作已解决的差异
 

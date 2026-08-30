@@ -985,3 +985,25 @@ check-links / audit-public-tree   -> 均通过
 #### 仍未做
 
 manifest 导出仍未接线：第 8.2 节要求构建时从 `media_assets` 生成，那属于第 10 块（导出 + 构建 + 原子换站）。数据库里可发布的 EXIF 白名单字段目前一律存 `{}`——sharp 只给出原始 EXIF 缓冲区，解析它需要新依赖，要先问 Morii。媒体没有删除入口，也没有「哪些资源没被任何文章引用」的视图。建账户命令、导出构建、备份恢复与部署仍未开始。**下一块是建账户命令**，它只能在服务器上跑；`createAccount` 已经存在且要求显式传入 `now`，命令只是它的外壳。
+
+### 21.8 服务器侧作者账户命令（2026-08-30）
+
+第 9 块已经接入。服务器操作者现在用 `pnpm account:create Morii` 或 `pnpm account:create Enouia` 建立两个既定作者账户；口令不能放在参数里，只能从交互 TTY 隐藏输入并重复确认。命令在第一次读口令前先说明「密码管理器生成、至少 24 位、不得复用」，随后调用现有 `createAccount(db, input, now)`，没有另写哈希、校验或 SQL。数据库路径继续服从 `MORIIUM_DATABASE_PATH`，未设置时沿用生产 `/var/lib/moriium/admin.db` 与 Windows 本地 `.astro/admin.db` 的既定默认值。
+
+停用走 `pnpm account:disable Morii` 或 `pnpm account:disable Enouia`。它只给现有账户写 `disabled_at`；没有删除命令，也没有 role 参数，历史版本与审计引用因此继续成立。整个入口只在 `scripts/`，没有新增 HTTP 路由。
+
+加密文章命令原有的隐藏输入器被抽到 `scripts/lib/hidden-prompt.mjs` 共用。把密码管理器生成的口令整段粘贴进终端时，Node 会把「口令 + 回车」作为一个 `data` 块送入；旧实现把整块当作一个字符，因而不会结束输入。本块先用真实 PTY 与自动化用例复现，再改为逐字符消费输入块。测试同时覆盖成功建号、短口令、两次输入不一致、同名重建、停用后拒绝认证、账户行不删除，以及命令参数与输出都不携带口令。
+
+```text
+pnpm verify                    → 退出码 0
+  astro check                  → Result (110 files): 0 errors / warnings / hints
+  node --test tests/*.test.mjs → tests 95 / suites 18 / pass 95 / fail 0
+  astro build                  → 46 个公开页面、Admin 与 API server entry 构建成功
+  check-render-split           → 158 个公开文件不依赖 Node；156 个公开可达文件不含 Admin 代码
+```
+
+另用真实 PTY 把测试口令与回车一次性粘贴给隐藏输入器，输入正常结束且没有回显。没有在当前开发库创建真实账户，也没有重跑原型 118 例。
+
+#### 仍未做
+
+导出、构建与原子换站仍未接线，`media_assets` manifest 也仍未生成。**下一块是第 10 块**；`markLive()` 只能在新静态站成功换上之后调用，不能把数据库发布成功误当成站点已经上线。

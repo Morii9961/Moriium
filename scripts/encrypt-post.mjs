@@ -3,6 +3,7 @@ import { basename, dirname, isAbsolute, relative, resolve } from 'node:path';
 import process from 'node:process';
 import { parseFrontmatter } from '@astrojs/markdown-remark';
 import { encryptHtml } from './lib/crypto.mjs';
+import { hiddenPrompt } from './lib/hidden-prompt.mjs';
 import { renderPrivateMarkdown } from './lib/render-markdown.mjs';
 
 const root = resolve(import.meta.dirname, '..');
@@ -12,37 +13,6 @@ const publicRoot = resolve(root, 'src/content/protected');
 function inside(parent, child) {
   const path = relative(parent, child);
   return path && !path.startsWith('..') && !isAbsolute(path);
-}
-
-async function hiddenPrompt(label) {
-  if (!process.stdin.isTTY || !process.stdout.isTTY || !process.stdin.setRawMode) {
-    throw new Error('Encryption requires an interactive TTY so the password can remain hidden.');
-  }
-  process.stdout.write(label);
-  process.stdin.setRawMode(true);
-  process.stdin.resume();
-  process.stdin.setEncoding('utf8');
-  let value = '';
-  return await new Promise((resolvePrompt, reject) => {
-    const onData = (character) => {
-      if (character === '\u0003') {
-        process.stdin.setRawMode(false);
-        process.stdin.pause();
-        reject(new Error('Cancelled.'));
-      } else if (character === '\r' || character === '\n') {
-        process.stdin.off('data', onData);
-        process.stdin.setRawMode(false);
-        process.stdin.pause();
-        process.stdout.write('\n');
-        resolvePrompt(value);
-      } else if (character === '\u007f' || character === '\b') {
-        value = value.slice(0, -1);
-      } else if (character >= ' ') {
-        value += character;
-      }
-    };
-    process.stdin.on('data', onData);
-  });
 }
 
 function featuresOf(markdown) {

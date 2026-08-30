@@ -99,6 +99,7 @@
 - [x] 生产形态的数据库 schema 与迁移器（ADR 0002 第 21.2 节）：六张表全 `STRICT`，frontmatter 挂 version、tags 单独成表、`articles` 带 `published_version_id` 与 `live_version_id`；迁移只向前且连记账行同事务；WAL 与 `busy_timeout` 配上并被用例读回来断言。
 - [x] **B2 修掉了**：14 个 frontmatter 字段全部有列，并有用例直接读 `src/content.config.ts` 逐个比对（负向测试：改个列名当场红）。往 content config 加字段而不加迁移会在构建时失败。
 - [x] 两个作者账户（Morii、Enouia），scrypt 参数写进哈希本身，口令下限 24 位，未知/停用/口令错返回同一结果且都跑一次哈希比对。
+- [x] 服务器侧账户命令：`account:create` 只从隐藏 TTY 读取并确认口令，`account:disable` 只写停用时间、不删账户；两者都只接受 Morii 或 Enouia，不新增 HTTP 入口。见 ADR 21.8。
 - [x] 生产会话与登录：Astro Sessions 显式落在 release 目录之外；登录成功轮换 session id；JSON 写请求保留独立 CSRF token；限速分成按账户 5 次/15 分钟与全局 20 次/15 分钟。`/api/login`、`/api/session`、`/api/logout` 与最低限度登录页已接通，见 ADR 21.4。
 - [x] 生产 Admin：文章列表、新建、完整编辑、版本历史、自动保存、发布、回滚、撤下和可信预览已接通；最新、已发布、已上线三个状态分开显示。Vue/Tiptap 只存在于按需 Admin bundle，见 ADR 21.6。
 - [ ] 只迁移 fixture 和测试文章，不先迁移正式内容。
@@ -277,6 +278,8 @@ HTTP 读写 API、发布闸门和生产 Admin 已依次完成（ADR 21.5、21.6�
 
 媒体导入链路也已完成（ADR 21.7），**B7 那项「不能过」到此修掉**：上传经过强制重编码与剥离，写盘后再读回复核才登记 `media_assets`，编辑器的图片路径框改为只读、只能从已净化的媒体库里选。同一轮查出并修掉了第 7 块一个浏览器检查看不见的缺陷——`trailingSlash: 'always'` 让 `src/admin/api.ts` 里 15 处调用全部落到 404 页面，生产 Admin 挂得出登录壳却够不到自己的 API。
 
-**下一块是只能在服务器上跑的建账户命令**——现在 `accounts.ts` 有函数但没有入口。注意 `createAccount(db, input, now)` 的第三个参数必填，口令下限 24 位。
+服务器侧建号与停用命令也已完成（ADR 21.8）。建号沿用 `createAccount(db, input, now)`，口令下限 24 位，只从隐藏 TTY 读两次；停用保留账户行与历史引用。复用隐藏输入器时还查出并修掉了密码管理器整段粘贴无法结束输入的问题。
+
+**下一块是导出 + 构建 + 原子换站**：从 `media_assets` 生成 manifest，成功换站后才能调用 `markLive()`。
 
 00 节其余未完成项——固定口径的体积/构建测量、把 07–12 的人工验收测试化、安全与恢复要求——仍须在影子系统前补齐。

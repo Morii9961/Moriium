@@ -130,6 +130,22 @@ export function listAccounts(db: DatabaseSync): Account[] {
   return rows.map(toAccount);
 }
 
+/** Disables an account without deleting the row referenced by versions and audit. */
+export function disableAccount(db: DatabaseSync, name: string, now: () => string): Account {
+  const normalized = name.trim();
+  const result = db
+    .prepare('UPDATE accounts SET disabled_at = ? WHERE name = ? AND disabled_at IS NULL')
+    .run(now(), normalized);
+  if (result.changes !== 1) {
+    throw new AdminError('conflict', `No active account named ${normalized} exists.`);
+  }
+  const account = findAccount(db, normalized);
+  if (!account) {
+    throw new AdminError('db-write-failed', 'The disabled account could not be read back.');
+  }
+  return account;
+}
+
 /**
  * Resolves a sign-in attempt.
  *
