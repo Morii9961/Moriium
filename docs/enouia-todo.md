@@ -79,14 +79,14 @@
 
 ### 05　B Hybrid 生产架构 ADR
 
-草稿已成文：[`adr-0002-phase5-production.md`](adr-0002-phase5-production.md)。**未获批准**，批准前 `architecture.md` 的静态架构继续有效。
+**已由 Morii 于 2026-08-30 批准**：[`adr-0002-phase5-production.md`](adr-0002-phase5-production.md)。批准的是形状与合同改动，不是内容迁移。
 
 - [x] Morii 已根据实际操作选择 B Hybrid 全栈，原型 A 取消。见 ADR 0001 第 13.14 节。
 - [x] 固定 B 的初始逐路由策略。ADR 0002 第 5 节：公开路由**全部**预渲染，只有 `/admin/*` 与 `/api/*` 按需。读者路径因此完全不经过 Node 与数据库。
 - [x] 明确作者与读者账户、canonical content、逐路由渲染策略和发布时效。2026-08-30 Morii 定夺：只做作者账户但建两个（Morii、Enouia）、发布分钟级可见、Admin 用客户端证书（先选隧道，后因日常操作麻烦改成 mTLS）、后端用 Astro 内置。canonical content 继续是 Markdown，见 ADR 0002 第 6.1 节。
 - [x] ADR 定义 API、数据库、renderer、媒体、认证、备份、监控、安全和回退。ADR 0002 第 4 到 14 节。
-- [ ] 同步修改 `AGENTS.md` 与部署合同后才能进入生产实现。改法已在 ADR 0002 第 15、16 节逐条写出（`AGENTS.md` 有五处、部署合同有四处），**但一个字都还没改**——要等 Morii 批准 ADR。
-- [?] Morii 批准或退回 ADR 0002。未决问题见其第 18 节：客户端证书在手机上的实际体验、告警发到哪里。
+- [~] 同步修改 `AGENTS.md` 与部署合同后才能进入生产实现。`AGENTS.md` 的五处**已按 ADR 第 16 节改完**；`docs/deployment.md` 的五处**留到 06A 再改**，因为那份文档描述的是部署实际怎么跑，现在改会让它描述一套还不存在的东西。改法已在 ADR 第 15 节写死。
+- [x] Morii 批准 ADR 0002（2026-08-30），并同时定夺两条减法：暂不做告警、不需要移动端客户端证书。见 ADR 第 1.1 节。
 
 ### 06A　全栈 Hybrid 影子系统
 

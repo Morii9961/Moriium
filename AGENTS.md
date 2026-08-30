@@ -16,7 +16,9 @@ Moriium is Morii's lightweight, multilingual personal blog. V1 contains:
 - Article lightboxes, rich code blocks, mathematics, Mermaid, video, encrypted posts, music cards, GitHub repository cards, admonitions, spoilers, and optional copy protection.
 - Pages CMS authoring for public posts and a local-only encryption flow for protected posts.
 
-Do not add comments, analytics, accounts, an admin runtime, a database, or an API without Morii explicitly changing scope. Search must remain a build-time static index; static build tooling is allowed, but the deployed site must not require Node, a database, PM2, a search service, or a CMS process on the VPS.
+Do not add comments, reader accounts, public registration, or analytics. ADR 0002, approved 2026-08-30, admits an author-only admin, a database, two author accounts, and an internal API; anything past that scope still needs Morii to widen it explicitly.
+
+Search must remain a build-time static index. The reader path must not depend on Node, a database, or a CMS: every public route stays prerendered and Nginx serves the static output directly. The author admin may depend on a resident Node process and a database, and must sit behind a client certificate.
 
 ## Clean-room visual contract
 
@@ -33,7 +35,7 @@ Before freezing typography, color, grid, spacing, rules, or dark mode:
 
 ## Content and privacy
 
-- Public posts live in `src/content/posts/` and may be edited through Pages CMS.
+- Public posts live in `src/content/posts/` and may be edited through Pages CMS. Once the ADR 0002 admin takes over authoring, Pages CMS becomes a read-only history entry or is retired. An article must never be writable through both at once.
 - Plaintext protected posts live only in ignored `.private/posts/`. Never commit them, print their password or plaintext to logs, or copy them into fixtures.
 - The public protected-post collection may contain only public metadata and versioned ciphertext envelopes.
 - Original photos remain untouched. Generate publishable derivatives separately and remove GPS and sensitive EXIF before committing them.
@@ -41,7 +43,9 @@ Before freezing typography, color, grid, spacing, rules, or dark mode:
 
 ## Engineering constraints
 
-- Use Astro static output, TypeScript, and pnpm. Do not add a UI framework, Tailwind, or server adapter.
+- Use Astro static output, TypeScript, and pnpm. `output` stays `static`.
+- The Node adapter is admitted by ADR 0002 for one purpose: rendering `/admin` and `/api` on demand. No public route may become on-demand without a second ADR.
+- Do not add a UI framework or Tailwind to the public site in `src/`. The author admin uses Vue 3 and Tiptap, and its code must never reach a public route.
 - Prefer native HTML, CSS, and small feature-scoped browser modules.
 - Ordinary pages must not download Mermaid, PhotoSwipe, music, video, or decryption code. Load an advanced module only when its content marker exists, and defer network media until user interaction.
 - Search UI may be present globally, but its generated index and search module must load only after the reader opens search.
@@ -140,4 +144,5 @@ Codex uses the same script under `~/.codex/skills/`. Resolve the path from the h
 - Layout is checked at 375, 390, 768, 1024, and 1440 CSS pixels.
 - Ordinary pages contain no unused advanced-reader bundles.
 - Generated output and Git history contain no protected plaintext, passwords, exact GPS, secrets, or unrelated generated files.
-- Release output is static and works behind Nginx without Node.
+- Public output is static and stays fully reachable with the Node process stopped. Prove it by stopping the process, not by asserting it.
+- No public page bundles admin code such as Vue or Tiptap.
