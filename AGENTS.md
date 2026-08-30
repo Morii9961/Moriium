@@ -18,7 +18,7 @@ Moriium is Morii's lightweight, multilingual personal blog. V1 contains:
 
 Do not add comments, reader accounts, public registration, or analytics. ADR 0002, approved 2026-08-30, admits an author-only admin, a database, two author accounts, and an internal API; anything past that scope still needs Morii to widen it explicitly.
 
-Search must remain a build-time static index. The reader path must not depend on Node, a database, or a CMS: every public route stays prerendered and Nginx serves the static output directly. The author admin may depend on a resident Node process and a database, and must sit behind a client certificate.
+Search must remain a build-time static index. The reader path must not depend on Node, a database, or a CMS: every public route stays prerendered and Nginx serves the static output directly. The author admin may depend on a resident Node process and a database. It is reachable on the public internet and is defended by a long unique password, per-account rate limiting, and fail2ban; that password must never be reused anywhere else.
 
 ## Clean-room visual contract
 
