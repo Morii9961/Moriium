@@ -99,7 +99,7 @@ for (const entry of builtFonts) builtFontBytes += (await stat(new URL(`${built}_
 
 const cssHref = home.match(/href="(\/_astro\/[^"?]+\.css)"/)?.[1];
 assert(cssHref, 'A prototype CSS asset was not found in built HTML.');
-const builtCss = await read(`dist${cssHref}`);
+const builtCss = await read(`${built}${cssHref.slice(1)}`);
 const remoteFontUrls = builtCss.match(/url\(["']?https?:\/\/[^)]+/gi) ?? [];
 assert.equal(remoteFontUrls.length, 0, 'A prototype CSS must not request remote fonts.');
 
