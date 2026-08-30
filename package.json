@@ -21,6 +21,8 @@
     "encrypt": "node scripts/encrypt-post.mjs",
     "account:create": "node scripts/create-author-account.mjs create",
     "account:disable": "node scripts/create-author-account.mjs disable",
+    "content:export": "node scripts/export-content.mjs",
+    "site:release": "node scripts/release-site.mjs",
     "build": "node scripts/validate-content.mjs && node scripts/check-media.mjs && node scripts/cache-github.mjs && astro build",
     "test": "node --test tests/*.test.mjs",
     "links": "node scripts/check-links.mjs",

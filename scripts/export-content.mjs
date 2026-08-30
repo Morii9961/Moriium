@@ -6,8 +6,8 @@
 // not serving anything new yet, and recording that it is would make the "one
 // pointer says published, the other says live" distinction meaningless.
 //
-//   node scripts/export-content.mjs            export, print a summary
-//   node scripts/export-content.mjs --json     the same, as JSON on stdout
+//   pnpm content:export            export, print a summary
+//   pnpm content:export --json     the same, as JSON on stdout
 //
 // It exits non-zero on refusal and leaves the previous export untouched, so a
 // failed release can be retried without the author republishing anything.
@@ -27,7 +27,7 @@ export function parseExportCommand(args) {
   const json = args.includes('--json');
   const rest = args.filter((argument) => argument !== '--json');
   if (rest.length > 0) {
-    throw new Error('Usage: node scripts/export-content.mjs [--json]');
+    throw new Error('Usage: pnpm content:export [--json]');
   }
   return { json };
 }

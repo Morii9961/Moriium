@@ -1066,7 +1066,7 @@ pnpm verify                    → 退出码 0
 - 构建、上线前检查、原子换站、curl 复核与回写 `live_version_id` 都还没有；`markLive()` 至今没有生产调用方；
 - manifest 生成了但**还没有消费方**。公开页面目前不读它，图片的 caption、copyright 与宽高仍未从这份数据渲染；
 - 导出目录还没有接进构建流程，`src/content/posts/` 与导出目录的双轨切换属于第 15.2 节，未开始；
-- `package.json` 没有加 `content:export` 脚本。按交接第 5.1 节，改 `package.json` 要先问 Morii，所以当前只能用 `node scripts/export-content.mjs` 调用；
+- ~~`package.json` 没有加 `content:export` 脚本~~ Morii 于 2026-08-30 批准，已加 `pnpm content:export`；
 - `.env.example` 增加了 `MORIIUM_CONTENT_ROOT`，因为导出目录必须在 release 目录之外，和数据库、会话、媒体是同一条要求。
 
 ### 21.10 第 10 块其余两步：构建、原子换站与回写上线指针（2026-08-30）
@@ -1129,6 +1129,6 @@ pnpm verify                    → 退出码 0
 - **没有在真实 VPS 上跑过一次。**符号链接换站、pnpm 安装与构建、curl 复核在 Linux 上都还没有真实执行过；
 - **CI 仍然是旧的那条**（CI 构建 → tar 上传 → VPS 解包）。第 15.2 节把构建迁到 VPS 的改动没有做，因为它连着 systemd 与 Nginx，属于第 12 块，且要先取得 Morii 授权；
 - **`.gitignore` 需要 Morii 决定**：`src/content/posts/exported/`、`public/media/`、`src/generated/` 三条。在加上之前，**不要把仓库工作副本当作 release 的 workspace**，否则一次 release 会在工作树里留下未跟踪的暂存内容；
-- `package.json` 仍然没有 `content:export` 与 `release` 两个脚本，同样要先问 Morii；当前只能 `node scripts/export-content.mjs` 与 `node scripts/release-site.mjs`；
+- `package.json` 的两个脚本已由 Morii 于 2026-08-30 批准并加上：`pnpm content:export` 与 `pnpm site:release`，命名沿用既有的 `namespace:verb`；
 - manifest 生成了、复制到位了，但公开页面仍然不读它；
 - 第 11 块（备份与恢复演练）与第 12 块（部署）未开始。

@@ -260,6 +260,18 @@ describe('a release that succeeds', () => {
     assert.equal(installIsNeeded(context.paths.workspace), true);
   });
 
+  it('refuses a workspace that does not exist', async () => {
+    const context = await workspace();
+    publish(context);
+    const paths = { ...context.paths, workspace: join(context.paths.workspace, 'typo') };
+
+    await assert.rejects(release(context, fakeHost(), { paths }), (error) => {
+      assert.equal(error.code, 'release-failed');
+      assert.match(error.userMessage, /workspace directory does not exist/);
+      return true;
+    });
+  });
+
   it('refuses a release id that is a path rather than a name', async () => {
     const context = await workspace();
     publish(context);

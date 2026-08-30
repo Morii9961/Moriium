@@ -30,6 +30,11 @@ export function nodeReleaseHost(): ReleaseHost {
       // shell: false. Nothing in a release comes from an author, but a release
       // script that interpolates into a shell is one bad path away from being
       // the most privileged injection point on the machine.
+      //
+      // The cost is that `pnpm` is not spawnable this way on Windows, where it
+      // exists as pnpm.cmd. Releases run on Linux (ADR 0002 section 15), and
+      // adding a shim for a platform this never runs on would trade a real
+      // security property for a convenience nobody needs.
       const result = spawnSync(command, [...args], { cwd, encoding: 'utf8', shell: false });
       if (result.error) {
         throw new AdminError('release-failed', `${command} could not be started.`, {

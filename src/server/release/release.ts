@@ -189,6 +189,9 @@ async function runRelease(options: ReleaseOptions, progress: Progress): Promise<
   const currentLink = resolve(options.paths.current);
   const keep = options.keep ?? RETAINED_RELEASES;
   const releaseDirectory = join(releasesRoot, options.id);
+  // A mistyped --root would otherwise create an empty tree and then fail at the
+  // install, several steps and one confusing message later.
+  if (!existsSync(workspace)) refuse('The workspace directory does not exist.');
 
   // 1. Export. Its own failures leave the previous export and the live site
   //    untouched; see src/server/export/content-export.ts.

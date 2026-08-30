@@ -6,8 +6,8 @@
 // so a failed attempt is retried by running it again, never by asking the
 // author to publish a second time.
 //
-//   node scripts/release-site.mjs --url https://morii9961.top/zh/
-//   node scripts/release-site.mjs --id 37af11d --root /var/www/moriium --keep 6
+//   pnpm site:release --url https://morii9961.top/zh/
+//   pnpm site:release --id 37af11d --root /var/www/moriium --keep 6
 //
 // It is deliberately not wired into CI. ADR 0002 section 15.2 moves the build
 // to the VPS because the content lives in a database CI cannot read, and that
