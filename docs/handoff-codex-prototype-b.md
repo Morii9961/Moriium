@@ -2,10 +2,10 @@
 
 > 日期：2026-08-29
 > 决策更新：2026-08-30
-> 进度更新：2026-08-30（Codex 完成发布闸门与图片属性面板，Claude 补记并复核）
+> 进度更新：2026-08-30（发布闸门、图片属性面板、生产同源预览全部完成）
 > 交出方：Claude
 > 接手方：Codex
-> 状态：**B 是 vNext 最终路线；三项待补已完成两项，只剩草稿的生产同源预览。**
+> 状态：**B 是 vNext 最终路线；13.14 定下的三项待补已全部完成。下一块是把 T1–T10 改写成 B 的验收清单。**
 
 这份文档取代 [`handoff-codex-phase1.md`](handoff-codex-phase1.md) 作为当前交接。那一份停在「骨干就位、两个原型都还不能被操作」的状态，现在已经不成立。它保留为历史依据，**不要就地改写**。
 
@@ -14,7 +14,7 @@
 按顺序，不要跳：
 
 1. [`AGENTS.md`](../AGENTS.md) — 唯一有约束力的项目合同，含技能路由；
-2. [`adr-0001-phase1-spike.md`](adr-0001-phase1-spike.md) — 已批准的 Phase 1 范围、边界与回退。**第 13 节是完整执行记录**，本轮对应 13.10 到 13.16，每个决定连同实测输出都在那里；
+2. [`adr-0001-phase1-spike.md`](adr-0001-phase1-spike.md) — 已批准的 Phase 1 范围、边界与回退。**第 13 节是完整执行记录**，本轮对应 13.10 到 13.18，每个决定连同实测输出都在那里；
 3. [`vnext-architecture-plan.md`](vnext-architecture-plan.md) — 更大的路线背景；
 4. [`enouia-todo.md`](enouia-todo.md) — 当前工作单与决策门；
 5. [`architecture.md`](architecture.md) — 仍然生效的生产架构；
@@ -39,13 +39,10 @@ pnpm -C prototypes dev:b
 
 ## 3. 当前状态（实测，非转述）
 
-分支 `main`。下列 11 个实现与记录提交已 push；其后的四个提交仍**只在本地**，`git status` 会报 ahead by 4，不要把本地领先误写成已同步：
+分支 `main`。下列 11 个实现与记录提交已 push。**其后的提交仍只在本地**，别把本地领先误写成已同步，接手时先自己看一眼：
 
-```text
-73d3bfb  Edit image properties in prototype B          （本地）
-3e55fae  Enforce prototype B's publish gate            （本地）
-21c739b  Record Morii's choice of prototype B          （本地）
-af6ac1b  Hand prototype B over to Codex                （本地）
+```bash
+git log --oneline origin/main..HEAD
 ```
 
 已 push 的 11 个：
@@ -73,14 +70,15 @@ pnpm verify                         → 退出码 0
   astro build                       → 46 page(s) built
   check-links / audit-public-tree   → 通过
 pnpm -C prototypes check            → 退出码 0
-pnpm -C prototypes test             → tests 110 / suites 27 / pass 110 / fail 0
+pnpm -C prototypes test             → tests 116 / suites 29 / pass 116 / fail 0
 pnpm -C prototypes fixtures:check   → Fixture corpus is valid.
 pnpm -C prototypes baselines:verify → All 14 markers agree with the built page.
 pnpm -C prototypes roundtrip:report → unextended 8/11；moriium-nodes 11/11
-发布闸门对四篇播种夹具            → 四篇全部 PUBLISHABLE
+发布闸门对四篇播种夹具              → 四篇全部 PUBLISHABLE
+浏览器实操                          → 登录、打开夹具、按生产管线渲染、图片可加载、全选删除
 ```
 
-这一份是 2026-08-30 Claude 接手后**重新跑出来的**，不是抄上一轮的数字。
+这一份是 2026-08-30 **重新跑出来的**，不是抄上一轮的数字。
 
 `astro check` 是 60 个文件而不是 64，因为 `prototypes/` 已被排除，见 5.2。
 
@@ -94,7 +92,7 @@ git diff 21c739b..HEAD --name-only -- ':!prototypes' ':!docs'   # 空
 
 ## 4. 本轮做了什么
 
-完整记录在 ADR 13.10–13.16，这里只给接手需要的骨架。4.5 与 4.6 是 Codex 在 2026-08-30 做的，那一轮额度耗尽没来得及写文档，ADR 13.15、13.16 由 Claude 依据提交内容与重跑的检查补记。
+完整记录在 ADR 13.10–13.18，这里只给接手需要的骨架。4.5 与 4.6 是 Codex 在 2026-08-30 做的，那一轮额度耗尽没来得及写文档，ADR 13.15、13.16 由 Claude 依据提交内容与重跑的检查补记；4.7 与 4.8 接在后面。
 
 ### 4.1 Tiptap round-trip 丢失计数（`eb3bf36`、`65f02d2`，ADR 13.10）
 
@@ -144,6 +142,28 @@ Vite 以 `changeOrigin: false` 反代 `/api`，因此 Host 与 Origin 守卫收�
 
 13.12 定的第 3 档到此补齐，`alt` 现在改得了。
 
+### 4.7 草稿的生产同源预览（ADR 13.17）
+
+`preview/render.ts` 没有自己的渲染器，只调 `tools/build-baselines.mjs` 的 `createPublicRenderer()`，也就是从 `astro.config.mjs` 取来的生产管线。为了连落盘那一步都同源，`build-baselines.mjs` 多导出 `renderMarkdown` 与 `baselineBytes`，基线生成器自己也改走它们。
+
+路由是 `POST /api/articles/:id/preview`，排在 `guardRequest` 之后：未发布的草稿不能被匿名请求或别的来源渲染出来。请求体带 `markdown` 就渲染编辑器里还没保存的内容，不带就渲染库里的最新版本；两条路径都不写任何东西。
+
+断言的是逐字节相等，不是「看着差不多」：四篇夹具的预览等于 `fixtures/baseline/` 里的文件，而不带插件链的普通 processor 与基线不等——后一条是让前一条有意义的那条。**做过负向测试**：把渲染器换成普通 processor，三条渲染断言当场红两条。
+
+界面是右栏一个手动触发的面板，结果进 `iframe` 的 `srcdoc`，`sandbox="allow-same-origin"` 而没有 `allow-scripts`（理由在 13.17，改之前先读）。**这是渲染同源，不是外观同源**，见第 7 节第 15 条。
+
+顺带：`dev:b` 现在认 `MORIIUM_API_PORT`、`MORIIUM_UI_PORT`、`MORIIUM_ADMIN_DB`。起因是实测撞上 EADDRINUSE——Morii 的实例开着，第二个实例唯一的出路本来是杀掉别人的会话。
+
+### 4.8 预览第一次运行就查出的真问题（ADR 13.18）
+
+按下渲染，数图片：预览两张，文章一张。多出来的是正文末尾的 `<img src="" alt="">`。
+
+原因是 `MoriiumImage` 的 `priority: 1_100` 压过 paragraph 的 1000，而扩展 priority 同时决定 schema 里节点类型的顺序，ProseMirror 补 `block+` 空位时就挑中了这个 atom。空文档被补成一张空图片，`setContent` 之后那张填充图留在末尾。UI 正是 `content: ''` 起编辑器再 `setContent`，而自动保存写的是 `editor.getMarkdown()`——**打开一篇文章，自动保存就会把 `![]()` 写回正文**。
+
+修法是把 priority 降到 `1_000`。先试过把 `src` 变成必填属性，实测不成立：Tiptap 会把没写 `default` 的属性补成 `null`。断言落在机制上，无头就能跑：`createAndFill()` 的第一个子节点必须是 paragraph。**做过负向测试**：改回 `1_100` 当场失败。
+
+**已经写进库里的草稿不会自己变干净**，见第 7 节第 16 条。
+
 ## 5. 边界
 
 ### 5.1 不要碰
@@ -176,7 +196,7 @@ Vite 以 `changeOrigin: false` 反代 `/api`，因此 Host 与 Origin 守卫收�
 # 原型
 pnpm -C prototypes dev:b              # 起原型 B，浏览器开 http://localhost:4320/
 pnpm -C prototypes check              # 类型检查
-pnpm -C prototypes test               # 110 个用例
+pnpm -C prototypes test               # 116 个用例
 pnpm -C prototypes fixtures:check     # 语料校验（含基线新鲜度）
 pnpm -C prototypes roundtrip:report   # Markdown round-trip 丢失表
 pnpm -C prototypes baselines:build    # 重生成基线
@@ -203,6 +223,8 @@ pnpm verify
 12. **`scripts/encrypt-post.mjs` 仍有自己的 `featuresOf()`**，与 `shared/content-blocks.ts` 的 `markersFor` 是两份实现。未合并，因为合并要改生产脚本。
 13. **发布闸门会误挡讲 Markdown 语法的文章。**`imageReferencesIn` 用正则扫全文，不区分围栏代码块，实测 ` ```markdown ` 围栏里的示例图片会被当成真实图片引用，于是那篇文章因为「图片不在媒体清单里」被拒。方向是安全的一侧（宁可误挡也不放行编辑器建模不了的行内图片，`media.ts` 注释写明了理由），但接生产前要改成按解析结果取图片引用。
 14. **发布闸门只覆盖了数据库存得下的 frontmatter 字段。**`publishCandidate` 是从生产 schema 上 `pick` 出来的子集，生产还有的字段没有校验，因为存不下就补默认值等于替 Morii 编内容。Phase 2 的明确缺口，注释里写着。
+15. **预览是渲染同源，不是外观同源。**站点外壳、样式表和阅读端模块都不在原型里，所以提示块、代码块、剧透出来是结构正确但没有样式的标记。面板上写了这句。要做外观同源是另一块活，不要顺手把 `dist/` 的样式表塞进 `srcdoc` 了事。
+16. **`![]()` 修好之前写进库的草稿仍然带着它。**13.18 那个填充图片从 13.13 起就在往正文里加，修的是以后不再加，**不会回头清理已经保存的版本**。Morii 那个跑了一上午的 `admin-b/.data/admin.db` 很可能已经有几版带 `![]()` 的自动保存。要么删库重播种，要么发布时靠闸门拦下来再手工删掉那一行。
 
 ## 8. 测试的写法约定
 
@@ -214,21 +236,21 @@ ADR 第 5 节要求「测试必须证明而不是声明」。本轮所有测试�
 
 ## 9. 下一步
 
-**Morii 已于 2026-08-30 实际使用原型 B，并确认满意。**B 现在是 vNext 的目标路线，原型 A 不再开发，A/B 评分表也不再制作。原第 4 节 T1–T10 中仍有价值的项目改成 B 的验收清单。
+**Morii 已于 2026-08-30 实际使用原型 B 并选定它为 vNext 路线**，原型 A 不再开发，A/B 评分表也不再制作。
 
-那一轮定下的三项待补，前两项已由 Codex 完成（4.5、4.6）：
+那时定下的三项待补，现在全部完成：
 
 1. ~~完整发布闸门~~ — `3e55fae`，ADR 13.15。
 2. ~~图片属性面板~~ — `73d3bfb`，ADR 13.16。
-3. **草稿的生产同源预览。**只剩这一项。
+3. ~~草稿的生产同源预览~~ — ADR 13.17，连带修掉 13.18 那个每篇文章都会被加一张空图的缺陷。
 
-预览这一项的关键约束是**不要另写一套渲染**。`prototypes/tools/build-baselines.mjs` 里的 `createPublicRenderer()` 已经从 `astro.config.mjs` 取生产自己的 remark/rehype 链，并补回作为 Astro 集成、因而不在 processor 插件表里的 Expressive Code；`baselines:verify` 又拿一篇真实生产文章和 `dist/` 的产物对过 14 个结构标记。这两样东西存在的意义就是给预览用。
+**下一块是把第 4 节的 T1–T10 改写成 B 的验收清单**，覆盖登录、写作、自动保存、预览、发布、回滚、公开阅读、移动端与故障恢复。它不再承担 A/B 评分，任务本身仍然成立，改的是判据：从「哪个更快」变成「B 能不能过」。`markdown-reference.md` 仍是 T3 的来源。
 
-因此预览应当：直接调用 `createPublicRenderer()`；用现成的 `prototypes/fixtures/baseline/*.html` 做断言基准，证明预览产出与生产基线一致，而不是「看起来差不多」；预览端点必须要会话，草稿不能被匿名读到。要预先说清楚的是，这是**渲染同源，不是外观同源**——站点外壳与样式表不在原型里，预览不会长得像线上文章。
+之后进入 Phase 5 的 B Hybrid 生产架构 ADR。那份 ADR 要固定 API、数据库、可信 renderer、媒体、认证、备份、监控、安全、逐路由策略和回退，并同步更新 `AGENTS.md` 与部署合同。
 
-三项完成后，把 T1–T10 改成 B 的验收清单，再进入 B Hybrid 的生产架构 ADR。那份 ADR 要固定 API、数据库、可信 renderer、媒体、认证、备份、监控、安全、逐路由策略和回退，并同步更新 `AGENTS.md` 与部署合同。
+00 节还欠着三项，都在影子系统之前：固定口径的体积与构建测量、把 07–12 的人工验收测试化、公网 Admin 的安全与恢复要求。
 
-**选择 B 不等于原型 B 已经完成，也不等于当前尖峰可以直接部署。**
+**三项补齐不等于原型 B 可以部署。**第 7 节那 16 条差异一条都没有因此消失，尤其是内存会话、无 `Secure` 的 cookie，和 Vite 开发服务器会连带端出数据库这件事。
 
 ## 10. 署名
 

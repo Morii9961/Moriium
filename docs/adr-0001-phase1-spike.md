@@ -864,3 +864,102 @@ pnpm verify                         -> 退出码 0（60 files 0 errors、30/30�
 ```
 
 三项待补的前两项到此完成，**剩下草稿的生产同源预览**。
+
+### 13.17 草稿的生产同源预览（2026-08-30）
+
+三项待补的最后一项。要求写在 13.14 与交接第 9 节里：**不要另写一套渲染**。
+
+`preview/render.ts` 因此没有自己的渲染器，只调 `tools/build-baselines.mjs` 的 `createPublicRenderer()`——那个函数从 `astro.config.mjs` 取生产自己的 remark/rehype 链，并补回作为 Astro 集成、因而不在 processor 插件表里的 Expressive Code。为了让预览和基线连「写盘那一步」都同源，`build-baselines.mjs` 多导出两个函数：
+
+- `renderMarkdown(renderer, markdown)`——render 加上剥掉内联 style/script，基线生成器现在也走它；
+- `baselineBytes(html)`——基线文件真正落盘的字节。测试要断言逐字节相等，就不能自己再抄一遍那条末尾换行规则。
+
+处理器缓存的是 promise 而不是结果：构建一次要装全部插件和两套 Expressive Code 主题，慢到不能按次重建，缓存 promise 还顺带让并发的第一次请求只建一个。
+
+#### 路由
+
+`POST /api/articles/:id/preview`。放在 `guardRequest` 之后是目的而不是顺手：**未发布的草稿不能被匿名请求或别的来源渲染出来**。请求体带 `markdown` 就渲染编辑器里还没保存的内容，不带就渲染库里的最新版本。两条路径都不写任何东西。
+
+用 POST 而不是 GET，是因为要带的正文就是编辑器里的草稿，塞不进 URL，也不该进 URL。
+
+#### 断言的是同源，不是「看着像」
+
+```text
+四篇夹具                  -> baselineBytes(预览) 逐字节等于 fixtures/baseline/ 里的文件
+不带插件链的普通 processor  -> 与基线不相等（否则上一条对任何渲染器都成立，等于没断言）
+一个 ts 代码围栏           -> 出 expressive-code，不出 astro-code（baselines:verify 抓过的正是这处）
+HTTP                      -> 匿名 401；带会话但缺 CSRF 403；带齐 200 且文章仍未发布
+带 markdown 的预览         -> 不新增版本，库里最新版本原样不动
+```
+
+**做过负向测试**：把 `renderPreview` 换成不带插件链的普通 processor，三条渲染断言当场红两条，换回来三条全绿。
+
+#### 界面
+
+右栏一个「生产渲染预览」面板，按钮触发，结果进 `iframe` 的 `srcdoc`。
+
+刻意是手动的：处理器不便宜，而一个跟着每次击键自动更新的预览会被读成「线上就长这样」。
+
+`sandbox="allow-same-origin"` 而没有 `allow-scripts`。第一版是 `sandbox=""`，实际打开发现图片全是碎图标：不透明来源下 `/media/fixtures/...` 没有可解析的基地址。给回同源之后图片正常，而没有 `allow-scripts` 的 srcdoc 框架拿到来源也做不了任何事。**以后要加 `allow-scripts`，必须先给媒体另找一条路。**
+
+#### 说清楚它不是什么
+
+**渲染同源，不是外观同源。**站点外壳、样式表和阅读端模块都不在原型里，所以提示块、代码块、剧透出来的是结构正确但没有样式的标记。面板上写了这句，不指望读者自己推断。
+
+#### 顺带改的一处开发入口
+
+`dev:b` 的两个端口和数据库路径现在认 `MORIIUM_API_PORT`、`MORIIUM_UI_PORT`、`MORIIUM_ADMIN_DB`。起因是实测：Morii 的实例还开着，第二个实例直接 EADDRINUSE 死掉，唯一的出路是杀掉别人的会话。三个环境变量让第二个实例带自己的端口和自己的库跑在旁边。Vite 那两个数字用内联配置覆盖，`vite.config.ts` 不动，`fs.deny` 那些规则仍然只有一份。
+
+### 13.18 预览第一次运行就查出编辑器在给每篇文章加一张空图（2026-08-30）
+
+预览接好之后，在浏览器里对夹具 `zh/tide-notes` 按下渲染，数了一下图片：**预览里两张，文章里一张**。多出来的那张是 `<img src="" alt="">`，挂在正文最后一段之后。
+
+这不是预览的问题。预览渲染的是编辑器当前的 Markdown，所以多出来的东西是编辑器序列化出来的。
+
+#### 复现
+
+无头环境复现不了——`new Editor({ content: '' })` 需要 window。所以复现放在浏览器里，用 Vite 起一个临时页面，把 UI 的构造方式和 round-trip 的构造方式并排跑：
+
+```text
+new Editor({ content: markdown, contentType: 'markdown' })     -> 结尾正常
+new Editor({ content: '' }) 之后 setContent(markdown)          -> 结尾多出 "\n\n![]()"
+
+空文档的 JSON = {"type":"doc","content":[{"type":"moriiumImage","attrs":{"src":"",...}}]}
+```
+
+最后一行就是原因。ProseMirror 给 `block+` 补空位时，挑的是它能不带属性建出来的第一个块级类型；扩展 priority 同时决定 schema 里节点类型的顺序，而 `MoriiumImage` 写的是 `priority: 1_100`，压在 paragraph 的 1000 之上。于是**空文档被补成一张空图片**，`setContent` 之后那张填充图还留在末尾。
+
+后果不止是难看：`ArticleEditor.vue` 正是 `content: ''` 起编辑器再 `setContent` 的，而自动保存写的是 `editor.getMarkdown()`。也就是说**打开一篇文章，自动保存就会把 `![]()` 写回正文**。空 alt 加不在媒体清单里的路径，13.15 的发布闸门迟早会拦下它——但那时呈现出来的会是「发布莫名其妙被拒」，不是「编辑器在改我的文章」。
+
+#### 修法
+
+先试的是把 `src` 变成必填属性，因为 ProseMirror 的 `defaultType` 会跳过 `hasRequiredAttrs()` 的类型。实测不成立：Tiptap 会把没写 `default` 的属性补成 `null`，在 ProseMirror 眼里仍然有默认值，空文档照样被补成图片。
+
+成立的是把 `priority` 降到 `1_000`，也就是不再压过 paragraph。没有别的 tokenizer 认以 `![` 开头的行，所以它本来就不需要那个位置。
+
+#### 断言
+
+机制可以在无头环境里断言，不必等浏览器：
+
+```text
+getSchema(moriiumExtensions()).topNodeType.createAndFill() 的第一个子节点必须是 paragraph
+```
+
+**做过负向测试**：把 priority 改回 `1_100`，这条当场失败；改回 `1_000` 通过。
+
+浏览器里另外确认了两件事：夹具的预览现在正好一张图，末尾那张没有了；在编辑器里全选删除，留下的是一个空段落而不是一张空图片。
+
+#### 本轮验证
+
+```text
+pnpm -C prototypes check            -> 退出码 0
+pnpm -C prototypes test             -> tests 116 / suites 29 / pass 116 / fail 0
+pnpm -C prototypes fixtures:check   -> Fixture corpus is valid.（基线未变）
+pnpm -C prototypes roundtrip:report -> unextended 8/11；moriium-nodes 11/11（未变）
+pnpm -C prototypes baselines:verify -> All 14 markers agree with the built page.
+pnpm verify                         -> 退出码 0（60 files 0 errors、30/30、46 pages）
+生产文件改动                          -> 无
+浏览器实操                            -> 登录、打开夹具、按生产管线渲染、图片可加载、全选删除
+```
+
+13.14 定下的三项待补到此全部完成。下一块是把第 4 节的 T1–T10 改写成 B 的验收清单，然后进入 Phase 5 的 B Hybrid 生产架构 ADR。
