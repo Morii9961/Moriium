@@ -72,6 +72,13 @@ function mediaBlockers(version: Version, manifest: MediaManifest): string[] {
   }
 
   for (const reference of imageReferencesIn(version.markdown)) {
+    // `![]()` carries no path at all. Reporting it as "missing from the
+    // manifest" would print an empty name and read as a manifest problem, so it
+    // gets its own message.
+    if (reference.publicPath.length === 0) {
+      blockers.push('An image has no path at all. Remove it, or give it one.');
+      continue;
+    }
     if (reference.alt.trim().length === 0) {
       blockers.push(`Image ${reference.publicPath} has blank alt text.`);
     }

@@ -80,7 +80,10 @@ export type MarkdownImageReference = {
 // Matches the Markdown image form Moriium documents and the Tiptap image node
 // serializes. Publication scans inline occurrences too: an unsupported inline
 // image must not bypass the gate merely because the editor cannot model it.
-const MARKDOWN_IMAGE = /!\[([^\]\r\n]*)\]\(([^\s)]+)(?:\s+"[^"\r\n]*")?\)/g;
+// The path is `*` rather than `+` on purpose: `![]()` has an empty path and
+// would otherwise not match at all, so the gate would never see it. That is
+// how a stray empty image reached a published version once (ADR 0001 13.18).
+const MARKDOWN_IMAGE = /!\[([^\]\r\n]*)\]\(([^\s)]*)(?:\s+"[^"\r\n]*")?\)/g;
 
 export function imageReferencesIn(markdown: string): MarkdownImageReference[] {
   return Array.from(markdown.matchAll(MARKDOWN_IMAGE), (match) => ({

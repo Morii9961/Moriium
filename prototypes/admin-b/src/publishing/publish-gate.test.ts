@@ -77,6 +77,23 @@ describe('prototype B publish gate', () => {
     );
   });
 
+  // Found by reading Morii's real prototype database: versions 5, 6 and 7 all
+  // carried the stray `![]()` from ADR 0001 13.18, and every one of them passed
+  // this gate. The path group was `+`, so an empty path did not match the
+  // pattern at all and the reference was invisible rather than refused.
+  it('refuses an image that has no path at all', () => {
+    const database = store();
+    const version = candidate(database, 'Prose.\n\n![]()\n');
+
+    assert.throws(
+      () => validateVersionForPublishing(database, version, manifest()),
+      (error: unknown) =>
+        error instanceof PrototypeError &&
+        error.code === 'media-gate-refused' &&
+        /no path at all/.test(error.userMessage),
+    );
+  });
+
   it('refuses a remote image instead of letting it bypass the local media manifest', () => {
     const database = store();
     const version = candidate(database, '![Remote](https://example.test/image.jpg)\n');
