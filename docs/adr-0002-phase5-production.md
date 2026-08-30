@@ -173,7 +173,7 @@ articles        id, translation_key, lang, slug,
                 created_at
 
 versions        id, article_id, author_id, kind, created_at,
-                -- frontmatter，与 src/content.config.ts 一一对应
+                -- frontmatter，与 src/content-schema.ts 一一对应
                 title, summary, published_at, updated_at,
                 category, cover, cover_alt,
                 draft, unlisted, copy_protection,
@@ -708,7 +708,7 @@ Admin 只是个占位页，没有数据库、没有认证、没有编辑器。�
 - **`tags` 单独成表。**标签页和标签目录要按标签查询与聚合，JSON 列会把可以建索引的事逼成字符串匹配。
 - **`articles` 同时有 `published_version_id` 与 `live_version_id`。**前者是库里的真相，后者是上一次成功构建真正包含的版本。第 4.2 节那个「发布了但还没上线」的状态靠这两列的差值表达，不靠猜。
 
-`cover` 与 `cover_alt` 的关系用 CHECK 约束表达，与 `src/content.config.ts` 里那条 `superRefine` 对齐。
+`cover` 与 `cover_alt` 的关系用 CHECK 约束表达，与 `src/content-schema.ts` 里那条 `superRefine` 对齐。
 
 #### 迁移器
 
@@ -735,9 +735,9 @@ node:sqlite 默认 foreign_keys        = 1     （裸 SQLite 是 0）
 
 尖峰只存 14 个 frontmatter 字段里的 5 个，这是验收清单里两项「不能过」之一。
 
-现在有一条用例直接读 `src/content.config.ts`，解析出 `sharedMetadata` 声明的字段，逐个断言它们在数据库里有对应的列：`tags` 认 `version_tags`，`slug` / `lang` / `translationKey` 认 `articles`（它们是身份不是内容，不该逐版本变），其余认 `versions`。**做过负向测试**：把 `copy_protection` 列改个名，用例当场失败。
+现在有一条用例直接读 `src/content-schema.ts`，解析出 `sharedMetadata` 声明的字段，逐个断言它们在数据库里有对应的列：`tags` 认 `version_tags`，`slug` / `lang` / `translationKey` 认 `articles`（它们是身份不是内容，不该逐版本变），其余认 `versions`。**做过负向测试**：把 `copy_protection` 列改个名，用例当场失败。
 
-所以往 `src/content.config.ts` 加字段而不加迁移，会在构建时红，而不是在发布时变成一个被悄悄丢掉的值。
+所以往 `src/content-schema.ts` 加字段而不加迁移，会在构建时红，而不是在发布时变成一个被悄悄丢掉的值。
 
 #### 两个账户
 
@@ -878,7 +878,7 @@ pnpm split
 
 Markdown 解析是异步的，`node:sqlite` 事务是同步的。实现先从不可变版本提取图片引用，再返回一个同步 validator；`ArticleStore.publish/rollback` 仍在事务内、任何写入之前调用它。最终判断会重新读取文章、翻译组和 `media_assets`，所以围栏修复没有把发布闸门挪出事务。
 
-发布候选现在覆盖 `src/content.config.ts` 的全部 14 个 frontmatter 字段，并额外检查 Markdown 正文。媒体闸门同时检查正文图片和封面：引用 alt、数据库 alt、资源是否存在、光栅衍生图的 `sanitized_at`，以及公开 EXIF 白名单。缺失翻译仍然是“不可用”，不会复制别的语言内容补位。
+发布候选现在覆盖 `src/content-schema.ts` 的全部 14 个 frontmatter 字段，并额外检查 Markdown 正文。媒体闸门同时检查正文图片和封面：引用 alt、数据库 alt、资源是否存在、光栅衍生图的 `sanitized_at`，以及公开 EXIF 白名单。缺失翻译仍然是“不可用”，不会复制别的语言内容补位。
 
 #### 失败验证与精简门禁
 
@@ -1229,4 +1229,28 @@ git diff --check
 - 异地目标、凭据和保留机制尚未选定，数据库每日异地 30 天与媒体每日同步没有假装完成；
 - 没有从真实异地副本计时恢复，因此 RTO ≤ 30 分钟仍是目标，不是结果；
 - fail2ban 的 10 次初值还没用真实访问日志校准；
-- 工作树里另有未完成的版心研究，完整 `pnpm verify` 仍受那组类型和链接错误阻塞。第 11、12 块提交前必须分开归属并重跑完整门禁。
+
+### 21.13 第 13 块：只迁移 fixture 与测试文章（2026-08-31）
+
+Phase 6A 第一次内容迁移没有碰正式文章。允许进入数据库的来源写死在 `src/server/import/fixture-content.ts`：四篇 `prototypes/fixtures/posts/` 下的虚构 Markdown，加上 `src/content/posts/zh/reader-capabilities.md`，一共五篇。命令只有 `pnpm content:migrate-fixtures <Morii|Enouia>`，不接收目录或文件参数。`src/content/posts/` 的其他文章、`.private/posts/` 和受保护 fixture 没有入口；加密文章继续走本地加密流程。
+
+这一步也把 frontmatter schema 从 `content.config.ts` 中拆到 `src/content-schema.ts`。新文件不依赖 `astro:content` 虚拟模块，Astro collection loader 与迁移器共同读取；普通 Node 命令也能直接运行。原型镜像的字段漂移检查随路径更新，四篇公开 fixture、一篇受保护 fixture、四份渲染基线仍由原来的校验器复核。
+
+导入分三道。先把五个文件全部读完并过生产 schema；再与数据库现有文章比对 slug 和 `translationKey + lang`，同一身份重复运行只记为 skipped，不覆盖作者后来做的编辑，冲突身份则在写入前拒绝；最后由 `ArticleStore.createArticles()` 在一个事务里写完整批次，后面的任何失败都会回滚前面已经插入的行。
+
+迁移只创建文章与第一个版本，不调用 publish、rollback、markLive 或 release。即使 fixture frontmatter 写着 `draft: false`，数据库层仍没有 `published_version_id`，更没有 `live_version_id`；它们只是 Admin 可编辑的影子内容。两张 SVG fixture 也没有冒充已净化媒体，带图片的文章若尝试发布，仍会被现有媒体闸门拒绝。
+
+本轮只在临时数据库验证，没有运行默认 `.astro/admin.db`，也没有连接 VPS。定向用例覆盖五条固定来源、重复执行、翻译身份冲突、整批事务回滚、命令参数和停用作者；`pnpm -C prototypes fixtures:check` 继续确认 4 篇公开 fixture、1 篇受保护 fixture、2 个媒体文件、11 种内容块与 4 份 baseline。下一块是故障矩阵，不是正式内容迁移。
+
+```text
+pnpm verify
+  → Astro 143 个文件，0 条诊断
+  → tests 150 / suites 31 / pass 149 / fail 0 / skipped 1
+  → build、links、public-tree audit、render split 全部通过
+
+pnpm -C prototypes check
+  → exit 0
+
+pnpm -C prototypes fixtures:check
+  → 4 篇公开 fixture、1 篇受保护 fixture、2 个媒体文件、11 种内容块、4 份 baseline 全部通过
+```

@@ -40,7 +40,7 @@ export type Article = {
   liveVersionId: number | null;
 };
 
-/** The frontmatter of one saved version. Mirrors sharedMetadata in src/content.config.ts. */
+/** The frontmatter of one saved version. Mirrors sharedMetadata in src/content-schema.ts. */
 export type VersionFields = {
   title: string;
   summary: string;
@@ -290,26 +290,12 @@ export class ArticleStore {
 
   /** Creates the article and its first version. The article starts as a draft. */
   createArticle(input: NewArticle): Article {
-    return this.#transaction(() => {
-      const at = this.#now();
-      let articleId: number;
-      try {
-        const result = this.#db
-          .prepare(
-            'INSERT INTO articles (translation_key, lang, slug, created_at) VALUES (?, ?, ?, ?)',
-          )
-          .run(input.translationKey, input.lang, input.slug, at);
-        articleId = Number(result.lastInsertRowid);
-      } catch (cause) {
-        throw new AdminError(
-          'conflict',
-          'An article with that slug, or that language within the translation group, already exists.',
-          { cause },
-        );
-      }
-      this.#insertVersion(articleId, { ...input, kind: 'manual' });
-      return this.getArticle(articleId)!;
-    });
+    return this.#transaction(() => this.#createArticle(input));
+  }
+
+  /** Creates a migration batch atomically, so a later refusal leaves no partial import. */
+  createArticles(inputs: readonly NewArticle[]): Article[] {
+    return this.#transaction(() => inputs.map((input) => this.#createArticle(input)));
   }
 
   /**
@@ -411,6 +397,27 @@ export class ArticleStore {
   }
 
   // -- internals ------------------------------------------------------------
+
+  #createArticle(input: NewArticle): Article {
+    const at = this.#now();
+    let articleId: number;
+    try {
+      const result = this.#db
+        .prepare(
+          'INSERT INTO articles (translation_key, lang, slug, created_at) VALUES (?, ?, ?, ?)',
+        )
+        .run(input.translationKey, input.lang, input.slug, at);
+      articleId = Number(result.lastInsertRowid);
+    } catch (cause) {
+      throw new AdminError(
+        'conflict',
+        'An article with that slug, or that language within the translation group, already exists.',
+        { cause },
+      );
+    }
+    this.#insertVersion(articleId, { ...input, kind: 'manual' });
+    return this.getArticle(articleId)!;
+  }
 
   #pointAt(
     action: 'publish' | 'rollback',

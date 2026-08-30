@@ -52,7 +52,7 @@
 
 ### 02　共享内容、身份与媒体契约
 
-- [~] 抽出 CLI、Studio 和 Astro 共用的 frontmatter/schema 校验，避免三套规则。原型侧已在 `prototypes/shared/content-schema.ts` 落地，并有与 `src/content.config.ts` 的字段漂移检查；生产侧仍是独立一份，合并要等 Phase 5。
+- [~] 抽出 CLI、Studio 和 Astro 共用的 frontmatter/schema 校验，避免三套规则。生产 frontmatter 已从 Astro loader 拆到纯模块 `src/content-schema.ts`，Astro 内容集合与 fixture 迁移命令共用它；原型侧仍保留 `prototypes/shared/content-schema.ts` 镜像和字段漂移检查，Admin HTTP DTO 也还没有完全收口到这一份。
 - [~] 为每个自定义内容块定义稳定语法、属性、no-JavaScript fallback、feature marker 和版本策略。语法与 feature marker 已在 `prototypes/shared/content-blocks.ts` 成为可断言数据（11 个块，语料全覆盖）；**no-JavaScript fallback 与版本策略尚未定义**。
 - [x] 让 Studio 预览直接调用生产 remark/rehype 管线，不维护第二套近似解析器。B 的预览调 `tools/build-baselines.mjs` 的 `createPublicRenderer()`，并断言四篇夹具的预览与 `fixtures/baseline/` 逐字节相等；不带插件链的普通 processor 与基线不等，这条负向断言让前一条有意义。见 ADR 13.17。
 - [~] 定义摄影 asset manifest：公开路径、宽高、格式、alt、caption、版权和可公开 EXIF 白名单。生产发布闸门读取 `media_assets`，导入链路会写入这些字段（ADR 21.7）；**manifest 已由导出从 `media_assets` 生成**（ADR 21.9），但公开页面还没有消费方，caption、版权与宽高仍未从这份数据渲染。可公开 EXIF 白名单目前一律存 `{}`，保留机身字段需要新的解析依赖，要先问 Morii。
@@ -97,7 +97,7 @@
 - [x] 加 `@astrojs/node` adapter 并证明混合渲染成立：`output` 仍是 `static`，46 个公开页全部预渲染进 `dist/client/`，只有 `/admin` 按需。`scripts/check-render-split.mjs` 已进 `pnpm verify`，把这条做成会自己红的检查（负向测试：把 `prerender` 改回 `true` 当场报错）。
 - [x] 修好产物分裂带来的连带损坏：四个读 `dist/` 的脚本改走 `scripts/lib/public-output.mjs`，CI 的打包从 `-C dist .` 改成 `-C dist/client .`——不改的话部署上去全站 404。
 - [x] 生产形态的数据库 schema 与迁移器（ADR 0002 第 21.2 节）：六张表全 `STRICT`，frontmatter 挂 version、tags 单独成表、`articles` 带 `published_version_id` 与 `live_version_id`；迁移只向前且连记账行同事务；WAL 与 `busy_timeout` 配上并被用例读回来断言。
-- [x] **B2 修掉了**：14 个 frontmatter 字段全部有列，并有用例直接读 `src/content.config.ts` 逐个比对（负向测试：改个列名当场红）。往 content config 加字段而不加迁移会在构建时失败。
+- [x] **B2 修掉了**：14 个 frontmatter 字段全部有列，并有用例直接读 `src/content-schema.ts` 逐个比对（负向测试：改个列名当场红）。往内容 schema 加字段而不加迁移会在构建时失败。
 - [x] 两个作者账户（Morii、Enouia），scrypt 参数写进哈希本身，口令下限 24 位，未知/停用/口令错返回同一结果且都跑一次哈希比对。
 - [x] 服务器侧账户命令：`account:create` 只从隐藏 TTY 读取并确认口令，`account:disable` 只写停用时间、不删账户；两者都只接受 Morii 或 Enouia，不新增 HTTP 入口。见 ADR 21.8。
 - [x] 生产会话与登录：Astro Sessions 显式落在 release 目录之外；登录成功轮换 session id；JSON 写请求保留独立 CSRF token；限速分成按账户 5 次/15 分钟与全局 20 次/15 分钟。`/api/login`、`/api/session`、`/api/logout` 与最低限度登录页已接通，见 ADR 21.4。
@@ -105,7 +105,7 @@
 - [~] 第 10 块：导出、构建、上线前检查、原子换站、curl 复核、回写 `live_version_id` 与保留 6 份已经接成一个可重试的状态机（ADR 21.9、21.10）。换站之前的任何失败都不改变 `current` 与全部 `live_version_id`；换站后 curl 失败会把链接换回去且什么都不记；同一个已发布状态可以直接重跑，不需要作者再点发布。CI 现已改为上传源码并在 VPS 调用这条状态机，**但还没有在真实 VPS 上执行**。
 - [~] 第 11 块：常驻应用连接会立即做一份在线 SQLite 备份，之后每小时一次；每份先读回校验再晋升，本地只留最新 48 份。隔离恢复演练会先拒绝损坏样本，再在副本上完成读取、持久写入、关闭重开与计时（ADR 21.11）。**异地传输、媒体每日同步和真实 VPS RTO 演练仍缺真实目标与生产证据。**
 - [~] 第 12 块：systemd、Nginx、fail2ban、VPS 源码构建驱动与部署/回滚/恢复手册已经落进仓库（ADR 21.12）。新增契约用例 5/5 与 Git Bash 语法检查通过；配置尚未安装到 VPS，`DEPLOY_ENABLED` 没有打开，异地备份目的地也没有擅自假定。
-- [ ] 只迁移 fixture 和测试文章，不先迁移正式内容。
+- [x] 只迁移 fixture 和测试文章，不先迁移正式内容。第 13 块把四篇虚构 Markdown fixture 与 `reader-capabilities` 验收文章列成固定白名单，共 5 篇；命令不接受内容路径，受保护文章与正式文章都不可达。导入前完成 schema 校验和身份冲突预检，批次一次事务写入；重复执行保留已有编辑。五篇只生成数据库版本，`published_version_id` 与 `live_version_id` 都是 NULL。见 ADR 21.13。
 - [~] 作者认证、Public/Admin DTO、数据库迁移、生产发布闸门、服务端可信 renderer 与本机备份恢复链路已完成；异地副本和真实 VPS 恢复证据仍未完成。Public DTO 只读取已发布指针，不会泄漏最新自动保存。
 - [x] Admin 与权限草稿按需渲染；公开文章继续全部预渲染，读者页面不依赖 Node 或数据库。
 - [ ] 测试 API 断开、SQLite 锁、备份恢复、草稿越权、媒体故障和静态回退。
@@ -230,7 +230,7 @@
 
 Phase 1 已获批准并开工（2026-08-29），`prototypes/` 骨架与隔离验证已完成。
 
-fixture corpus 已完成，`shared/` 的 frontmatter 契约也已随校验器落地（`prototypes/shared/content-schema.ts`，带与 `src/content.config.ts` 的漂移检查）。
+fixture corpus 已完成，`shared/` 的 frontmatter 契约也已随校验器落地（`prototypes/shared/content-schema.ts`，带与 `src/content-schema.ts` 的漂移检查）。
 
 类型检查的隔离也已完成：`prototypes/` 排除出根 `tsconfig.json`，自带一份同等严格的配置由 `pnpm -C prototypes check` 运行（ADR 13.4，L2 单独提交）。
 
@@ -288,6 +288,8 @@ HTTP 读写 API、发布闸门和生产 Admin 已依次完成（ADR 21.5、21.6�
 
 第 11 块也已在本机接通（ADR 21.11）：备份由持有生产 `DatabaseSync` 的常驻进程触发，先写 staging、读回检查再晋升，本地保留 48 份；恢复演练先拿损坏样本证明校验器会失败，再在干净副本上完成读写与重开。异地传输、媒体每日同步与真实 VPS RTO 仍没有证据。
 
-第 12 块的仓库侧实现已经就位（ADR 21.12）：公开目录继续由 Nginx 静态服务，Node 只接 `/admin/` 与 `/api/`；systemd 把进程锁在回环地址和单一数据目录；fail2ban 只匹配登录端点的 401/429；CI 改为上传源码，由 VPS 在数据库旁构建。`docs/deployment.md` 现在写清了首装、验收、静态回滚、L3 恢复和自行解封。**这仍不是上线记录。下一步先分开当前工作树里的版心研究与第 11/12 块，跑通完整门禁，再由 Morii 决定是否提交和部署。**
+第 12 块的仓库侧实现已经就位（ADR 21.12）：公开目录继续由 Nginx 静态服务，Node 只接 `/admin/` 与 `/api/`；systemd 把进程锁在回环地址和单一数据目录；fail2ban 只匹配登录端点的 401/429；CI 改为上传源码，由 VPS 在数据库旁构建。`docs/deployment.md` 现在写清了首装、验收、静态回滚、L3 恢复和自行解封。**这仍不是上线记录。**版心研究与第 11/12 块已于 2026-08-31 分开提交，完整门禁阻塞随之解除。
+
+第 13 块完成 fixture/测试文章迁移（ADR 21.13）。生产 schema 现在是普通 Node 也能读取的纯模块；迁移命令只认 5 条固定路径，所有内容只进入数据库草稿。测试覆盖精确白名单、重复运行、身份冲突、整批回滚和停用作者。当前没有向本地默认数据库或 VPS 写入，也没有发布任何文章。下一步进入故障矩阵：API 断开、SQLite 锁、备份恢复、草稿越权、媒体故障与静态回退。
 
 00 节其余未完成项——固定口径的体积/构建测量、把 07–12 的人工验收测试化、安全与恢复要求——仍须在影子系统前补齐。
