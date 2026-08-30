@@ -1,20 +1,8 @@
 ---
-// The author admin, rendered on demand.
-//
-// ADR 0002 section 4: this and /api are the only routes that opt out of
-// prerendering. Everything public stays a static file so the reader path never
-// depends on this process.
-//
+// The author admin is the only client entry allowed to load Vue and Tiptap.
+// Public routes stay prerendered and scripts/check-render-split.mjs rejects an
+// admin bundle leaking into their files.
 export const prerender = false;
-
-const author = await Astro.session?.get('author');
-const csrfToken = await Astro.session?.get('csrfToken');
-const signedIn =
-  author !== undefined &&
-  typeof author === 'object' &&
-  author !== null &&
-  typeof author.name === 'string' &&
-  typeof csrfToken === 'string';
 ---
 
 <!doctype html>
@@ -23,59 +11,13 @@ const signedIn =
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex, nofollow" />
+    <meta name="color-scheme" content="light dark" />
     <title>Moriium Admin</title>
   </head>
   <body>
-    <h1>Moriium Admin</h1>
-    {
-      signedIn ? (
-        <>
-          <p>Signed in as {author.name}.</p>
-          <p>The article API and editor are the next production blocks.</p>
-          <button type="button" data-logout data-csrf={csrfToken}>Sign out</button>
-        </>
-      ) : (
-        <form data-login>
-          <p>The author admin requires one of the two server-created accounts.</p>
-          <label>
-            Account
-            <input name="name" autocomplete="username" required />
-          </label>
-          <label>
-            Password
-            <input name="password" type="password" autocomplete="current-password" required />
-          </label>
-          <button type="submit">Sign in</button>
-          <p data-status role="status" aria-live="polite"></p>
-        </form>
-      )
-    }
-
-    <script is:inline>
-      const login = document.querySelector('[data-login]');
-      login?.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const status = login.querySelector('[data-status]');
-        const data = new FormData(login);
-        const response = await fetch('/api/login', {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: data.get('name'), password: data.get('password') }),
-        });
-        if (response.ok) location.reload();
-        else status.textContent = 'Sign-in failed.';
-      });
-
-      const logout = document.querySelector('[data-logout]');
-      logout?.addEventListener('click', async () => {
-        const response = await fetch('/api/logout', {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: { 'X-CSRF-Token': logout.dataset.csrf },
-        });
-        if (response.ok) location.reload();
-      });
-    </script>
+    <div data-moriium-admin>
+      <noscript>作者后台需要 JavaScript 才能编辑文章。</noscript>
+    </div>
+    <script src="../../admin/main.ts"></script>
   </body>
 </html>

@@ -13,7 +13,7 @@
 // form: if the route resolves to a file, stopping Node cannot affect it.
 
 import { readdir, readFile, stat } from 'node:fs/promises';
-import { join, relative } from 'node:path';
+import { basename, join, relative } from 'node:path';
 import process from 'node:process';
 import { publicOutputRoot, repoRoot, serverOutputRoot } from './lib/public-output.mjs';
 
@@ -110,11 +110,33 @@ if (hasOnDemandRoute && !(await isFile(join(serverRoot, 'entry.mjs')))) {
   failures.push('dist/server exists but has no entry.mjs');
 }
 
-// 5. No public asset carries admin-only code.
+// 5. No asset reachable from a public route carries admin-only code.
+//
+// Astro emits client scripts for on-demand pages under dist/client/_astro too;
+// their HTML remains in dist/server. Merely existing in the shared asset
+// directory does not make a bundle part of a public page. Start from every
+// static HTML/CSS/JS file outside _astro, then follow hashed asset names through
+// imports and references. If a public page ever imports the Admin entry, that
+// entry and all of its dependencies enter this set and fail below.
 const publicFiles = (await filesUnder(publicRoot)).filter((file) =>
   ['.html', '.js', '.css'].some((extension) => file.endsWith(extension)),
 );
-for (const file of publicFiles) {
+const publicAssets = publicFiles.filter((file) => relative(publicRoot, file).startsWith('_astro'));
+const reachable = new Set(
+  publicFiles.filter((file) => !relative(publicRoot, file).startsWith('_astro')),
+);
+const queue = [...reachable];
+while (queue.length > 0) {
+  const source = queue.pop();
+  const content = await readFile(source, 'utf8');
+  for (const asset of publicAssets) {
+    if (reachable.has(asset) || !content.includes(basename(asset))) continue;
+    reachable.add(asset);
+    queue.push(asset);
+  }
+}
+
+for (const file of reachable) {
   const content = await readFile(file, 'utf8');
   for (const marker of ADMIN_ONLY) {
     if (content.includes(marker)) {
@@ -130,6 +152,7 @@ if (failures.length > 0) {
 } else {
   console.log(
     `Rendering split holds: ${publicFiles.length} public files serve without Node; ` +
+      `${reachable.size} public-reachable HTML/CSS/JS files contain no admin code; ` +
       `${MUST_BE_ON_DEMAND.join(', ')} stay on demand.`,
   );
 }
