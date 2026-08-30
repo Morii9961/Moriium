@@ -32,6 +32,12 @@ export const ERROR_CODES = [
   // A release step refused or failed. Like the export, retrying is an operator
   // decision made after reading the message, not something to loop on.
   'release-failed',
+  // The backup could not be taken, or the copy did not survive being read back.
+  'backup-failed',
+  // A backup exists but is not restorable. Kept separate from `backup-failed`
+  // because they call for opposite reactions: one means take another backup,
+  // the other means stop trusting the ones you have.
+  'backup-corrupt',
   'unauthorized',
   'forbidden',
   'validation-failed',
