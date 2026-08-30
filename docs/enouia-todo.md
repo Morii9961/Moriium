@@ -55,7 +55,7 @@
 - [~] 抽出 CLI、Studio 和 Astro 共用的 frontmatter/schema 校验，避免三套规则。原型侧已在 `prototypes/shared/content-schema.ts` 落地，并有与 `src/content.config.ts` 的字段漂移检查；生产侧仍是独立一份，合并要等 Phase 5。
 - [~] 为每个自定义内容块定义稳定语法、属性、no-JavaScript fallback、feature marker 和版本策略。语法与 feature marker 已在 `prototypes/shared/content-blocks.ts` 成为可断言数据（11 个块，语料全覆盖）；**no-JavaScript fallback 与版本策略尚未定义**。
 - [x] 让 Studio 预览直接调用生产 remark/rehype 管线，不维护第二套近似解析器。B 的预览调 `tools/build-baselines.mjs` 的 `createPublicRenderer()`，并断言四篇夹具的预览与 `fixtures/baseline/` 逐字节相等；不带插件链的普通 processor 与基线不等，这条负向断言让前一条有意义。见 ADR 13.17。
-- [~] 定义摄影 asset manifest：公开路径、宽高、格式、alt、caption、版权和可公开 EXIF 白名单。生产发布闸门读取 `media_assets`，导入链路会写入这些字段（ADR 21.7）；**构建时从 `media_assets` 导出 manifest 仍未接线**，属于第 10 块。可公开 EXIF 白名单目前一律存 `{}`，保留机身字段需要新的解析依赖，要先问 Morii。
+- [~] 定义摄影 asset manifest：公开路径、宽高、格式、alt、caption、版权和可公开 EXIF 白名单。生产发布闸门读取 `media_assets`，导入链路会写入这些字段（ADR 21.7）；**manifest 已由导出从 `media_assets` 生成**（ADR 21.9），但公开页面还没有消费方，caption、版权与宽高仍未从这份数据渲染。可公开 EXIF 白名单目前一律存 `{}`，保留机身字段需要新的解析依赖，要先问 Morii。
 - [x] Studio 媒体导入必须调用去 EXIF/GPS 与媒体检查；不得触碰原图。服务端无条件重新编码、剥离并读回磁盘复核，`sanitized_at` 只由复核之后的那一条路径盖章；净化配方与两张元数据块清单和两个命令行脚本共用 `scripts/lib/media.mjs` 一份实现。见 ADR 21.7。
 - [ ] 加密文章继续留在忽略的 `.private/posts/`，不进入公开 Studio 数据接口。
 - [~] 定义作者/管理员/可选读者权限、会话、CSRF、速率限制、审计和账户恢复。单一作者会话、CSRF、登录限速、草稿读取授权与发布审计已在 B 中落地；读者权限、账户恢复和生产级会话仍未定。
@@ -102,6 +102,7 @@
 - [x] 服务器侧账户命令：`account:create` 只从隐藏 TTY 读取并确认口令，`account:disable` 只写停用时间、不删账户；两者都只接受 Morii 或 Enouia，不新增 HTTP 入口。见 ADR 21.8。
 - [x] 生产会话与登录：Astro Sessions 显式落在 release 目录之外；登录成功轮换 session id；JSON 写请求保留独立 CSRF token；限速分成按账户 5 次/15 分钟与全局 20 次/15 分钟。`/api/login`、`/api/session`、`/api/logout` 与最低限度登录页已接通，见 ADR 21.4。
 - [x] 生产 Admin：文章列表、新建、完整编辑、版本历史、自动保存、发布、回滚、撤下和可信预览已接通；最新、已发布、已上线三个状态分开显示。Vue/Tiptap 只存在于按需 Admin bundle，见 ADR 21.6。
+- [~] 第 10 块：**导出已完成**（ADR 21.9）。`node scripts/export-content.mjs` 只读 `published_version_id`，把文章写成 Markdown、把被引用的已净化图片投影出来、从 `media_assets` 生成 manifest，失败与中断都不动上一份导出，也不写 `live_version_id`。**构建、上线前检查、原子换站与回写 `live_version_id` 仍未开始。**
 - [ ] 只迁移 fixture 和测试文章，不先迁移正式内容。
 - [~] 作者认证、Public/Admin DTO、数据库迁移、生产发布闸门与服务端可信 renderer 已完成；备份恢复仍未完成。Public DTO 只读取已发布指针，不会泄漏最新自动保存。
 - [x] Admin 与权限草稿按需渲染；公开文章继续全部预渲染，读者页面不依赖 Node 或数据库。
@@ -280,6 +281,6 @@ HTTP 读写 API、发布闸门和生产 Admin 已依次完成（ADR 21.5、21.6�
 
 服务器侧建号与停用命令也已完成（ADR 21.8）。建号沿用 `createAccount(db, input, now)`，口令下限 24 位，只从隐藏 TTY 读两次；停用保留账户行与历史引用。复用隐藏输入器时还查出并修掉了密码管理器整段粘贴无法结束输入的问题。
 
-**下一块是导出 + 构建 + 原子换站**：从 `media_assets` 生成 manifest，成功换站后才能调用 `markLive()`。
+第 10 块的导出这一步已完成（ADR 21.9）：只读已发布指针，产物落在 `current/`，失败或中断都不破坏上一份，manifest 从 `media_assets` 生成。**剩下的两步——构建加上线前检查、原子换站加 curl 复核并回写 `live_version_id`——仍未开始**，`markLive()` 至今没有生产调用方。
 
 00 节其余未完成项——固定口径的体积/构建测量、把 07–12 的人工验收测试化、安全与恢复要求——仍须在影子系统前补齐。

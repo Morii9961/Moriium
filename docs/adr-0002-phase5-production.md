@@ -1007,3 +1007,64 @@ pnpm verify                    → 退出码 0
 #### 仍未做
 
 导出、构建与原子换站仍未接线，`media_assets` manifest 也仍未生成。**下一块是第 10 块**；`markLive()` 只能在新静态站成功换上之后调用，不能把数据库发布成功误当成站点已经上线。
+
+### 21.9 第 10 块第一步：把数据库导出成构建输入（2026-08-30）
+
+第 10 块分三步：**导出**、构建与上线前检查、原子换站与回写 `live_version_id`。这一轮只做第一步，后两步未开始，**因此第 10 块尚未完成**。
+
+导出实现在 `src/server/export/`：`frontmatter.ts` 负责把一个版本还原成 Markdown 文件，`content-export.ts` 是导出本身；命令行入口是 `scripts/export-content.mjs`。
+
+#### 只读已发布指针
+
+`exportPublished()` 逐篇取 `published_version_id`，模块里没有一处调用 `getLatest`。这不是靠约定：自动保存不在这条路径能看见的范围内。用例把「发布后再自动保存」和「发布后回滚」都跑了一遍，导出的都是指针指的那一版。另做过反向验证——把那一行临时改成 `getLatest(article.id)`，两条用例当场红。
+
+导出也**不碰 `live_version_id`**。第 4.2 节的第二步要到静态站真的换上之后才成立，在这里写等于记录一次还没发生的构建。用例断言导出之后 `isAwaitingExport()` 仍然是 true。
+
+#### 失败不动上一份导出
+
+产物落在导出根目录下的三个位置：
+
+```text
+<root>/current/     上一次成功的导出，构建的输入
+<root>/staging/     正在写的，失败就删掉
+<root>/previous/    只在换名的那一瞬存在
+```
+
+换站用两次目录改名，中间那一刻旧导出在 `previous/` 里。进程恰好死在这个窗口里时，下一次导出开头的 `recoverInterruptedPromote()` 把它改回 `current/`——中断的代价是重跑一次，不是恢复备份。用例直接构造这个中间态，也构造了上一次失败遗留的 `staging/`，确认它被删掉而不是被复用。
+
+写下去的每个文件都读回来核对：Markdown 比对字符串，图片比对 SHA-256。这条规矩是第 8 块用真实故障换来的（21.7），导出如果默认自己写成功了，就是在另一个地方下同一个注。
+
+#### manifest 与媒体投影
+
+manifest 从 `media_assets` 生成，第 8.2 节那份手写夹具不进生产。**只投影已发布文章真正引用的图片**：正文引用从 remark AST 取（和发布闸门同一个 `imageReferencesIn`，围栏代码块里的示例图片因此不算引用），封面从版本字段取。媒体库里没被任何已发布文章用到的图片留在媒体根目录，不进公开树——这是有意的，媒体库是作者的，导出是读者的。
+
+两道拒绝：引用的行在库里找不到，或者那行的 `sanitized_at` 是 NULL。第二条是重复防守，发布闸门已经挡过一次；用例先正常发布，再把该行的 `sanitized_at` 改回 NULL，导出拒绝，`current/` 完好。删掉磁盘上的图片文件也是同样结果。
+
+manifest 里没有时间戳。同一份数据库状态两次导出产生逐字节相同的目录树，这是「重试导出」这句话能成立的前提，用例逐文件比对了两次导出的字节。
+
+#### frontmatter 用 JSON 字符串
+
+每个字符串标量都用 `JSON.stringify` 写成 YAML 双引号标量。JSON 是 YAML 1.2 的子集，所以带冒号、井号、百分号、引号、换行或中日文的标题都不需要这个模块自己判断该不该加引号——一套加引号的启发式规则，总会栽在第一个以 `- ` 开头的标题上。U+2028 与 U+2029 额外显式转义，因为 YAML 1.1 把它们当换行而 1.2 不当。
+
+正确性不是自证的：用例用 `@astrojs/markdown-remark` 的 `parseFrontmatter` 读回来，那正是 `scripts/validate-content.mjs` 和 Astro 内容加载器用的同一个解析器，不是第二套实现和第一套互相点头。
+
+#### 本轮验证
+
+```text
+pnpm verify                    → 退出码 0
+  astro check                  → Result (114 files): 0 errors / warnings / hints
+  node --test tests/*.test.mjs → tests 111 / suites 21 / pass 111 / fail 0
+  astro build                  → 46 个公开页面、Admin 与 API server entry 构建成功
+  check-links / audit-public-tree → 均通过
+  check-render-split           → 158 个公开文件不依赖 Node；156 个公开可达文件不含 Admin 代码
+```
+
+另外跑了一次真实的端到端：在临时数据库里建号、建文章、发布、再自动保存一版，用 `node scripts/export-content.mjs` 导出，产物是已发布那一版而不是自动保存；把导出的文件复制进 `src/content/posts/zh/` 后，`scripts/validate-content.mjs` 通过，`astro build` 生成 `/zh/posts/tide-notes/`，标题为 `潮汐笔记 · Moriium`。核对完即删除该临时文件，仓库内容未改动。
+
+#### 仍未做
+
+- 构建、上线前检查、原子换站、curl 复核与回写 `live_version_id` 都还没有；`markLive()` 至今没有生产调用方；
+- manifest 生成了但**还没有消费方**。公开页面目前不读它，图片的 caption、copyright 与宽高仍未从这份数据渲染；
+- 导出目录还没有接进构建流程，`src/content/posts/` 与导出目录的双轨切换属于第 15.2 节，未开始；
+- `package.json` 没有加 `content:export` 脚本。按交接第 5.1 节，改 `package.json` 要先问 Morii，所以当前只能用 `node scripts/export-content.mjs` 调用；
+- `.env.example` 增加了 `MORIIUM_CONTENT_ROOT`，因为导出目录必须在 release 目录之外，和数据库、会话、媒体是同一条要求。

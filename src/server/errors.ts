@@ -24,6 +24,11 @@ export const ERROR_CODES = [
   // Refusals, not accidents. These mean a guard worked.
   'path-outside-root',
   'media-gate-refused',
+  // The export refused to project the database onto disk. Not retryable in the
+  // AdminError sense -- repeating it immediately hits the same missing file or
+  // the same unsanitized row. The release sequence retries at its own level,
+  // after whatever the message names has been dealt with.
+  'export-failed',
   'unauthorized',
   'forbidden',
   'validation-failed',
