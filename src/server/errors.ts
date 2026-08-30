@@ -29,6 +29,10 @@ export const ERROR_CODES = [
   // the same unsanitized row. The release sequence retries at its own level,
   // after whatever the message names has been dealt with.
   'export-failed',
+  // Online backup or an isolated restore drill failed. Neither operation is
+  // retried in a tight loop: the hourly scheduler waits for its next run, and
+  // an operator reruns a drill only after reading the failure.
+  'backup-failed',
   // A release step refused or failed. Like the export, retrying is an operator
   // decision made after reading the message, not something to loop on.
   'release-failed',
