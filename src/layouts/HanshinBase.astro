@@ -1,0 +1,228 @@
+---
+/**
+ * Global frame for the 「版心」 design study.
+ *
+ * Deliberately separate from BaseLayout.astro: this direction owns its own
+ * stylesheet, font roles, and header composition, and must not alter the
+ * production frame while it is still a proposal. It reuses only behaviour that
+ * is already settled and language-independent — the theme toggle contract and
+ * the lazily loaded search module.
+ */
+import '@fontsource-variable/noto-serif-sc/wght.css';
+import '@fontsource-variable/noto-serif-jp/wght.css';
+import '@fontsource/ibm-plex-mono/latin-400.css';
+import '../styles/hanshin.css';
+import { SITE, UI, type Language } from '../data/site';
+import { HANSHIN, hsHome, hsPath } from '../data/hanshin';
+
+interface Props {
+  lang: Language;
+  title?: string;
+  description?: string;
+  /** Route segment under /design/hanshin/<lang>/, used for the language switch. */
+  section?: string;
+  /** Explicit per-language destinations; articles pass their translations. */
+  langHrefs?: Partial<Record<Language, string>>;
+  ogType?: 'website' | 'article';
+  image?: string;
+}
+
+const {
+  lang,
+  title,
+  description = UI[lang].description,
+  section,
+  langHrefs,
+  ogType = 'website',
+  image,
+} = Astro.props;
+
+const ui = UI[lang];
+const c = HANSHIN[lang];
+const pageTitle = title ? `${title} · ${SITE.name}` : SITE.name;
+const pathname = Astro.url.pathname;
+const imageUrl = image ? new URL(image, SITE.url).href : undefined;
+const languageLabels = { zh: '中文', ja: '日本語', en: 'EN' } as const;
+
+const navItems = [
+  { href: hsHome(lang), label: c.nav.home, match: (path: string) => path === hsHome(lang) },
+  { href: hsPath(lang, 'writing'), label: c.nav.writing, match: (path: string) => path.includes('/writing/') || path.includes('/posts/') },
+  { href: hsPath(lang, 'archive'), label: c.nav.archive, match: (path: string) => path.includes('/archive/') },
+  { href: hsPath(lang, 'categories'), label: c.nav.categories, match: (path: string) => path.includes('/categories/') },
+  { href: hsPath(lang, 'tags'), label: c.nav.tags, match: (path: string) => path.includes('/tags/') },
+  { href: hsPath(lang, 'about'), label: c.nav.about, match: (path: string) => path.includes('/about/') },
+];
+
+function languageHref(code: Language) {
+  if (langHrefs?.[code]) return langHrefs[code] as string;
+  return section ? hsPath(code, section) : hsHome(code);
+}
+---
+
+<!doctype html>
+<html lang={ui.locale} data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="description" content={description} />
+    <meta name="robots" content="noindex,nofollow" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta property="og:type" content={ogType} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:site_name" content={SITE.name} />
+    {imageUrl && <meta property="og:image" content={imageUrl} />}
+    <title>{pageTitle}</title>
+    <script is:inline src="/theme-init.js"></script>
+    <slot name="head" />
+  </head>
+  <body>
+    <a class="hs-skip hs-note" href="#main">{ui.skip}</a>
+
+    <div class="hs-studybar">
+      <div class="hs-studybar__inner hs-note">
+        <span class="hs-note--latin hs-note--loud">Design study · 版心</span>
+        <a href="/design/hanshin/">说明 / Overview</a>
+        <span>·</span>
+        <a href={`/${lang}/`}>生产站点 →</a>
+      </div>
+    </div>
+
+    <header class="hs-masthead">
+      <div class="hs-masthead__inner">
+        <a class="hs-wordmark" href={hsHome(lang)}>{SITE.name}</a>
+
+        <nav class="hs-nav hs-note" aria-label={ui.primaryNav}>
+          {navItems.map((item) => (
+            <a href={item.href} aria-current={item.match(pathname) ? 'page' : undefined}>{item.label}</a>
+          ))}
+        </nav>
+
+        <div class="hs-tools">
+          <button
+            class="hs-tool"
+            type="button"
+            aria-label={ui.search.open}
+            title={`${ui.search.open} (Ctrl/⌘ K)`}
+            data-search-open
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.6"></circle><path d="m16 16 4.2 4.2"></path></svg>
+          </button>
+
+          <nav class="hs-langs hs-note" aria-label={ui.languageNav}>
+            {SITE.languages.map((code: Language, index: number) => (
+              <>
+                {index > 0 && <span aria-hidden="true">/</span>}
+                <a href={languageHref(code)} lang={UI[code].locale} aria-current={code === lang ? 'page' : undefined}>
+                  {languageLabels[code]}
+                </a>
+              </>
+            ))}
+          </nav>
+
+          <button
+            class="hs-tool"
+            type="button"
+            aria-label={ui.theme}
+            title={ui.theme}
+            data-label-light={ui.themeLight}
+            data-label-dark={ui.themeDark}
+            data-theme-toggle
+          >
+            <svg class="hs-theme__sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.5"></circle><path d="M12 2.5v2M12 19.5v2M4.6 4.6 6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"></path></svg>
+            <svg class="hs-theme__moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.2 15.1A8.4 8.4 0 0 1 8.9 3.8 8.5 8.5 0 1 0 20.2 15Z"></path></svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <dialog
+      class="hs-search"
+      aria-labelledby="hs-search-title"
+      data-search-dialog
+      data-search-index={`/design/hanshin/search/${lang}.json`}
+      data-search-locale={ui.locale}
+      data-search-idle={ui.search.idle}
+      data-search-loading={ui.search.loading}
+      data-search-error={ui.search.error}
+      data-search-result-prefix={ui.search.resultPrefix}
+      data-search-result-suffix={ui.search.resultSuffix}
+    >
+      <div class="hs-search__panel">
+        <div class="hs-search__head">
+          <h2 id="hs-search-title">{ui.search.title}</h2>
+          <button class="hs-tool" type="button" aria-label={ui.search.close} data-search-close>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 5 14 14M19 5 5 19"></path></svg>
+          </button>
+        </div>
+        <label class="hs-note" for="hs-search-input">{ui.search.label}</label>
+        <div class="hs-search__field">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.6"></circle><path d="m16 16 4.2 4.2"></path></svg>
+          <input id="hs-search-input" type="search" inputmode="search" autocomplete="off" placeholder={ui.search.placeholder} data-search-input />
+        </div>
+        <p class="hs-note" aria-live="polite" data-search-summary>{ui.search.idle}</p>
+        <ol class="hs-search__results" data-search-results></ol>
+        <p class="hs-note" data-search-empty hidden>{ui.search.empty}</p>
+      </div>
+    </dialog>
+
+    <main id="main" tabindex="-1">
+      <slot />
+    </main>
+
+    <footer class="hs-footer">
+      <div class="hs-footer__inner">
+        <div>
+          <p class="hs-wordmark">{SITE.name}</p>
+          <p class="hs-note">{ui.footer.description}</p>
+        </div>
+        <nav class="hs-note" aria-label={ui.footerNav}>
+          <a href={hsPath(lang, 'writing')}>{c.nav.writing}</a>
+          <a href={hsPath(lang, 'archive')}>{c.nav.archive}</a>
+          <a href={hsPath(lang, 'categories')}>{c.nav.categories}</a>
+          <a href={hsPath(lang, 'tags')}>{c.nav.tags}</a>
+          <a href={hsPath(lang, 'about')}>{c.nav.about}</a>
+          <a href={`/${lang}/rss.xml`}>RSS</a>
+        </nav>
+        <p class="hs-note">© {new Date().getFullYear()} Morii<br />{ui.footer.rights}</p>
+      </div>
+    </footer>
+
+    <script>
+      const toggle = document.querySelector<HTMLButtonElement>('[data-theme-toggle]');
+      const updateToggle = () => {
+        if (!toggle) return;
+        const dark = document.documentElement.dataset.theme === 'dark';
+        toggle.setAttribute('aria-label', dark ? toggle.dataset.labelLight ?? '' : toggle.dataset.labelDark ?? '');
+      };
+      updateToggle();
+      toggle?.addEventListener('click', () => {
+        const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+        document.documentElement.dataset.theme = next;
+        localStorage.setItem('moriium-theme', next);
+        updateToggle();
+        window.dispatchEvent(new CustomEvent('moriium:theme', { detail: next }));
+      });
+
+      const searchOpen = document.querySelector<HTMLButtonElement>('[data-search-open]');
+      const searchDialog = document.querySelector<HTMLDialogElement>('[data-search-dialog]');
+      const showSearch = async () => {
+        if (!searchDialog) return;
+        const { openSearch } = await import('../scripts/search');
+        await openSearch(searchDialog, searchOpen);
+      };
+      searchOpen?.addEventListener('click', showSearch);
+      document.addEventListener('keydown', (event) => {
+        const target = event.target;
+        const editing =
+          target instanceof HTMLInputElement ||
+          target instanceof HTMLTextAreaElement ||
+          (target instanceof HTMLElement && target.isContentEditable);
+        if (editing || event.altKey || event.shiftKey || event.key.toLocaleLowerCase() !== 'k' || (!event.ctrlKey && !event.metaKey)) return;
+        event.preventDefault();
+        void showSearch();
+      });
+    </script>
+  </body>
+</html>
