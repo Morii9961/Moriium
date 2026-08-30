@@ -15,8 +15,22 @@ import { createAdminServer } from '../http/server.ts';
 import { Store } from '../storage/store.ts';
 import { seedIfEmpty } from './seed.ts';
 
-const API_PORT = 4321;
-const UI_PORT = 4320;
+// Morii, Codex and Claude share one machine, so a second instance started while
+// the first is still up dies on EADDRINUSE and the only way forward is killing
+// somebody else's session. These overrides let a second instance run beside it
+// on its own ports and its own database instead.
+function port(name: string, fallback: number): number {
+  const raw = process.env[name];
+  if (raw === undefined) return fallback;
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value < 1 || value > 65535) {
+    throw new Error(`${name} must be a port number, got ${raw}`);
+  }
+  return value;
+}
+
+const API_PORT = port('MORIIUM_API_PORT', 4321);
+const UI_PORT = port('MORIIUM_UI_PORT', 4320);
 
 /**
  * Deliberately not a secret, and deliberately not generated.
@@ -28,7 +42,9 @@ const UI_PORT = 4320;
  */
 const PROTOTYPE_PASSWORD = 'moriium-prototype';
 
-const DB_PATH = resolve(import.meta.dirname, '../../.data/admin.db');
+const DB_PATH = process.env.MORIIUM_ADMIN_DB
+  ? resolve(process.env.MORIIUM_ADMIN_DB)
+  : resolve(import.meta.dirname, '../../.data/admin.db');
 const MEDIA_MANIFEST_PATH = resolve(import.meta.dirname, '../../../fixtures/media/manifest.json');
 
 async function main(): Promise<void> {
@@ -56,7 +72,15 @@ async function main(): Promise<void> {
 
   await new Promise<void>((done) => api.listen(API_PORT, '127.0.0.1', done));
 
-  const vite = await createViteServer({ root: resolve(import.meta.dirname, '../..') });
+  // Merged over vite.config.ts, which keeps the defaults and the fs.deny rules
+  // in one place and only moves the two numbers that can collide.
+  const vite = await createViteServer({
+    root: resolve(import.meta.dirname, '../..'),
+    server: {
+      port: UI_PORT,
+      proxy: { '/api': { target: `http://127.0.0.1:${API_PORT}`, changeOrigin: false } },
+    },
+  });
   await vite.listen(UI_PORT);
 
   console.log('');

@@ -114,10 +114,25 @@ function stripInjectedAssets(html) {
     .replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, '');
 }
 
+// Prototype B's draft preview renders through here too, so the preview and the
+// baseline it is compared against cannot come from two implementations that
+// drift apart. Everything above this line is what makes the output production's
+// own, and neither caller gets to skip it.
+export async function renderMarkdown(renderer, markdown) {
+  const rendered = await renderer.render(markdown);
+  return stripInjectedAssets(rendered.code);
+}
+
 export async function renderPost(renderer, postPath) {
   const { content } = parseFrontmatter(await readFile(postPath, 'utf8'));
-  const rendered = await renderer.render(content);
-  return stripInjectedAssets(rendered.code);
+  return renderMarkdown(renderer, content);
+}
+
+// The exact bytes a baseline file holds. A test comparing preview output with a
+// stored baseline needs this, otherwise it has to restate the trailing-newline
+// rule and a byte-for-byte claim would rest on a copy of that rule.
+export function baselineBytes(html) {
+  return html.endsWith('\n') ? html : `${html}\n`;
 }
 
 if (import.meta.filename === process.argv[1]) {
@@ -127,7 +142,7 @@ if (import.meta.filename === process.argv[1]) {
     const html = await renderPost(renderer, post);
     const target = baselinePathFor(post);
     await mkdir(dirname(target), { recursive: true });
-    await writeFile(target, html.endsWith('\n') ? html : `${html}\n`, 'utf8');
+    await writeFile(target, baselineBytes(html), 'utf8');
     console.log(`${basename(post)} -> ${html.length} chars`);
   }
   console.log(`\nWrote ${posts.length} baseline(s) to prototypes/fixtures/baseline/.`);

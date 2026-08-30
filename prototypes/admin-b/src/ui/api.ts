@@ -140,6 +140,16 @@ export const api = {
     return send('POST', `/api/articles/${id}/rollback`, { versionId, note });
   },
 
+  /**
+   * Renders Markdown through the production article pipeline.
+   *
+   * Omitting `markdown` previews the stored latest version instead of whatever
+   * is in the editor. Nothing is written either way.
+   */
+  preview(id: number, markdown?: string): Promise<{ html: string }> {
+    return send('POST', `/api/articles/${id}/preview`, markdown === undefined ? {} : { markdown });
+  },
+
   /** What an anonymous reader would get. Used by the reader-view panel. */
   async readerView(id: number): Promise<{ version: Version } | null> {
     try {

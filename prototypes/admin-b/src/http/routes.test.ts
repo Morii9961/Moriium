@@ -342,6 +342,91 @@ describe('article routes', () => {
   });
 });
 
+describe('draft preview route', () => {
+  async function draft(
+    app: Awaited<ReturnType<typeof startApp>>,
+    headers: Record<string, string>,
+    markdown: string,
+  ): Promise<number> {
+    const created = await send(app, {
+      method: 'POST',
+      path: '/api/articles',
+      headers,
+      body: {
+        translationKey: 'preview-draft',
+        lang: 'zh',
+        slug: 'zh/preview-draft',
+        title: 'Preview draft',
+        summary: 'Unpublished on purpose.',
+        markdown,
+      },
+    });
+    assert.equal(created.status, 201);
+    return (created.json as { article: { id: number } }).article.id;
+  }
+
+  it('renders the stored draft through the production pipeline, for the author only', async () => {
+    const app = await startApp();
+    const auth = await login(app);
+    const headers = writeHeaders(app, auth);
+    const id = await draft(app, headers, '```ts title="tide.ts"\nexport const tide = 1;\n```\n');
+
+    const anonymous = await send(app, {
+      method: 'POST',
+      path: `/api/articles/${id}/preview`,
+      body: {},
+    });
+    assert.equal(anonymous.status, 401);
+
+    const withoutCsrf = await send(app, {
+      method: 'POST',
+      path: `/api/articles/${id}/preview`,
+      body: {},
+      headers: { Cookie: auth.cookie, Origin: app.origin },
+    });
+    assert.equal(withoutCsrf.status, 403);
+
+    const preview = await send(app, {
+      method: 'POST',
+      path: `/api/articles/${id}/preview`,
+      body: {},
+      headers,
+    });
+    assert.equal(preview.status, 200);
+    const { html } = preview.json as { html: string };
+    // Same two markers baselines:verify uses to tell the production pipeline
+    // apart from Astro's default one.
+    assert.match(html, /expressive-code/);
+    assert.doesNotMatch(html, /astro-code/);
+
+    // Previewing must not publish anything.
+    assert.equal(app.store.getArticle(id)?.publishedVersionId, null);
+    assert.equal((await send(app, { path: `/api/public/articles/${id}` })).status, 404);
+  });
+
+  it('renders unsaved editor content without storing a version', async () => {
+    const app = await startApp();
+    const auth = await login(app);
+    const headers = writeHeaders(app, auth);
+    const id = await draft(app, headers, 'The saved body.\n');
+    const before = app.store.listVersions(id).length;
+
+    const preview = await send(app, {
+      method: 'POST',
+      path: `/api/articles/${id}/preview`,
+      body: { markdown: ':::note\nStill only in the editor.\n:::\n' },
+      headers,
+    });
+
+    assert.equal(preview.status, 200);
+    const { html } = preview.json as { html: string };
+    assert.match(html, /admonition--note/);
+    assert.doesNotMatch(html, /The saved body/);
+    assert.equal(app.store.listVersions(id).length, before);
+    assert.equal(app.store.getLatest(id)?.markdown, 'The saved body.\n');
+  });
+});
+
 describe('request boundary', () => {
   it('enforces Host, Origin and CSRF on real route requests', async () => {
     const app = await startApp();

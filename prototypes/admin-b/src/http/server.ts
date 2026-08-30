@@ -11,6 +11,7 @@ import { LANGUAGES, SLUG_PATTERN, type Language } from '../../../shared/content-
 import { verifyPassword } from '../auth/passwords.ts';
 import { SESSION_COOKIE, SessionStore, type Session } from '../auth/sessions.ts';
 import { Store, type SaveInput, type Version } from '../storage/store.ts';
+import { renderPreview } from '../preview/render.ts';
 import { validateVersionForPublishing } from '../publishing/publish-gate.ts';
 import { checkHost, checkOrigin, guardRequest, readCookie } from './guards.ts';
 import type { MediaManifest } from '../../../shared/media.ts';
@@ -199,7 +200,7 @@ async function handleLogin(
 }
 
 function articleIdFrom(pathname: string): { id: number; action: string | undefined } | null {
-  const match = /^\/api\/articles\/(\d+)(?:\/(versions|autosave|publish|rollback))?$/.exec(pathname);
+  const match = /^\/api\/articles\/(\d+)(?:\/(versions|autosave|preview|publish|rollback))?$/.exec(pathname);
   if (!match) return null;
   const id = Number(match[1]);
   return Number.isSafeInteger(id) && id > 0 ? { id, action: match[2] } : null;
@@ -302,6 +303,26 @@ async function handleRequest(
   if (method === 'POST' && route?.action === 'autosave') {
     const version = options.store.autosave(route.id, saveInput(await readJsonObject(request)));
     return sendJson(response, 201, { version });
+  }
+
+  // Preview is a POST because it carries the body being edited, which has not
+  // been saved yet and can be larger than a URL should hold. Sitting behind
+  // guardRequest is the point rather than a side effect: an unpublished draft
+  // must not be renderable by an anonymous request or from another origin.
+  if (method === 'POST' && route?.action === 'preview') {
+    const article = options.store.getArticle(route.id);
+    if (!article) return sendJson(response, 404, { error: 'Article not found.' });
+
+    const body = await readJsonObject(request);
+    const supplied = body.markdown;
+    if (supplied !== undefined && typeof supplied !== 'string') {
+      throw new PrototypeError('validation-failed', 'markdown must be a string.');
+    }
+    const markdown = supplied ?? options.store.getLatest(article.id)?.markdown;
+    if (markdown === undefined) {
+      return sendJson(response, 404, { error: 'The article has no version to preview.' });
+    }
+    return sendJson(response, 200, { html: await renderPreview(markdown) });
   }
 
   if (method === 'POST' && (route?.action === 'publish' || route?.action === 'rollback')) {

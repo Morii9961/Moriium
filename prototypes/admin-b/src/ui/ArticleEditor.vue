@@ -21,6 +21,8 @@ const busy = ref(false);
 const readerMarkdown = ref<string | null>(null);
 const readerLoaded = ref(false);
 const selectedImage = ref<MoriiumImageAttributes | null>(null);
+const previewHtml = ref('');
+const previewing = ref(false);
 
 const editor = useEditor({ extensions: moriiumExtensions(), content: '' });
 
@@ -57,6 +59,7 @@ async function load(): Promise<void> {
     summary.value = loaded.latest?.summary ?? '';
     editor.value?.commands.setContent(loaded.latest?.markdown ?? '', { contentType: 'markdown' });
     syncSelectedImage();
+    previewHtml.value = '';
     dirty = false;
     status.value = '';
     await refreshReaderView();
@@ -89,6 +92,25 @@ function payload(): { title: string; summary: string; markdown: string; editorJs
     markdown: currentMarkdown(),
     editorJson: JSON.stringify(editor.value?.getJSON() ?? {}),
   };
+}
+
+/**
+ * Renders what is in the editor right now through the production pipeline.
+ *
+ * Deliberately manual. The processor is not free to run, and a preview that
+ * silently followed every keystroke would invite reading it as the live page.
+ */
+async function refreshPreview(): Promise<void> {
+  previewing.value = true;
+  failure.value = '';
+  try {
+    const rendered = await api.preview(props.articleId, currentMarkdown());
+    previewHtml.value = rendered.html;
+  } catch (error) {
+    report(error);
+  } finally {
+    previewing.value = false;
+  }
 }
 
 async function autosave(): Promise<void> {
@@ -162,6 +184,7 @@ function openVersion(version: Version): void {
   summary.value = version.summary;
   editor.value?.commands.setContent(version.markdown, { contentType: 'markdown' });
   syncSelectedImage();
+  previewHtml.value = '';
   dirty = false;
   status.value = `已把版本 #${version.id} 载入编辑器，尚未保存。`;
 }
@@ -272,6 +295,33 @@ onBeforeUnmount(() => {
                 </button>
               </li>
             </ul>
+          </div>
+
+          <div class="panel" style="margin-bottom: 16px">
+            <h2>生产渲染预览</h2>
+            <p>
+              <button :disabled="previewing" @click="refreshPreview">
+                {{ previewing ? '渲染中…' : '按生产管线渲染' }}
+              </button>
+            </p>
+            <!--
+              allow-same-origin is what makes `/media/fixtures/...` resolve, and
+              it is only safe because allow-scripts is absent: a srcdoc frame
+              with no script can do nothing with the origin it is given. Adding
+              allow-scripts later would hand the previewed content the parent's
+              origin, so do not add it without another way to serve the media.
+            -->
+            <iframe
+              v-if="previewHtml"
+              class="preview"
+              sandbox="allow-same-origin"
+              title="草稿的生产渲染预览"
+              :srcdoc="previewHtml"
+            ></iframe>
+            <p class="note">
+              渲染走的是 <code>astro.config.mjs</code> 里生产自己的 remark/rehype 管线，与
+              <code>fixtures/baseline/</code> 逐字节一致。<strong>不含站点样式表</strong>，所以结构同源，外观不同源。
+            </p>
           </div>
 
           <div class="panel">
