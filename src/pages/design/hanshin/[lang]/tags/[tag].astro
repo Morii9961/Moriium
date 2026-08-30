@@ -1,0 +1,59 @@
+---
+import type { GetStaticPaths } from 'astro';
+import HanshinBase from '../../../../../layouts/HanshinBase.astro';
+import { SITE, type Language } from '../../../../../data/site';
+import { HANSHIN, hsDay, hsPath } from '../../../../../data/hanshin';
+import { getListedPosts, type Post, type ProtectedPost } from '../../../../../utils/content';
+import { hsEntryHref } from '../../../../../utils/hanshin';
+
+export const getStaticPaths: GetStaticPaths = async () => {
+  const paths = [];
+  for (const lang of SITE.languages) {
+    const posts = await getListedPosts(lang);
+    for (const tag of new Set(posts.flatMap((post) => post.data.tags))) {
+      paths.push({
+        params: { lang, tag },
+        props: { lang, tag, posts: posts.filter((post) => post.data.tags.includes(tag)) },
+      });
+    }
+  }
+  return paths;
+};
+
+const { lang, tag, posts } = Astro.props as {
+  lang: Language;
+  tag: string;
+  posts: Array<Post | ProtectedPost>;
+};
+const c = HANSHIN[lang];
+---
+
+<HanshinBase lang={lang} title={`#${tag} · ${c.nav.tags}`} section="tags">
+  <div class="hs-flow hs-plate">
+    <section class="hs-opening">
+      <p class="hs-note hs-opening__label"><a href={hsPath(lang, 'tags')}>{c.nav.tags}</a></p>
+      <h1>#{tag}</h1>
+      <p class="hs-note hs-opening__facts">
+        <span><span class="hs-num">{posts.length}</span> {c.counts.posts}</span>
+      </p>
+    </section>
+
+    <hr class="hs-divider" />
+
+    <section class="hs-section" aria-label={`#${tag}`}>
+      <ol class="hs-index">
+        {posts.map((post) => (
+          <li class="hs-index__item">
+            <p class="hs-note hs-index__meta">
+              <time datetime={post.data.publishedAt.toISOString()}>{hsDay(post.data.publishedAt)}</time>
+              <a href={hsPath(lang, 'categories', post.data.category)}>{post.data.category}</a>
+            </p>
+            <h2 class="hs-index__title"><a href={hsEntryHref(post)}>{post.data.title}</a></h2>
+            <p class="hs-index__summary">{post.data.summary}</p>
+          </li>
+        ))}
+      </ol>
+      <p class="hs-note u-space-4"><a href={hsPath(lang, 'writing')}>{c.backToWriting}</a></p>
+    </section>
+  </div>
+</HanshinBase>

@@ -1,0 +1,65 @@
+---
+import type { GetStaticPaths } from 'astro';
+import HanshinBase from '../../../../../layouts/HanshinBase.astro';
+import { SITE, UI, type Language } from '../../../../../data/site';
+import { HANSHIN, hsDay, hsPath } from '../../../../../data/hanshin';
+import { getListedPosts, type Post, type ProtectedPost } from '../../../../../utils/content';
+import { hsEntryHref } from '../../../../../utils/hanshin';
+
+export const getStaticPaths: GetStaticPaths = async () => {
+  const paths = [];
+  for (const lang of SITE.languages) {
+    const posts = await getListedPosts(lang);
+    for (const category of new Set(posts.map((post) => post.data.category))) {
+      paths.push({
+        params: { lang, category },
+        props: { lang, category, posts: posts.filter((post) => post.data.category === category) },
+      });
+    }
+  }
+  return paths;
+};
+
+const { lang, category, posts } = Astro.props as {
+  lang: Language;
+  category: string;
+  posts: Array<Post | ProtectedPost>;
+};
+const ui = UI[lang];
+const c = HANSHIN[lang];
+---
+
+<HanshinBase lang={lang} title={`${category} · ${c.nav.categories}`} section="categories">
+  <div class="hs-flow hs-plate">
+    <section class="hs-opening">
+      <p class="hs-note hs-opening__label">
+        <a href={hsPath(lang, 'categories')}>{c.nav.categories}</a>
+      </p>
+      <h1>{category}</h1>
+      <p class="hs-note hs-opening__facts">
+        <span><span class="hs-num">{posts.length}</span> {c.counts.posts}</span>
+      </p>
+    </section>
+
+    <hr class="hs-divider" />
+
+    <section class="hs-section" aria-label={category}>
+      <ol class="hs-index">
+        {posts.map((post) => (
+          <li class="hs-index__item">
+            <p class="hs-note hs-index__meta">
+              <time datetime={post.data.publishedAt.toISOString()}>{hsDay(post.data.publishedAt)}</time>
+              {post.data.tags.map((tag) => (
+                <a href={hsPath(lang, 'tags', tag)}>#{tag}</a>
+              ))}
+            </p>
+            <h2 class="hs-index__title"><a href={hsEntryHref(post)}>{post.data.title}</a></h2>
+            <p class="hs-index__summary">{post.data.summary}</p>
+          </li>
+        ))}
+      </ol>
+      <p class="hs-note u-space-4"><a href={hsPath(lang, 'writing')}>{c.backToWriting}</a></p>
+      <p class="hs-note" hidden>{ui.allPosts}</p>
+    </section>
+  </div>
+</HanshinBase>

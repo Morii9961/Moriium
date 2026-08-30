@@ -1,0 +1,43 @@
+---
+import type { GetStaticPaths } from 'astro';
+import HanshinBase from '../../../../../layouts/HanshinBase.astro';
+import { SITE, UI, type Language } from '../../../../../data/site';
+import { HANSHIN, hsCount, hsPath } from '../../../../../data/hanshin';
+import { getListedPosts } from '../../../../../utils/content';
+
+export const getStaticPaths: GetStaticPaths = () =>
+  SITE.languages.map((lang) => ({ params: { lang }, props: { lang } }));
+
+const { lang } = Astro.props as { lang: Language };
+const ui = UI[lang];
+const c = HANSHIN[lang];
+const posts = await getListedPosts(lang);
+const tags = hsCount(posts, (post) => [...post.data.tags]);
+---
+
+<HanshinBase lang={lang} title={c.nav.tags} section="tags">
+  <div class="hs-flow hs-plate">
+    <section class="hs-opening">
+      <p class="hs-note hs-note--latin hs-opening__label">Tags</p>
+      <h1>{c.nav.tags}</h1>
+      <p class="hs-opening__lead">{c.tagsNote}</p>
+    </section>
+
+    <hr class="hs-divider" />
+
+    <section class="hs-section u-media" aria-label={c.nav.tags}>
+      {tags.length > 0 ? (
+        <div class="hs-field">
+          {tags.map((tag) => (
+            <a href={hsPath(lang, 'tags', tag.value)}>
+              <span>#{tag.value}</span>
+              <sup class="hs-num">{tag.count}</sup>
+            </a>
+          ))}
+        </div>
+      ) : (
+        <p class="hs-index__summary">{ui.unavailable}</p>
+      )}
+    </section>
+  </div>
+</HanshinBase>

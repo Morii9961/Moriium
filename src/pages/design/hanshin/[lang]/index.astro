@@ -1,0 +1,172 @@
+---
+import type { GetStaticPaths } from 'astro';
+import HanshinBase from '../../../../layouts/HanshinBase.astro';
+import { SITE, UI, type Language } from '../../../../data/site';
+import { HANSHIN, hsCount, hsDay, hsPath } from '../../../../data/hanshin';
+import { formatDate, getListedPosts } from '../../../../utils/content';
+import { hsEntryHref } from '../../../../utils/hanshin';
+
+export const getStaticPaths: GetStaticPaths = () =>
+  SITE.languages.map((lang) => ({ params: { lang }, props: { lang } }));
+
+const { lang } = Astro.props as { lang: Language };
+const ui = UI[lang];
+const c = HANSHIN[lang];
+
+const posts = await getListedPosts(lang);
+const [lead, ...rest] = posts;
+const categories = hsCount(posts, (post) => [post.data.category]);
+const tags = hsCount(posts, (post) => [...post.data.tags]);
+const lastUpdated = posts[0]?.data.updatedAt ?? posts[0]?.data.publishedAt;
+
+/* A language with little of its own still has a site behind it. Showing the
+   other languages' recent work is the honest way to fill that space, and it is
+   the one thing a trilingual index can offer that a single-language one cannot. */
+const elsewhere = (
+  await Promise.all(
+    SITE.languages
+      .filter((code) => code !== lang)
+      .map(async (code) => ({ code, entries: (await getListedPosts(code)).slice(0, 2) })),
+  )
+).filter((group) => group.entries.length > 0);
+---
+
+<HanshinBase lang={lang} description={c.lead}>
+  <div class="hs-flow hs-plate">
+    <section class="hs-opening">
+      <p class="hs-note hs-opening__label">
+        <span class="hs-note--latin hs-note--loud">Moriium</span>
+        <span> — 中文 / 日本語 / English</span>
+      </p>
+      <h1>{SITE.name}</h1>
+      <p class="hs-opening__lead">{c.lead}</p>
+      <p class="hs-note hs-opening__facts">
+        <span><span class="hs-num">{posts.length}</span> {c.counts.posts}</span>
+        <span><span class="hs-num">{categories.length}</span> {c.counts.categories}</span>
+        <span><span class="hs-num">{tags.length}</span> {c.counts.tags}</span>
+        {lastUpdated && (
+          <span>{c.counts.updated} <time datetime={lastUpdated.toISOString()}>{hsDay(lastUpdated)}</time></span>
+        )}
+      </p>
+    </section>
+
+    <hr class="hs-divider" />
+
+    {lead && (
+      <section class="hs-section" aria-labelledby="hs-lead-label">
+        <h2 class="hs-note hs-note--loud" id="hs-lead-label">{c.latest}</h2>
+        {lead.collection === 'posts' && lead.data.cover && (
+          <figure class="hs-lead__figure u-media">
+            <img src={lead.data.cover} alt={lead.data.coverAlt ?? ''} loading="eager" />
+            <figcaption class="hs-note">
+              <span class="hs-note--latin">{c.cover}</span>
+              <span>{lead.data.coverAlt}</span>
+            </figcaption>
+          </figure>
+        )}
+        <article class="hs-lead">
+          <p class="hs-note">
+            <time datetime={lead.data.publishedAt.toISOString()}>{formatDate(lead.data.publishedAt, ui.locale)}</time>
+            <span> · {lead.data.category}</span>
+          </p>
+          <h3 class="hs-lead__title"><a href={hsEntryHref(lead)}>{lead.data.title}</a></h3>
+          <p class="hs-lead__summary">{lead.data.summary}</p>
+          <p class="hs-note"><a href={hsEntryHref(lead)}>{c.more} →</a></p>
+        </article>
+      </section>
+    )}
+
+    <hr class="hs-divider" />
+
+    <section class="hs-section" aria-labelledby="hs-recent-label">
+      <h2 class="hs-note hs-note--loud" id="hs-recent-label">{c.recent}</h2>
+      {rest.length > 0 ? (
+        <ol class="hs-index">
+          {rest.map((post) => (
+            <li class="hs-index__item">
+              <p class="hs-note hs-index__meta">
+                <time datetime={post.data.publishedAt.toISOString()}>{hsDay(post.data.publishedAt)}</time>
+                <span>{post.data.category}</span>
+              </p>
+              <h3 class="hs-index__title"><a href={hsEntryHref(post)}>{post.data.title}</a></h3>
+              <p class="hs-index__summary">{post.data.summary}</p>
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <p class="hs-index__summary">{c.empty}</p>
+      )}
+      <p class="hs-note" style="margin-block-start: var(--hs-space-4);">
+        <a href={hsPath(lang, 'writing')}>{c.nav.writing} →</a>
+      </p>
+    </section>
+
+    {elsewhere.length > 0 && (
+      <>
+        <hr class="hs-divider" />
+        <section class="hs-section" aria-labelledby="hs-elsewhere-label">
+          <h2 class="hs-note hs-note--loud" id="hs-elsewhere-label">{c.elsewhere}</h2>
+          <ul class="hs-list">
+            {elsewhere.flatMap((group) =>
+              group.entries.map((post) => (
+                <li class="hs-list__row" lang={UI[group.code].locale}>
+                  <time class="hs-note" datetime={post.data.publishedAt.toISOString()}>{hsDay(post.data.publishedAt)}</time>
+                  <a class="hs-list__title" href={hsEntryHref(post)}>{post.data.title}</a>
+                  <span class="hs-note">{UI[group.code].label}</span>
+                </li>
+              )),
+            )}
+          </ul>
+        </section>
+      </>
+    )}
+
+    <hr class="hs-divider" />
+
+    <section class="hs-section u-media" aria-labelledby="hs-discover-label">
+      <h2 class="hs-note hs-note--loud" id="hs-discover-label">{c.discover}</h2>
+      <div class="hs-columns" style="margin-block-start: var(--hs-space-4);">
+        <div class="hs-column">
+          <h3><a href={hsPath(lang, 'archive')}>{c.nav.archive}</a></h3>
+          <p class="hs-note">{c.archiveNote}</p>
+        </div>
+        <div class="hs-column">
+          <h3><a href={hsPath(lang, 'categories')}>{c.nav.categories}</a></h3>
+          <ul class="hs-note">
+            {categories.slice(0, 4).map((entry) => (
+              <li>
+                <a href={hsPath(lang, 'categories', entry.value)}>{entry.value}</a>
+                <span class="hs-num"> {entry.count}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div class="hs-column">
+          <h3><a href={hsPath(lang, 'tags')}>{c.nav.tags}</a></h3>
+          <ul class="hs-note">
+            {tags.slice(0, 4).map((entry) => (
+              <li>
+                <a href={hsPath(lang, 'tags', entry.value)}>{entry.value}</a>
+                <span class="hs-num"> {entry.count}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div class="hs-column">
+          <h3><a href={`/${lang}/rss.xml`}>RSS</a></h3>
+          <p class="hs-note">{c.rss}</p>
+        </div>
+      </div>
+    </section>
+
+    <hr class="hs-divider" />
+
+    <section class="hs-section" aria-labelledby="hs-about-label">
+      <h2 class="hs-note hs-note--loud" id="hs-about-label">{c.aboutLead}</h2>
+      <p class="hs-index__summary" style="margin-block-start: var(--hs-space-3);">{c.about.lead}</p>
+      <p class="hs-note" style="margin-block-start: var(--hs-space-3);">
+        <a href={hsPath(lang, 'about')}>{c.aboutMore}</a>
+      </p>
+    </section>
+  </div>
+</HanshinBase>
