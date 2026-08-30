@@ -6,7 +6,9 @@
 // guard ADR section 5 asks for rather than a claim that binding is enough.
 
 import { createServer as createViteServer } from 'vite';
+import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { mediaManifest } from '../../../shared/media.ts';
 import { SessionStore } from '../auth/sessions.ts';
 import { hashPassword } from '../auth/passwords.ts';
 import { createAdminServer } from '../http/server.ts';
@@ -27,12 +29,14 @@ const UI_PORT = 4320;
 const PROTOTYPE_PASSWORD = 'moriium-prototype';
 
 const DB_PATH = resolve(import.meta.dirname, '../../.data/admin.db');
+const MEDIA_MANIFEST_PATH = resolve(import.meta.dirname, '../../../fixtures/media/manifest.json');
 
 async function main(): Promise<void> {
   const store = Store.open(DB_PATH);
   const seeded = seedIfEmpty(store);
 
   const password = process.env.MORIIUM_ADMIN_PASSWORD ?? PROTOTYPE_PASSWORD;
+  const media = mediaManifest.parse(JSON.parse(readFileSync(MEDIA_MANIFEST_PATH, 'utf8')));
   const api = createAdminServer({
     store,
     sessions: new SessionStore(),
@@ -46,6 +50,7 @@ async function main(): Promise<void> {
       `localhost:${API_PORT}`,
       `127.0.0.1:${API_PORT}`,
     ],
+    media,
     log: (message) => console.error(message),
   });
 

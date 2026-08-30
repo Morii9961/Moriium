@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "assets": [
+    {
+      "publicPath": "/media/fixtures/tide-cover.svg",
+      "format": "svg",
+      "alt": "Abstract tide lines used as the fixture cover",
+      "exif": {},
+      "sanitized": false
+    },
+    {
+      "publicPath": "/media/fixtures/tide-flats.svg",
+      "format": "svg",
+      "alt": "Abstract lines showing tidal flats after low tide",
+      "exif": {},
+      "sanitized": false
+    }
+  ]
+}

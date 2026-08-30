@@ -11,7 +11,9 @@ import { LANGUAGES, SLUG_PATTERN, type Language } from '../../../shared/content-
 import { verifyPassword } from '../auth/passwords.ts';
 import { SESSION_COOKIE, SessionStore, type Session } from '../auth/sessions.ts';
 import { Store, type SaveInput, type Version } from '../storage/store.ts';
+import { validateVersionForPublishing } from '../publishing/publish-gate.ts';
 import { checkHost, checkOrigin, guardRequest, readCookie } from './guards.ts';
+import type { MediaManifest } from '../../../shared/media.ts';
 
 const MAX_BODY_BYTES = 1024 * 1024;
 const JSON_TYPE = 'application/json; charset=utf-8';
@@ -21,6 +23,7 @@ export type AdminServerOptions = {
   sessions: SessionStore;
   passwordHash: string;
   allowedHosts: readonly string[];
+  media: MediaManifest;
   log?: (message: string) => void;
 };
 
@@ -305,11 +308,10 @@ async function handleRequest(
     const body = await readJsonObject(request);
     const action = route.action;
     const note = optionalString(body, 'note');
-    const article = options.store[action](
-      route.id,
-      versionId(body),
-      note === undefined ? {} : { note },
-    );
+    const validate = (version: Version): void =>
+      validateVersionForPublishing(options.store, version, options.media);
+    const publishOptions = note === undefined ? { validate } : { note, validate };
+    const article = options.store[action](route.id, versionId(body), publishOptions);
     return sendJson(response, 200, { article, published: options.store.getPublished(article.id) });
   }
 

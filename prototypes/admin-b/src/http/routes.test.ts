@@ -5,6 +5,7 @@ import { hashPassword } from '../auth/passwords.ts';
 import { SESSION_COOKIE, SessionStore } from '../auth/sessions.ts';
 import { Store } from '../storage/store.ts';
 import { createAdminServer } from './server.ts';
+import { mediaManifest } from '../../../shared/media.ts';
 
 const PASSWORD = 'a-sufficiently-long-fixture-password';
 
@@ -41,6 +42,7 @@ async function startApp(): Promise<RunningApp> {
     sessions: new SessionStore(),
     passwordHash: await hashPassword(PASSWORD),
     allowedHosts,
+    media: mediaManifest.parse({ version: 1, assets: [] }),
   });
   await new Promise<void>((resolve, reject) => {
     server.once('error', reject);
@@ -303,6 +305,40 @@ describe('article routes', () => {
       detailBody.audit.map((entry) => entry.action),
       ['rollback', 'publish'],
     );
+  });
+
+  it('leaves the public pointer and audit trail untouched when the publish gate refuses a version', async () => {
+    const app = await startApp();
+    const auth = await login(app);
+    const headers = writeHeaders(app, auth);
+    const created = await send(app, {
+      method: 'POST',
+      path: '/api/articles',
+      headers,
+      body: {
+        translationKey: 'blocked-publish',
+        lang: 'zh',
+        slug: 'zh/blocked-publish',
+        title: 'Blocked publish',
+        summary: 'The image is not in the manifest.',
+        markdown: '![Unknown](/media/fixtures/missing.svg)\n',
+      },
+    });
+    const articleId = (created.json as { article: { id: number } }).article.id;
+    const versionId = (created.json as { latest: { id: number } }).latest.id;
+
+    const refused = await send(app, {
+      method: 'POST',
+      path: `/api/articles/${articleId}/publish`,
+      headers,
+      body: { versionId },
+    });
+
+    assert.equal(refused.status, 403);
+    assert.match((refused.json as { error: string }).error, /missing\.svg/);
+    assert.equal(app.store.getArticle(articleId)?.publishedVersionId, null);
+    assert.deepEqual(app.store.listAudit(articleId), []);
+    assert.equal((await send(app, { path: `/api/public/articles/${articleId}` })).status, 404);
   });
 });
 

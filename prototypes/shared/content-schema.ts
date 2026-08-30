@@ -46,6 +46,33 @@ export const postMetadata = sharedMetadata.superRefine((value, context) => {
   }
 });
 
+/**
+ * The metadata prototype B can currently persist beside a Markdown version.
+ *
+ * This is derived from the production-shaped shared contract rather than
+ * restating title, summary, slug and language rules in the HTTP layer. The
+ * remaining production fields stay an explicit Phase 2 gap until the database
+ * model can store them without inventing defaults at publish time.
+ */
+export const publishCandidate = sharedMetadata
+  .pick({
+    title: true,
+    slug: true,
+    summary: true,
+    lang: true,
+    translationKey: true,
+  })
+  .extend({ markdown: z.string().trim().min(1) })
+  .superRefine((value, context) => {
+    if (!value.slug.startsWith(`${value.lang}/`)) {
+      context.addIssue({
+        code: 'custom',
+        path: ['slug'],
+        message: 'slug must start with the selected language',
+      });
+    }
+  });
+
 export const encryptionEnvelope = z.object({
   version: z.literal(1),
   algorithm: z.literal('AES-256-GCM'),

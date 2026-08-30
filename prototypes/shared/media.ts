@@ -72,6 +72,23 @@ export const mediaManifest = z.object({
 
 export type MediaManifest = z.infer<typeof mediaManifest>;
 
+export type MarkdownImageReference = {
+  publicPath: string;
+  alt: string;
+};
+
+// Matches the Markdown image form Moriium documents and the Tiptap image node
+// serializes. Publication scans inline occurrences too: an unsupported inline
+// image must not bypass the gate merely because the editor cannot model it.
+const MARKDOWN_IMAGE = /!\[([^\]\r\n]*)\]\(([^\s)]+)(?:\s+"[^"\r\n]*")?\)/g;
+
+export function imageReferencesIn(markdown: string): MarkdownImageReference[] {
+  return Array.from(markdown.matchAll(MARKDOWN_IMAGE), (match) => ({
+    alt: match[1] ?? '',
+    publicPath: match[2] ?? '',
+  }));
+}
+
 /** Raster formats that carry metadata and therefore must be sanitized. */
 const RASTER_FORMATS = new Set(['webp', 'avif', 'jpeg', 'png']);
 
