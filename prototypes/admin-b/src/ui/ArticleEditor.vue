@@ -35,7 +35,15 @@ const latest = computed(() => detail.value?.latest ?? null);
 const publishedId = computed(() => article.value?.publishedVersionId ?? null);
 
 function report(error: unknown): void {
-  failure.value = error instanceof ApiError ? error.message : String(error);
+  if (error instanceof ApiError) {
+    failure.value = error.message;
+    return;
+  }
+  // fetch rejects when the API is unreachable, and String() on that gives the
+  // author "TypeError: Failed to fetch". The B10 drill (ADR 13.20) saw exactly
+  // that. What actually matters to them is that the text is still here, that it
+  // is not saved, and that nothing will retry until they type again.
+  failure.value = `连接不上后台，这次没有保存。改动还在编辑器里，再改一个字会重新触发保存。（${String(error)}）`;
 }
 
 function syncSelectedImage(): void {

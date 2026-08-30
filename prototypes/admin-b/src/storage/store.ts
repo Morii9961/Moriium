@@ -23,10 +23,29 @@ import { DatabaseSync } from 'node:sqlite';
 import { readFileSync } from 'node:fs';
 import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { PrototypeError } from '../../../shared/errors.ts';
+import { PrototypeError, isPrototypeError } from '../../../shared/errors.ts';
 import type { Language } from '../../../shared/content-schema.ts';
 
 const SCHEMA_PATH = resolve(import.meta.dirname, 'schema.sql');
+
+/**
+ * Turns SQLite write contention into the modelled `db-locked` failure.
+ *
+ * node:sqlite surfaces it as a plain Error carrying SQLite's own wording.
+ * Passed through, it reached the author as HTTP 500 "Unexpected server error"
+ * -- while `shared/errors.ts` had already modelled db-locked as retryable and
+ * the HTTP layer already mapped it to 503. Nothing ever raised it, so that
+ * whole path was dead until a real lock was held against a running instance.
+ * ADR section 5 asks these failure modes to be exercised, not declared.
+ */
+function asStoreError(error: unknown): unknown {
+  if (isPrototypeError(error)) return error;
+  const message = error instanceof Error ? error.message : String(error);
+  if (/database is locked|database is busy|SQLITE_BUSY/i.test(message)) {
+    return new PrototypeError('db-locked', 'The database is busy. Try again.', { cause: error });
+  }
+  return error;
+}
 
 export type VersionKind = 'autosave' | 'manual';
 export type AuditAction = 'publish' | 'rollback' | 'unpublish';
@@ -268,7 +287,9 @@ export class Store {
     if (!this.getArticle(articleId)) {
       throw new PrototypeError('validation-failed', 'That article does not exist.');
     }
-    const id = this.#insertVersion(articleId, input);
+    // A single INSERT does not need a transaction, but it does need the same
+    // failure classification, so it goes through #write rather than around it.
+    const id = this.#write(() => this.#insertVersion(articleId, input));
     return this.getVersion(id)!;
   }
 
@@ -375,15 +396,29 @@ export class Store {
       .run(this.#now(), action, articleId, fromVersionId, toVersionId, note);
   }
 
+  /** Every write goes through here, so every write classifies failure the same way. */
+  #write<T>(work: () => T): T {
+    try {
+      return work();
+    } catch (error) {
+      throw asStoreError(error);
+    }
+  }
+
   #transaction<T>(work: () => T): T {
-    this.#db.exec('BEGIN IMMEDIATE');
+    // BEGIN IMMEDIATE takes the write lock up front, so a competing writer
+    // fails here, before any statement in `work` has run. There is no
+    // transaction to roll back in that case, and trying would raise a second,
+    // more confusing error over the first.
+    this.#write(() => this.#db.exec('BEGIN IMMEDIATE'));
+
     try {
       const result = work();
       this.#db.exec('COMMIT');
       return result;
     } catch (error) {
       this.#db.exec('ROLLBACK');
-      throw error;
+      throw asStoreError(error);
     }
   }
 }

@@ -10,7 +10,12 @@
 // the trail records it.
 
 import assert from 'node:assert/strict';
-import { beforeEach, describe, it } from 'node:test';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { DatabaseSync } from 'node:sqlite';
+import { afterEach, beforeEach, describe, it } from 'node:test';
+import { PrototypeError } from '../../../shared/errors.ts';
 import { Store } from './store.ts';
 
 let clock = 0;
@@ -216,5 +221,50 @@ describe('canonical content', () => {
   it('treats missing editor state as normal, not an error', () => {
     const created = store.createArticle(article);
     assert.equal(store.listVersions(created.id)[0]?.editorJson, null);
+  });
+});
+
+// Found by holding a real write lock against a running instance (ADR 13.20).
+// The B10 drill got HTTP 500 "Unexpected server error" from a locked database,
+// even though errors.ts modelled db-locked as retryable and the HTTP layer
+// already mapped it to 503. Nothing raised it, so the path was dead. This needs
+// a file-backed database: ':memory:' has no second connection to contend with.
+describe('a locked database', () => {
+  let directory: string;
+  let file: string;
+  let locked: Store;
+
+  beforeEach(() => {
+    directory = mkdtempSync(join(tmpdir(), 'moriium-store-'));
+    file = join(directory, 'contended.db');
+    locked = Store.open(file, nextTimestamp);
+  });
+
+  afterEach(() => {
+    locked.close();
+    rmSync(directory, { recursive: true, force: true });
+  });
+
+  it('reports contention as retryable db-locked rather than an unknown failure', () => {
+    const created = locked.createArticle(article);
+    const before = locked.listVersions(created.id).length;
+
+    const competitor = new DatabaseSync(file);
+    competitor.exec('BEGIN IMMEDIATE');
+    try {
+      assert.throws(
+        () => locked.saveVersion(created.id, { title: 't', summary: 's', markdown: 'blocked' }),
+        (error: unknown) =>
+          error instanceof PrototypeError && error.code === 'db-locked' && error.retryable,
+      );
+      // The refusal must also leave the article exactly as it was.
+      assert.equal(locked.listVersions(created.id).length, before);
+    } finally {
+      competitor.exec('ROLLBACK');
+      competitor.close();
+    }
+
+    // And the store still works once the lock is gone.
+    assert.equal(locked.saveVersion(created.id, { title: 't', summary: 's', markdown: 'after' }).markdown, 'after');
   });
 });
