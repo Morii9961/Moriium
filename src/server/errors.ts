@@ -29,6 +29,9 @@ export const ERROR_CODES = [
   // the same unsanitized row. The release sequence retries at its own level,
   // after whatever the message names has been dealt with.
   'export-failed',
+  // A release step refused or failed. Like the export, retrying is an operator
+  // decision made after reading the message, not something to loop on.
+  'release-failed',
   'unauthorized',
   'forbidden',
   'validation-failed',

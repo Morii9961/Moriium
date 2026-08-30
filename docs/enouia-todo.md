@@ -102,12 +102,13 @@
 - [x] 服务器侧账户命令：`account:create` 只从隐藏 TTY 读取并确认口令，`account:disable` 只写停用时间、不删账户；两者都只接受 Morii 或 Enouia，不新增 HTTP 入口。见 ADR 21.8。
 - [x] 生产会话与登录：Astro Sessions 显式落在 release 目录之外；登录成功轮换 session id；JSON 写请求保留独立 CSRF token；限速分成按账户 5 次/15 分钟与全局 20 次/15 分钟。`/api/login`、`/api/session`、`/api/logout` 与最低限度登录页已接通，见 ADR 21.4。
 - [x] 生产 Admin：文章列表、新建、完整编辑、版本历史、自动保存、发布、回滚、撤下和可信预览已接通；最新、已发布、已上线三个状态分开显示。Vue/Tiptap 只存在于按需 Admin bundle，见 ADR 21.6。
-- [~] 第 10 块：**导出已完成**（ADR 21.9）。`node scripts/export-content.mjs` 只读 `published_version_id`，把文章写成 Markdown、把被引用的已净化图片投影出来、从 `media_assets` 生成 manifest，失败与中断都不动上一份导出，也不写 `live_version_id`。**构建、上线前检查、原子换站与回写 `live_version_id` 仍未开始。**
+- [~] 第 10 块：导出、构建、上线前检查、原子换站、curl 复核、回写 `live_version_id` 与保留 6 份已经接成一个可重试的状态机（ADR 21.9、21.10）。换站之前的任何失败都不改变 `current` 与全部 `live_version_id`；换站后 curl 失败会把链接换回去且什么都不记；同一个已发布状态可以直接重跑，不需要作者再点发布。**没有在真实 VPS 上跑过**，CI 仍是旧的那条，符号链接换站在本机跳过、由 Linux CI 执行。
 - [ ] 只迁移 fixture 和测试文章，不先迁移正式内容。
 - [~] 作者认证、Public/Admin DTO、数据库迁移、生产发布闸门与服务端可信 renderer 已完成；备份恢复仍未完成。Public DTO 只读取已发布指针，不会泄漏最新自动保存。
 - [x] Admin 与权限草稿按需渲染；公开文章继续全部预渲染，读者页面不依赖 Node 或数据库。
 - [ ] 测试 API 断开、SQLite 锁、备份恢复、草稿越权、媒体故障和静态回退。
 - [ ] 双轨运行并保留当前静态站的可恢复版本，Morii 验收后再决定是否迁移正式内容。
+- [?] `.gitignore` 要不要加 `src/content/posts/exported/`、`public/media/`、`src/generated/` 三条。加之前不要把仓库工作副本当作 release 的 workspace。
 
 ### 06B　可选扩大公开 SSR
 
@@ -281,6 +282,6 @@ HTTP 读写 API、发布闸门和生产 Admin 已依次完成（ADR 21.5、21.6�
 
 服务器侧建号与停用命令也已完成（ADR 21.8）。建号沿用 `createAccount(db, input, now)`，口令下限 24 位，只从隐藏 TTY 读两次；停用保留账户行与历史引用。复用隐藏输入器时还查出并修掉了密码管理器整段粘贴无法结束输入的问题。
 
-第 10 块的导出这一步已完成（ADR 21.9）：只读已发布指针，产物落在 `current/`，失败或中断都不破坏上一份，manifest 从 `media_assets` 生成。**剩下的两步——构建加上线前检查、原子换站加 curl 复核并回写 `live_version_id`——仍未开始**，`markLive()` 至今没有生产调用方。
+第 10 块在代码层面已完成（ADR 21.9、21.10）：导出只读已发布指针；构建、上线前检查、原子换站、curl 复核、回写 `live_version_id` 与保留 6 份接成一个状态机，失败顺序而不只是成功路径被用例钉住。**但它没有在真实 VPS 上跑过**，CI 仍是「CI 构建 → tar 上传 → 解包」那条老路径，第 15.2 节把构建迁到 VPS 连着 systemd 与 Nginx，属于第 12 块。**下一块是第 11 块：备份与恢复演练。**
 
 00 节其余未完成项——固定口径的体积/构建测量、把 07–12 的人工验收测试化、安全与恢复要求——仍须在影子系统前补齐。

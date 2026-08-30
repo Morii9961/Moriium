@@ -1068,3 +1068,67 @@ pnpm verify                    → 退出码 0
 - 导出目录还没有接进构建流程，`src/content/posts/` 与导出目录的双轨切换属于第 15.2 节，未开始；
 - `package.json` 没有加 `content:export` 脚本。按交接第 5.1 节，改 `package.json` 要先问 Morii，所以当前只能用 `node scripts/export-content.mjs` 调用；
 - `.env.example` 增加了 `MORIIUM_CONTENT_ROOT`，因为导出目录必须在 release 目录之外，和数据库、会话、媒体是同一条要求。
+
+### 21.10 第 10 块其余两步：构建、原子换站与回写上线指针（2026-08-30）
+
+第 10 块到此**在代码层面完成**。导出（21.9）之后的全部步骤接进了一个状态机：`src/server/release/release.ts`，命令行入口 `scripts/release-site.mjs`。**这不等于已经上线**——它没有在 VPS 上跑过，systemd、Nginx 与 CI 的改动属于第 12 块。
+
+#### 这一块的全部内容就是顺序
+
+三条规则决定了每一个分支：
+
+1. **换站之前的任何失败都不改变读者看到的东西。**导出、安装、构建、上线前检查失败时，`current` 指向不动，全部 `live_version_id` 不动。
+2. **换站是一次 rename。**读者要么解析到旧 release，要么解析到新的，不会解析到不存在的路径。
+3. **`live_version_id` 最后写，而且只在运行中的站点应答之后写。**它报告的是一份**正在服务**的构建，不是一份组装好的构建。curl 失败就把链接换回去，什么都不记；数据库仍然说「已发布、等待导出」，后台仍然显示这个差值，同一条命令可以直接再跑一次。
+
+**重试永远不需要作者再点一次发布。**数据库是真相，这只是投影在追赶（第 4.2 节）。用例里就是这么验的：先让 curl 失败，确认 `live_version_id` 仍是 NULL、审计只有一行；再跑一次，文章上线，审计仍然只有一行。
+
+失败信息带上走到了哪一阶段——`stopped after "checked"` 与 `stopped after "switched"` 对运维是两件完全不同的事，前者站没动过，后者要确认链接是否已经换回。没有这个，所有失败从外面看都长一样。
+
+#### 三个副作用被隔在一个 host 后面
+
+跑命令、换符号链接、发 HTTP 请求，这三件单元测试不该真做的事收在 `src/server/release/host.ts` 的 `ReleaseHost` 里。状态机因此可以用假 host 把失败精确放在某一步，其余全部跑真实文件系统：暂存、release 目录复制、可服务性检查、清理都是真的。假构建**读暂存目录里的文章再生成对应页面**——一个不读输入的假构建分不出「暂存成功」和「碰巧」。
+
+代价要写明：真实 host 因此需要自己的用例。`run` 的非零退出与无法启动、`probe` 的 200 与 503 都用真实子进程和真实 `node:http` 服务器验过。**符号链接那条在 Windows 上跳过**（本机 `symlinkSync` 报 EPERM），用例声明跳过原因而不是假装通过；CI 跑 ubuntu，那一条会在 CI 上真正执行。
+
+#### 暂存进 `exported/`，因为双轨还在
+
+导出的文章落在 workspace 的 `src/content/posts/exported/`，不是集合根目录。第 15.2 节的迁移期里仓库自带的文章和导出的文章必须并存，而独占一个目录意味着「清掉上一次导出」就是删掉这个目录，不需要记住上次写了哪些文件。用例特意在暂存目录里放一份上一轮的残留，确认它被删掉而不是留到这一次的构建里。
+
+媒体投影进 `public/media/`，manifest 复制到 `src/generated/`。**manifest 仍然没有消费方**，这一步只是把它放到构建能拿到的地方。
+
+#### 上线前检查多了一条
+
+沿用 CI 现有的四项（三语首页、sitemap、标题、无空 HTML），加上仓库自己的 `check-links`、`audit-public-tree`、`check-render-split` 在 workspace 里跑一遍——这三个已经存在，重写一份等于给同一条规则立两个定义。
+
+新增的一条是：**导出写出的每一篇文章都必须有构建出来的页面。**没有它，构建悄悄丢掉一篇文章（schema 变了、loader 过滤了、改名了）会以 404 的形式上线，而数据库高高兴兴地把它记成 live。用例直接构造这种构建，检查拦住，站没动。
+
+写这一条时发现并修掉了自己的一个问题：拒绝信息里带上了绝对磁盘路径，而 `src/server/errors.ts` 明确要求 `userMessage` 不含路径。改成按用途命名（「the page for zh/tide-notes is missing」），空 HTML 那条报 release 内的相对路径。
+
+#### 清理与撤下
+
+保留最近 6 份，**绝不删正在服务的那一份**，也不删 `releases/` 之外的任何路径——一个信任计算路径的删除操作，就是发布脚本变成事故的方式。
+
+撤下的文章在成功换站后由 `markNotLive()` 清掉 `live_version_id`：站点已经不含它了，留着这个指针就是对一个不存在的页面做出的断言。
+
+#### 本轮验证
+
+```text
+pnpm verify                    → 退出码 0
+  astro check                  → Result (119 files): 0 errors / warnings / hints
+  node --test tests/*.test.mjs → tests 132 / suites 27 / pass 131 / fail 0 / skipped 1
+  astro build                  → 46 个公开页面、Admin 与 API server entry 构建成功
+  check-links / audit-public-tree → 均通过
+  check-render-split           → 158 个公开文件不依赖 Node；156 个公开可达文件不含 Admin 代码
+```
+
+那一条 skipped 就是 Windows 上的符号链接换站。
+
+#### 仍未做，且不要当成做过
+
+- **没有在真实 VPS 上跑过一次。**符号链接换站、pnpm 安装与构建、curl 复核在 Linux 上都还没有真实执行过；
+- **CI 仍然是旧的那条**（CI 构建 → tar 上传 → VPS 解包）。第 15.2 节把构建迁到 VPS 的改动没有做，因为它连着 systemd 与 Nginx，属于第 12 块，且要先取得 Morii 授权；
+- **`.gitignore` 需要 Morii 决定**：`src/content/posts/exported/`、`public/media/`、`src/generated/` 三条。在加上之前，**不要把仓库工作副本当作 release 的 workspace**，否则一次 release 会在工作树里留下未跟踪的暂存内容；
+- `package.json` 仍然没有 `content:export` 与 `release` 两个脚本，同样要先问 Morii；当前只能 `node scripts/export-content.mjs` 与 `node scripts/release-site.mjs`；
+- manifest 生成了、复制到位了，但公开页面仍然不读它；
+- 第 11 块（备份与恢复演练）与第 12 块（部署）未开始。
