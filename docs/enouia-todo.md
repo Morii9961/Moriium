@@ -55,7 +55,7 @@
 - [~] 抽出 CLI、Studio 和 Astro 共用的 frontmatter/schema 校验，避免三套规则。原型侧已在 `prototypes/shared/content-schema.ts` 落地，并有与 `src/content.config.ts` 的字段漂移检查；生产侧仍是独立一份，合并要等 Phase 5。
 - [~] 为每个自定义内容块定义稳定语法、属性、no-JavaScript fallback、feature marker 和版本策略。语法与 feature marker 已在 `prototypes/shared/content-blocks.ts` 成为可断言数据（11 个块，语料全覆盖）；**no-JavaScript fallback 与版本策略尚未定义**。
 - [x] 让 Studio 预览直接调用生产 remark/rehype 管线，不维护第二套近似解析器。B 的预览调 `tools/build-baselines.mjs` 的 `createPublicRenderer()`，并断言四篇夹具的预览与 `fixtures/baseline/` 逐字节相等；不带插件链的普通 processor 与基线不等，这条负向断言让前一条有意义。见 ADR 13.17。
-- [~] 定义摄影 asset manifest：公开路径、宽高、格式、alt、caption、版权和可公开 EXIF 白名单。形状与发布闸门已在 `prototypes/shared/media.ts` 落地（manifest 结构上没有原图路径字段），发布路由已经真的按它拦截（ADR 13.15），夹具清单在 `prototypes/fixtures/media/manifest.json`；实际的 manifest 生成仍未接线，图片引用也仍靠正则扫原文，会误挡围栏里的示例图片。
+- [~] 定义摄影 asset manifest：公开路径、宽高、格式、alt、caption、版权和可公开 EXIF 白名单。生产发布闸门已经读取 `media_assets`，并改用 remark AST 图片节点，不再误挡围栏代码块里的示例；实际的 manifest 导出与媒体导入仍未接线。
 - [ ] Studio 媒体导入必须调用去 EXIF/GPS 与媒体检查；不得触碰原图。
 - [ ] 加密文章继续留在忽略的 `.private/posts/`，不进入公开 Studio 数据接口。
 - [~] 定义作者/管理员/可选读者权限、会话、CSRF、速率限制、审计和账户恢复。单一作者会话、CSRF、登录限速、草稿读取授权与发布审计已在 B 中落地；读者权限、账户恢复和生产级会话仍未定。
@@ -65,9 +65,9 @@
 
 - [~] 实现三语文章列表、翻译关系、草稿、新建、编辑和预览。B 里除翻译关系的界面外都已可操作；翻译关系目前只在发布闸门里被校验，列表和编辑界面还没有呈现它。
 - [ ] 实现媒体导入、验证结果、数据库版本差异和失败恢复。**媒体导入是 B7 过不了的原因**：闸门齐了，导入路径完全不存在，不能上传也不调 `scripts/sanitize-media.mjs`。见 ADR 第 4.3 节。
-- [ ] 自动保存只写草稿；发布前必须通过内容与媒体校验。
+- [x] 自动保存只追加版本，不改公开指针；发布与回滚都必须先通过内容、翻译关系和当前媒体状态校验。见 ADR 21.5。
 - [x] B 的自动保存不等于发布，发布必须显式且可回滚，且必须先过完整发布校验。见 ADR 13.15。
-- [ ] 增加单元、集成和端到端测试，覆盖作者认证、授权、事务、发布回滚和数据库故障。
+- [~] 已有生产单元与集成测试覆盖作者认证、CSRF、事务、自动保存、发布回滚、发布拒绝和数据库锁分类；Admin 端到端与备份恢复演练仍未完成。
 - [~] 用 B 的隔离测试库完成一篇文章的创建、修改、撤回草稿、显式发布和回滚。B4、B9、B10 已实测（ADR 13.20）：375 像素改稿、杀进程恢复、API 断开、数据库锁四个场景。撤回草稿（unpublish）仍没有界面入口。
 
 ### 04　公开站内容系统稳定化
@@ -101,7 +101,7 @@
 - [x] 两个作者账户（Morii、Enouia），scrypt 参数写进哈希本身，口令下限 24 位，未知/停用/口令错返回同一结果且都跑一次哈希比对。
 - [x] 生产会话与登录：Astro Sessions 显式落在 release 目录之外；登录成功轮换 session id；JSON 写请求保留独立 CSRF token；限速分成按账户 5 次/15 分钟与全局 20 次/15 分钟。`/api/login`、`/api/session`、`/api/logout` 与最低限度登录页已接通，见 ADR 21.4。
 - [ ] 只迁移 fixture 和测试文章，不先迁移正式内容。
-- [ ] 实现作者认证、版本化 Public/Admin DTO、服务端可信 renderer、数据库迁移和备份恢复。
+- [~] 作者认证、Public/Admin DTO、数据库迁移和生产发布闸门已完成；服务端可信 renderer 与备份恢复仍未完成。Public DTO 只读取已发布指针，不会泄漏最新自动保存。
 - [ ] Admin 与权限草稿按需渲染；公开文章优先预渲染或缓存。
 - [ ] 测试 API 断开、SQLite 锁、备份恢复、草稿越权、媒体故障和静态回退。
 - [ ] 双轨运行并保留当前静态站的可恢复版本，Morii 验收后再决定是否迁移正式内容。

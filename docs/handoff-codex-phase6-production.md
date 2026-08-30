@@ -3,7 +3,7 @@
 > 日期：2026-08-30
 > 交出方：Claude
 > 接手方：Codex
-> 状态：**Phase 1 已收尾，ADR 0002 已批准并开工。生产后端 12 块里做完 5 块，读者站一直可用；登录已接通，写作后台还不能用。**
+> 状态：**Phase 1 已收尾，ADR 0002 已批准并开工。生产后端 12 块里做完 6 块，读者站一直可用；作者 API 与发布闸门已接通，Admin 界面仍只有登录页。**
 
 这份文档取代 [`handoff-codex-prototype-b.md`](handoff-codex-prototype-b.md) 作为当前交接。那一份停在「Phase 1 收尾、等 Morii 批准 ADR 0002」的状态，现在已经不成立。它保留为历史依据，**不要就地改写**——里面第 7 节那 19 条差异仍然有效，本文第 8 节按新阶段重新分了类。
 
@@ -35,37 +35,33 @@ Morii 已于 2026-08-30 用过原型 B 后**选定 B 路线、取消原型 A**�
 
 ## 2. 当前状态（实测，非转述）
 
-分支 `main`。**下列两个提交仍只在本地**，接手时先自己看一眼：
+分支 `main`。本轮按小块继续创建本地提交，尚未推送。以这条命令的实时结果为准；本文件所在提交不写自引用 hash：
 
 ```bash
 git log --oneline origin/main..HEAD
 ```
 
 ```text
-239f255  Record the production state machine and its two new pointers   （未推送）
-28db6a3  Carry the article state machine onto the production schema      （未推送）
-50a59d0  Build the production schema, migrator and author accounts
-7192684  Split rendering: public stays static, admin goes on demand
-4afb4d2  Let the publish gate see an image with no path
-4f018a7  Drop client certificates; defend the admin with a password
+（本文件所在提交）Add the production article API and publish gate
+311777d  Share the author API request boundary
+1218bf4  Add production author sessions and login
+0a72146  Hand the production phase over to Codex
+239f255  Record the production state machine and its two new pointers
+28db6a3  Carry the article state machine onto the production schema
 ```
 
-末次全量验证，2026-08-30 重新跑出来的：
+第 6 块的末次生产验证，2026-08-30 重新跑出来的：
 
 ```text
-pnpm verify                    → 退出码 0
-  astro check                  → Result (70 files): 0 errors, 0 warnings, 0 hints
-  node --test tests/*.test.mjs → tests 62 / suites 6 / pass 62 / fail 0
-  astro build                  → 46 page(s) built
-  check-render-split           → Rendering split holds: 155 public files serve without Node
-  check-links / audit-public-tree → 通过
-pnpm -C prototypes check       → 退出码 0
-pnpm -C prototypes test        → tests 118 / suites 30 / pass 118 / fail 0
+pnpm check                                      → 86 files，0 errors / warnings / hints
+node --test --test-isolation=none tests/*.test.mjs → tests 74 / suites 11 / pass 74 / fail 0
+pnpm build                                      → 46 个公开页面与 server entry 构建成功
+pnpm split                                      → 155 个公开文件不依赖 Node
 ```
 
-原型那 118 个用例继续跑，是为了让它作为参考实现不至于烂掉，不是因为还在开发它。
+为节省本轮限额，没有重跑原型 118 例，也没有再用 `pnpm verify` 重复链接与公开树审计。构建在沙箱内第一次遇到已知的 esbuild `spawn EPERM`，获准在真实环境重跑同一条命令后通过。
 
-## 3. 生产后端：12 块里做完 5 块
+## 3. 生产后端：12 块里做完 6 块
 
 | | 块 | 状态 | 记录 |
 | --- | --- | --- | --- |
@@ -74,8 +70,8 @@ pnpm -C prototypes test        → tests 118 / suites 30 / pass 118 / fail 0
 | 3 | 两个作者账户 | 完成 | ADR 21.2 |
 | 4 | 文章与版本状态机 | 完成 | ADR 21.3 |
 | 5 | 会话与登录 | 完成 | ADR 21.4 |
-| 6 | **HTTP 读写 API + 发布闸门搬迁** | **下一块** | — |
-| 7 | Admin 界面 | 未开始 | — |
+| 6 | HTTP 读写 API + 发布闸门搬迁 | 完成 | ADR 21.5 |
+| 7 | **Admin 界面** | **下一块** | — |
 | 8 | 媒体导入链路（修 B7） | 未开始 | ADR 第 8 节已定 |
 | 9 | 建账户命令（只能在服务器上跑） | 未开始 | — |
 | 10 | 导出 + 构建 + 原子换站 | 未开始 | ADR 第 4.2、15.3 节已定 |
@@ -84,7 +80,7 @@ pnpm -C prototypes test        → tests 118 / suites 30 / pass 118 / fail 0
 
 **5、6、7 做完就是「本机能用」**：能登录、写作、发布，跑在生产代码上。**8 到 12 才是「真正上线」。**
 
-## 4. 已完成的五块，接手需要知道的
+## 4. 已完成的六块，接手需要知道的
 
 ### 4.1 渲染分裂（`7192684`，ADR 21.1）
 
@@ -177,16 +173,15 @@ pnpm -C prototypes roundtrip:report   # Markdown round-trip 丢失表
 pnpm -C prototypes baselines:verify   # 与 dist/ 比对，需先 pnpm build
 ```
 
-## 7. 下一块：HTTP API 与发布闸门
+## 7. 下一块：Admin 界面
 
-会话与登录已完成，见 ADR 21.4。下一块把文章读写接到 `/api`，并把尖峰的发布闸门搬进生产。不要原样复制，有两处必须在搬迁时一起修：
+文章 API 与生产发布闸门已经完成，见 ADR 21.5。第 8.3 节的围栏误拦已改成 remark AST 图片节点提取；发布候选覆盖全部 14 个 frontmatter 字段。读写 API 继续复用会话、Host/Origin 与 CSRF 边界，任何匿名端点都拿不到草稿、未发布版本或较新的自动保存。
 
-1. `imageReferencesIn` 不能再用正则扫 Markdown 全文，围栏代码块里的示例图片不是发布引用；
-2. `publishCandidate` 必须覆盖生产 schema 已能存下的 14 个 frontmatter 字段，不能保留尖峰的字段子集。
+下一块把文章列表与编辑器接到现有 `/admin`。界面需要明确显示三种容易混淆的状态：当前最新版本、数据库已发布版本、静态站实际上线版本。`published_version_id !== live_version_id` 时必须直接提示“等待导出”并保留后续重试入口，不能把它显示成发布失败。
 
-API 继续复用 `src/server/http/auth-handlers.ts` 的会话、Host/Origin 与 CSRF 边界。读 DTO 与写 DTO 分开；任何匿名端点都不得返回草稿、未发布版本或较新的自动保存。
+Admin 只能消费作者 API，不能引入匿名运行时文章接口，也不能把 Vue/Tiptap 带进公开路由。服务端可信 renderer 尚未迁入，预览按钮在第 7 块接线时要沿生产 remark/rehype 管线实现，不能接收浏览器提交的 HTML。
 
-闸门参考在 `prototypes/admin-b/src/publishing/publish-gate.ts`。第 6 块完成后才进入第 7 块 Admin 界面。
+第 7 块完成后，本机才算达到“能登录、写作、发布”的可用状态；媒体导入仍属于第 8 块，不要在界面里把尚不存在的上传链路伪装成已完成。
 
 ## 8. 必须随结论报告、不得当作已解决的差异
 

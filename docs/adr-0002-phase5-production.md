@@ -865,3 +865,38 @@ pnpm split
 #### 仍未做
 
 建账户命令仍未完成；当前登录页只有数据库里已经存在账户时才能使用。文章 HTTP API、生产发布闸门、Admin 编辑器也都没有接入。**下一块是 HTTP 读写 API 与发布闸门搬迁**，搬闸门时必须同时修第 8.3 节的围栏代码块误拦，并把发布候选扩到 14 个 frontmatter 字段。
+
+### 21.5 文章 HTTP API 与生产发布闸门（2026-08-30）
+
+第 6 块已经接入生产。`/api/articles` 提供作者文章列表与新建；`/api/articles/[id]` 及其 `versions`、`autosave`、`publish`、`rollback`、`unpublish` 子路径负责详情、版本追加和指针切换。所有读取都要求作者会话，所有写入再叠加 Host、Origin 与 CSRF 校验。没有新增匿名运行时文章端点，读者仍只访问预渲染文件。
+
+读 DTO 与写 DTO 分开。列表 DTO 不带 Markdown 和编辑器 JSON；Admin 详情可以读取完整版本与审计；Public DTO 只沿 `published_version_id` 取内容，不会把较新的自动保存当成公开版本。写请求只接受完整、严格的字段集合，客户端不能提交 `authorId` 或版本类型覆盖服务端判断。
+
+#### 闸门不再扫描 Markdown 原文
+
+第 8.3 节的误拦已经修掉。生产闸门用 Astro 官方 Markdown processor 的 remark 插件读取 mdast `image`/`imageReference` 节点，围栏代码块里的 `![示例](...)` 只是 `code` 节点，不会被当成文章图片。原始 HTML `<img>` 直接拒绝；它还能携带 `srcset` 等额外 URL，拿一条属性正则冒充完整媒体审计反而会留下绕过。
+
+Markdown 解析是异步的，`node:sqlite` 事务是同步的。实现先从不可变版本提取图片引用，再返回一个同步 validator；`ArticleStore.publish/rollback` 仍在事务内、任何写入之前调用它。最终判断会重新读取文章、翻译组和 `media_assets`，所以围栏修复没有把发布闸门挪出事务。
+
+发布候选现在覆盖 `src/content.config.ts` 的全部 14 个 frontmatter 字段，并额外检查 Markdown 正文。媒体闸门同时检查正文图片和封面：引用 alt、数据库 alt、资源是否存在、光栅衍生图的 `sanitized_at`，以及公开 EXIF 白名单。缺失翻译仍然是“不可用”，不会复制别的语言内容补位。
+
+#### 失败验证与精简门禁
+
+测试先在生产处理器与闸门模块不存在时失败。新增 4 个集成用例，尝试用围栏示例触发误拦、用真实缺图和 HTML 图片绕过媒体表、发布超长摘要和未净化/GPS 媒体、匿名读取草稿、缺 CSRF 写入，以及完整走通新建、自动保存、发布和回滚。拒绝发布后，原公开指针与审计行保持不变。
+
+```text
+node --test --test-isolation=none tests/*.test.mjs
+  -> tests 74 / suites 11 / pass 74 / fail 0
+pnpm check
+  -> Result (86 files): 0 errors, 0 warnings, 0 hints
+pnpm build
+  -> 46 个公开页面与文章 API server entry 构建成功
+pnpm split
+  -> 155 个公开文件不依赖 Node；admin、api 保持按需
+```
+
+第一次构建仍被 Windows 沙箱拦在 esbuild 子进程的 `spawn EPERM`；获准在真实环境重跑同一条命令后通过。本轮没有重跑原型 118 例，也没有用 `pnpm verify` 重复执行链接与公开树审计。
+
+#### 仍未做
+
+Admin 仍只有登录页，尚未接文章列表和编辑器；生产同源 renderer、媒体导入、建账户命令、导出构建、备份恢复与部署也未完成。**下一块是 Admin 界面**，它只消费本节已经固定的作者 API，不改变公开路由的渲染方式。
