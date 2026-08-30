@@ -109,6 +109,18 @@ describe('the image node', () => {
     editor.destroy();
   });
 
+  // Regression, found by rendering the editor's own Markdown through the
+  // production pipeline: the preview of every fixture carried one more <img>
+  // than the article did. The extension was priority 1100, above paragraph, so
+  // ProseMirror filled an empty document with an image, and setContent left
+  // that filler at the end. Autosave then wrote `![]()` back into the article.
+  it('lets paragraph, not an image, fill an empty document', () => {
+    const filled = getSchema(moriiumExtensions()).topNodeType.createAndFill();
+
+    assert.ok(filled);
+    assert.equal(filled.firstChild?.type.name, 'paragraph');
+  });
+
   it('does not update an image when the selection is ordinary text', () => {
     const editor = new Editor({
       extensions: moriiumExtensions(),

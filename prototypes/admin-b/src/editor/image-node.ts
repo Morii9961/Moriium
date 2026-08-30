@@ -58,7 +58,13 @@ export function renderImageMarkdown(node: JSONContent): string {
 
 export const MoriiumImage = Node.create({
   name: 'moriiumImage',
-  priority: 1_100,
+  // Deliberately not above paragraph's 1000. Extension priority also orders the
+  // schema's node types, and ProseMirror fills a `block+` hole with the first
+  // one it can build attribute-free. At 1100 this atom won that race: an empty
+  // document, and every fully emptied selection, became a stray `![]()` that
+  // autosave then wrote back into the article. Nothing needs it to outrank
+  // paragraph -- no other tokenizer here claims a line starting with `![`.
+  priority: 1_000,
   group: 'block',
   atom: true,
   draggable: true,
