@@ -3,7 +3,7 @@
 > 日期：2026-08-30
 > 交出方：Claude
 > 接手方：Codex
-> 状态：**Phase 1 已收尾，ADR 0002 已批准并开工。生产后端 12 块里做完 7 块，读者站一直可用；生产 Admin 已能登录、写作、预览和操作发布指针，下一块是媒体导入。**
+> 状态：**Phase 1 已收尾，ADR 0002 已批准并开工。生产后端 12 块里做完 8 块，读者站一直可用；生产 Admin 已能登录、写作、导入并选择图片、预览和操作发布指针，下一块是建账户命令。**
 
 这份文档取代 [`handoff-codex-prototype-b.md`](handoff-codex-prototype-b.md) 作为当前交接。那一份停在「Phase 1 收尾、等 Morii 批准 ADR 0002」的状态，现在已经不成立。它保留为历史依据，**不要就地改写**——里面第 7 节那 19 条差异仍然有效，本文第 8 节按新阶段重新分了类。
 
@@ -42,26 +42,29 @@ git log --oneline origin/main..HEAD
 ```
 
 ```text
-（本文件所在提交）Add the production article API and publish gate
+（本文件所在提交）Pick images from the media library instead of typing paths
+0f4b36a  Import media through a sanitizer that re-reads its own output
+ae22b72  Add the production author editor
+984def8  Prepare the production author editor runtime
+1970ebb  Add the production article API and publish gate
 311777d  Share the author API request boundary
 1218bf4  Add production author sessions and login
 0a72146  Hand the production phase over to Codex
-239f255  Record the production state machine and its two new pointers
-28db6a3  Carry the article state machine onto the production schema
 ```
 
-第 7 块的末次生产验证，2026-08-30 重新跑出来的：
+第 8 块的末次生产验证，2026-08-30 跑出来的：
 
 ```text
-pnpm check                                      → 97 files，0 errors / warnings / hints
-pnpm test                                       → tests 75 / suites 11 / pass 75 / fail 0
-pnpm build                                      → 46 个公开页面与 server entry 构建成功
+pnpm check                                      → 107 files，0 errors / warnings / hints
+pnpm test                                       → tests 89 / suites 17 / pass 89 / fail 0
+pnpm build                                      → 46 个公开页面与 Admin、API server entry 构建成功
 pnpm split                                      → 158 个公开文件不依赖 Node；156 个公开可达资源不含 Admin 代码
+check-links / audit-public-tree                 → 均通过
 ```
 
-为节省本轮限额，没有重跑原型 118 例，也没有再用 `pnpm verify` 重复链接与公开树审计。构建在沙箱内第一次遇到已知的 esbuild `spawn EPERM`，获准在真实环境重跑同一条命令后通过。
+另用 `astro dev` 起真实运行时逐条验证了 13 条作者 API 路径全部返回 JSON。没有重跑原型 118 例。本轮构建没有再遇到沙箱里那次 esbuild `spawn EPERM`；文件系统那边遇到了一个新的等价问题，见 5.4。
 
-## 3. 生产后端：12 块里做完 7 块
+## 3. 生产后端：12 块里做完 8 块
 
 | | 块 | 状态 | 记录 |
 | --- | --- | --- | --- |
@@ -72,15 +75,15 @@ pnpm split                                      → 158 个公开文件不依赖
 | 5 | 会话与登录 | 完成 | ADR 21.4 |
 | 6 | HTTP 读写 API + 发布闸门搬迁 | 完成 | ADR 21.5 |
 | 7 | Admin 界面 | 完成 | ADR 21.6 |
-| 8 | **媒体导入链路（修 B7）** | **下一块** | ADR 第 8 节已定 |
-| 9 | 建账户命令（只能在服务器上跑） | 未开始 | — |
+| 8 | 媒体导入链路（修 B7） | 完成 | ADR 21.7 |
+| 9 | **建账户命令（只能在服务器上跑）** | **下一块** | — |
 | 10 | 导出 + 构建 + 原子换站 | 未开始 | ADR 第 4.2、15.3 节已定 |
 | 11 | 备份与恢复演练 | 未开始 | ADR 第 11 节已定 |
 | 12 | 部署（systemd / Nginx / 构建迁到 VPS） | 未开始 | ADR 第 15 节已定 |
 
-**5、6、7 做完就是「本机能用」**：能登录、写作、发布，跑在生产代码上。**8 到 12 才是「真正上线」。**
+**5 到 8 做完就是「本机能用」**：能登录、写作、导入图片、发布，跑在生产代码上。**9 到 12 才是「真正上线」。**
 
-## 4. 已完成的七块，接手需要知道的
+## 4. 已完成的八块，接手需要知道的
 
 ### 4.1 渲染分裂（`7192684`，ADR 21.1）
 
@@ -127,6 +130,19 @@ pnpm split                                      → 158 个公开文件不依赖
 
 Vue/Tiptap 只从按需 `/admin` 加载。`check-render-split` 改为扫描从公开页面实际可达的资源；曾临时让首页引用 Admin entry 做负向验证，检查抓到后已撤销临时改动。原型里的列表和编辑器已经实测过，本块没有重复跑原型测试。
 
+### 4.6 媒体导入与媒体库（ADR 21.7）
+
+`scripts/lib/media.mjs`、`src/server/media/`、`src/server/http/media-handlers.ts`、`src/pages/api/media/`、`src/admin/MediaLibrary.ts`。
+
+- 净化只有一份实现。配方、可导入格式和两张元数据块清单都在 `scripts/lib/media.mjs` 里，`sanitize-media.mjs` 与 `check-media.mjs` 现在是它的薄壳，服务端导入走同一条；
+- 服务端**无条件重新编码**，然后把文件写到磁盘、**再读回确认**，最后才写行。`sanitized_at` 由 `MediaStore.recordImported` 盖章，没有别的入口能写它；
+- 公开路径由服务端从净化后的字节推导。摘要取自输出，所以重复导入会与自己那一行冲突而不是多出一份副本；
+- GIF 与 SVG 明确拒收，理由写在 `IMPORTABLE_FORMATS` 上方；
+- 编辑器里图片路径框已改为只读，插图只能从媒体库选。选中图片时再选一张是替换；
+- 缩略图走 `/api/media/<id>/file/`，因为导入的文件要到下一次导出才进公开目录。该路由要作者会话，且只能取出 `media_assets` 指名的文件。
+
+**manifest 导出仍未接线**（第 8.2 节），它属于第 10 块。数据库里的 `exif_json` 一律是 `{}`：sharp 只给原始 EXIF 缓冲区，要保留可公开的机身字段得加解析依赖，**要先问 Morii**。
+
 ## 5. 边界
 
 ### 5.1 现在可以碰什么，这一条和上一份交接不同
@@ -155,7 +171,7 @@ Vue/Tiptap 只从按需 `/admin` 加载。`check-render-split` 改为扫描从�
 
 将来删掉 `prototypes/` 时，`src/server/` 不跟着走。
 
-### 5.4 两个实操陷阱
+### 5.4 三个实操陷阱
 
 **一、不要用 PowerShell 的 `Get-Content` / `Set-Content` 往返处理 CJK 文件。**本机是 PowerShell 5.1，`Get-Content` 按系统 ANSI 代码页读取，UTF-8 的中日文会变成乱码，换行也可能丢，而命令报告成功。此前已经毁掉过一个日文夹具。用编辑工具或 Git Bash。
 
@@ -163,11 +179,13 @@ Vue/Tiptap 只从按需 `/admin` 加载。`check-render-split` 改为扫描从�
 
 写正则或含转义序列的字符串时，改用编辑工具，或在 Python 里以 `chr(92)` 显式拼接，落盘后再用 `grep` 配 `cat -A` 核一遍实际字节。**不要凭写进去的样子认为落盘的就是那样。**
 
+**三、Windows 上不要让 sharp 直接打开随后还要写入或删除的文件。**libvips 会把它打开的文件内存映射，映射在 Windows 上把文件锁住，下一次写入报 `UNKNOWN`、删除报 `EPERM`，而这两件事正是导入管线在复核之后立刻要做的。`scripts/lib/media.mjs` 的 `sensitiveBlocksInFile` 因此先用 `readFile` 读进内存再交给 sharp。这个坑第一次出现时看起来像沙箱权限问题，不是。
+
 ## 6. 命令
 
 ```bash
 # 生产（当前工作面）
-pnpm verify                           # astro check + 70 个用例 + 构建 + 渲染分裂 + 链接 + 公开树审计
+pnpm verify                           # astro check + 89 个用例 + 构建 + 渲染分裂 + 链接 + 公开树审计
 pnpm build                            # 产物分 dist/client 与 dist/server
 
 # 原型（参考实现，不再开发）
@@ -179,13 +197,13 @@ pnpm -C prototypes roundtrip:report   # Markdown round-trip 丢失表
 pnpm -C prototypes baselines:verify   # 与 dist/ 比对，需先 pnpm build
 ```
 
-## 7. 下一块：媒体导入链路
+## 7. 下一块：建账户命令
 
-生产 Admin 已完成，见 ADR 21.6。本机现在具备登录、列表、新建、编辑、预览、自动保存、发布、回滚和撤下入口；数据库发布状态与静态站上线状态也已经分开显示。
+媒体导入已完成，见 ADR 21.7。本机现在具备登录、列表、新建、编辑、导入图片、选图、预览、自动保存、发布、回滚和撤下入口。
 
-下一块修 B7：建立媒体导入链路，把上传的临时文件交给现有净化流程，生成公开衍生图并写入 `media_assets`。编辑器随后才能从已净化的媒体中选择图片，而不是继续手填路径。任何实现都不得读取 `.private/posts/`、修改原图或把原始 EXIF/GPS 带进公开目录。
+下一块是第 9 块：一条**只能在服务器上跑**的建账户命令。现在建账户只能靠直接调 `createAccount`，那不是可以交给 Morii 的东西。注意两件已经实测到的事：`createAccount(db, input, now)` 的第三个参数是必填的，漏掉会在插入时抛 `now is not a function`；口令下限 24 位（ADR 第 10.4 节），命令要在读口令之前就说清这一条。
 
-媒体导入必须在发布闸门之外先完成净化和 manifest 登记，闸门继续只负责拒绝未登记、未净化、含敏感元数据或 alt 不一致的引用。不要为了上传把公开文章改成 SSR，也不要让媒体处理代码进入读者 bundle。
+命令不得把口令写进任何日志、命令行历史或数据库以外的文件，也不得为了方便加一条 HTTP 建账户入口——账户创建留在服务器上，是第 10.1 节那套暴露面推论的一部分。
 
 ## 8. 必须随结论报告、不得当作已解决的差异
 
@@ -199,7 +217,7 @@ pnpm -C prototypes baselines:verify   # 与 dist/ 比对，需先 pnpm build
 4. **序列化器不吐末尾换行。**round-trip 输出比原文少一个字符。接保存路径时要补回，否则每次保存都会给文件添一行无谓 diff。
 5. **`marked@17.0.6` 是依赖表之外的直接依赖**，Morii 已追认。升级 Tiptap 时若 marked 跨大版本，这个直接 pin 需要一并调整。
 6. **`scripts/encrypt-post.mjs` 仍有自己的 `featuresOf()`**，与 `shared/content-blocks.ts` 的 `markersFor` 是两份实现。合并要改生产脚本，一直没做。
-7. **图片属性面板不校验路径，也没有媒体选择器。**路径只能手打，写错要到发布时才被闸门拒。第 8 块（媒体导入）应当把这两件事一起解决。
+7. ~~**图片属性面板不校验路径，也没有媒体选择器。**~~ 第 8 块已解决（ADR 21.7）：路径框只读，插图只能从已净化、已登记的媒体库里选。
 8. **句子中间的图片会丢文件。**只认整行图片，是刻意取舍，有用例钉住。生产要不要放宽是个内容决定，不是 bug。
 9. **自动保存失败之后不会自动重试。**正文不会丢，状态也不谎称已保存，但**作者停手不打字就永远不会再试**。加退避重试要连着「重试期间显示什么、几次以后放弃」一起定，是界面决定。
 10. **Admin 直接暴露在公网。**Morii 在 ADR 第 1.1 节撤掉了客户端证书。后台代码自身的漏洞现在直接暴露，ADR 0001 第 5 节的测试标准在这里比之前更重要。
@@ -225,6 +243,8 @@ ADR 0001 第 5 节要求「测试必须证明而不是声明」。生产侧继�
 - 往一个公开页面里塞进 `node:sqlite` 这个字符串再构建，确认 `check-render-split` 真的会红。
 
 还有一个结果值得记住其形状：把发布闸门从写入之前挪到写入之后再跑，**只有「闸门先于写入」那条变红，「拒绝后不留痕迹」那条仍然是绿的**——因为事务回滚把写入撤掉了。这不是测试写松，是两条不同的保证各由不同机制守着。**两条都要留**：只写后一条的话，将来有人把校验挪到提交之后就没人会发现。
+
+第 8 块又添了一个，形状值得记住，因为它不是「测试写松」而是「验证的对象选错了」：上一块的浏览器检查是「登录壳挂载成功」，这句话是真的——而 `trailingSlash: 'always'` 让 `src/admin/api.ts` 里 15 处调用全都落到 404 页面，**整个生产 Admin 够不到自己的 API**。挂载成功与能不能工作是两件事，而检查只覆盖了前一件。现在由 `tests/admin-client-routes.test.mjs` 把客户端路径、`astro.config.mjs` 的斜杠策略和每个 rest 路由自己的正则绑在一起。
 
 接手后新增校验逻辑时沿用：**先让它失败一次，再让它通过。**
 
