@@ -779,3 +779,88 @@ Morii 实际使用原型 B 后确认体验满意，并明确表示不再需要�
 4. 当前原型仍缺完整发布闸门、图片属性面板和生产同源草稿预览。选择 B 不会把这些缺口自动变成已完成，也不批准把 Vite 开发服务器、本地会话或 `node:sqlite` 尖峰直接暴露到公网。
 
 **下一块固定为完整发布闸门。**先把 `shared/` 已有的内容、媒体与翻译关系契约接入发布路由，并用失败用例证明不合格内容无法公开。完成并验证后，再处理图片属性面板和生产同源草稿预览。
+
+### 13.15 完整发布闸门（2026-08-30）
+
+Codex 在 `3e55fae` 实现，本节由 Claude 依据提交内容与重新跑过的检查补记；Codex 当轮额度耗尽，没来得及自己写。
+
+闸门放在 `admin-b/src/publishing/publish-gate.ts`，一次写操作都不做。HTTP 层不直接调用它，而是把它作为 `validate` 回调交给 `store.publish` / `store.rollback`：
+
+```ts
+const validate = (version: Version): void =>
+  validateVersionForPublishing(options.store, version, options.media);
+```
+
+`store` 早就在事务里、改 `published_version_id` 与写审计行之前调用这个回调。位置选在这里是有代价意识的——放在路由里也能拦住请求，但拦不住「校验通过、写一半、再失败」的窗口。被拒时数据库应当**什么痕迹都不留**，这一点由 `routes.test.ts` 的新用例钉住：拒绝后 `publishedVersionId` 仍是 `null`，`listAudit` 仍是空数组，匿名端点仍返回 404。
+
+三条契约都从 `shared/` 接过来，没有在闸门里重述规则：
+
+- **内容**走新增的 `publishCandidate`。它从生产同源的 `sharedMetadata` 上 `pick` 出 title、slug、summary、lang、translationKey，再补一个非空 markdown，而不是在 HTTP 层另写一遍标题与摘要的长度规则。生产 frontmatter 剩下的字段仍是缺口，注释里写明这属于 Phase 2，理由是数据库模型还存不下它们，此时补默认值等于在发布时替 Morii 编内容。
+- **翻译关系**走 `buildTranslationIndex` 与 `statusOf`，确认候选在自己的翻译组里确实是 available。
+- **媒体**走新增的 `imageReferencesIn`：扫出正文里的图片引用，逐条要求正文 alt 非空、路径在媒体清单里、清单条目本身能过 `blockersForPublishing`。
+
+两类失败刻意分开：内容不合格是 `validation-failed`（400），媒体不合格是 `media-gate-refused`（403）。夹具侧新增 `prototypes/fixtures/media/manifest.json`，收录两张 SVG。
+
+负向用例按第 5 节的要求写成破坏尝试，不是确认清单：清单里没有的图片、指向站外的远程图片、空 alt 配未净化且带 GPSLatitude 的 jpeg、超长摘要，各自要求特定的错误码与错误文本。
+
+#### 复核时补跑的一条
+
+拦得住不合格内容只是一半，另一半是**别把合格内容也拦住**。播种进数据库的四篇夹具如果过不了自己的闸门，Morii 一点发布就会撞墙。把四篇全过一遍：
+
+```text
+seeded 4
+PUBLISHABLE   zh/tide-notes
+PUBLISHABLE   ja/tide-notes
+PUBLISHABLE   zh/darkroom-log
+PUBLISHABLE   zh/winter-drafts
+```
+
+#### 一处确认存在的过度拦截
+
+`imageReferencesIn` 是正则扫全文，不区分围栏代码块。实测：
+
+```text
+输入   ```markdown 围栏里的 ![An example alt](/media/does-not-exist.svg)
+       加正文里的行内 ![x](/media/inline.svg)
+输出   两条都被当成真实图片引用
+```
+
+后果是具体的：一篇讲 Markdown 写法、正文里贴了图片语法示例的文章会被闸门拒绝，而那张图并不存在也不需要存在。方向是安全的一侧——`media.ts` 的注释写明了取舍理由，是不能让编辑器建模不了的行内图片绕过闸门——但这属于「必须随结论报告」那一类，接生产前要改成按解析结果取图片引用，而不是正则扫原文。
+
+### 13.16 图片属性面板（2026-08-30）
+
+Codex 在 `73d3bfb` 实现，同样由 Claude 补记。
+
+13.12 把图片做成了带 `src` / `alt` / `title` 的真节点，但没有改它们的地方，`alt` 事实上改不了。这一节补齐第 3 档。
+
+命令留在 Vue 之外，`editor/image-properties.ts` 只有两个函数：`selectedImageAttributes` 读当前 `NodeSelection`，不是图片就返回 `null`；`updateSelectedImage` 走 Tiptap 文档给的 `updateAttributes`。这样分是为了让测试能用真的 `Editor` 实例证明序列化结果，而不是绕过编辑器断言一个数据结构。
+
+面板挂在 `selectionUpdate` 上，选中图片才出现。`title` 留空写回 `null`，Markdown 里就不带标题；`alt` 为空时面板当场提示发布闸门会拒绝这篇文章，与 13.15 的媒体闸门对上。
+
+断言的是序列化结果：
+
+```text
+选中 ![Old alt](/media/a.svg "Old caption") 改 alt、清空 title
+  -> getMarkdown() === '![New alt](/media/a.svg)\n'      路径与末尾换行都还在
+选区是普通段落时
+  -> selectedImageAttributes 返回 null
+  -> updateSelectedImage 返回 false，原图片路径不变
+```
+
+#### 仍未做
+
+面板不检查路径是否在媒体清单里，不合格的路径要到发布时才被闸门拒；没有媒体选择器，路径只能手打；13.12 那条「只认整行图片」的限制没有变。
+
+#### 本轮验证（Claude 重跑，非转述）
+
+```text
+pnpm -C prototypes check            -> 退出码 0
+pnpm -C prototypes test             -> tests 110 / suites 27 / pass 110 / fail 0
+pnpm -C prototypes fixtures:check   -> Fixture corpus is valid.
+pnpm -C prototypes roundtrip:report -> unextended 8/11；moriium-nodes 11/11（未变）
+pnpm -C prototypes baselines:verify -> All 14 markers agree with the built page.
+pnpm verify                         -> 退出码 0（60 files 0 errors、30/30、46 pages）
+生产文件改动                          -> 无（git diff 21c739b..HEAD -- ':!prototypes' ':!docs' 为空）
+```
+
+三项待补的前两项到此完成，**剩下草稿的生产同源预览**。
