@@ -816,3 +816,52 @@ pnpm verify                    -> 退出码 0
 #### 仍未做
 
 没有建账户的入口（要一条只能在服务器上跑的命令）；没有会话；没有 HTTP 读写 API；发布闸门还在尖峰里没有搬过来；Admin 仍是占位页。**下一块是会话与登录**，之后是把闸门与 HTTP 层接上。
+
+### 21.4 会话与登录（2026-08-30）
+
+第 9 节的三条要求已经进生产代码：Astro Sessions 不落在 release 目录，JSON 写请求保留显式 CSRF token，登录限速同时有按账户计数和全局阀门。
+
+#### 会话数据与目录
+
+`astro.config.mjs` 显式使用 `sessionDrivers.fsLite()`。Linux 的默认目录是 `/var/lib/moriium/sessions/`；Windows 本地开发落在已忽略的 `.astro/sessions/`。`MORIIUM_SESSION_DIRECTORY` 可以覆盖它，但要注意 Astro 会在构建时读取 driver 配置，不是 Node 进程启动后再读。cookie 的 `Secure`、`HttpOnly` 与 `SameSite=Lax` 也写在配置里，不靠 adapter 默认值暗示。
+
+会话只存两样：公开作者身份 `{ id, name }` 与独立生成的 CSRF token。登录成功先调用 `session.regenerate()`，再写身份与 token；口令不进会话。登出调用 `session.destroy()`，旧 cookie 与服务端数据一起失效。
+
+数据库同样补了常驻连接入口。Linux 默认 `/var/lib/moriium/admin.db`，Windows 本地开发用 `.astro/admin.db`，生产可由 `MORIIUM_DATABASE_PATH` 覆盖。两个默认值都不会落进 `releases/<sha>/`。
+
+#### 两层限速
+
+尖峰只有一个全局数组，一个账户输错会把另一个账户一起锁住。生产实现改成 15 分钟滑动窗口：同一账户失败 5 次后只锁该账户；全局累计失败 20 次后再挡住轮换假用户名的枚举。成功登录只清掉这个账户自己的失败，不会抹掉全局攻击流量。
+
+限速目前在 Node 进程内存里。重启会清空它；公网侧仍由第 10.3 与 15.5 节的 Nginx/fail2ban 承担跨进程封禁。这里没有把登录失败写进数据库，避免攻击流量把认证路径变成写放大器。
+
+#### HTTP 边界
+
+新增三个按需端点：`POST /api/login`、`GET /api/session` 与 `POST /api/logout`。登录只接收小于 4 KiB 的 JSON，未知账户与错误口令仍返回同一句话；触发限速时返回 429 与 `Retry-After`。登录和登出都检查 Host 与 Origin，登出还必须带当前会话的 CSRF token。
+
+Astro 的 `security.checkOrigin` 保持开启，但第 9.4 节指出它不检查 `application/json`。代码在显式 token 旁保留了官方配置参考链接，避免以后有人把两道防线误当成重复实现。
+
+`/admin` 的占位页改成了最低限度的登录页。它只证明会话能在真实 Astro 页面与 API 间往返；文章列表、编辑器和正式界面仍属于后面的第 6、7 块。
+
+#### 负向测试与本轮窄验证
+
+测试先在三个生产模块不存在时失败，再补实现。八个用例专门尝试以下绕过：锁住 Morii 后确认 Enouia 仍可尝试；把失败分散到 20 个假用户名后确认全局阀门会关；等待窗口边界后才解锁；检查登录会轮换 session id；用错 token、跨 Origin、反弹 Host、缺 Origin 和超大请求体都必须被拒；登出后会话必须销毁。
+
+```text
+node --test --test-isolation=none tests/admin-auth.test.mjs
+  -> tests 8 / suites 3 / pass 8 / fail 0
+pnpm check
+  -> Result (79 files): 0 errors, 0 warnings, 0 hints
+node --test --test-isolation=none tests/*.test.mjs
+  -> tests 70 / suites 9 / pass 70 / fail 0
+pnpm build
+  -> 46 个公开页面、server entry 与 3 个 API 端点构建成功
+pnpm split
+  -> 155 个公开文件不依赖 Node；admin、api 保持按需
+```
+
+默认 Node 测试隔离在当前 Windows 沙箱仍会报已知的 `spawn EPERM`，所以测试沿用同进程模式。第一次构建也被沙箱拦在 esbuild 子进程；同一条 `pnpm build` 在获准的真实环境重跑后通过。没有为了记录这一块重跑原型的 118 个用例，也没有重复跑 `pnpm verify` 已经覆盖过的链接与公开树审计。
+
+#### 仍未做
+
+建账户命令仍未完成；当前登录页只有数据库里已经存在账户时才能使用。文章 HTTP API、生产发布闸门、Admin 编辑器也都没有接入。**下一块是 HTTP 读写 API 与发布闸门搬迁**，搬闸门时必须同时修第 8.3 节的围栏代码块误拦，并把发布候选扩到 14 个 frontmatter 字段。

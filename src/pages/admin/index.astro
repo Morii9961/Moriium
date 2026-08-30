@@ -5,10 +5,16 @@
 // prerendering. Everything public stays a static file so the reader path never
 // depends on this process.
 //
-// Phase 6A placeholder. It exists to prove the hybrid split works and to give
-// the public-tree audit something to check against; the real admin arrives with
-// the database layer.
 export const prerender = false;
+
+const author = await Astro.session?.get('author');
+const csrfToken = await Astro.session?.get('csrfToken');
+const signedIn =
+  author !== undefined &&
+  typeof author === 'object' &&
+  author !== null &&
+  typeof author.name === 'string' &&
+  typeof csrfToken === 'string';
 ---
 
 <!doctype html>
@@ -21,7 +27,55 @@ export const prerender = false;
   </head>
   <body>
     <h1>Moriium Admin</h1>
-    <p>Rendered on demand at {new Date().toISOString()}.</p>
-    <p>Phase 6A placeholder. The editor is not wired up yet.</p>
+    {
+      signedIn ? (
+        <>
+          <p>Signed in as {author.name}.</p>
+          <p>The article API and editor are the next production blocks.</p>
+          <button type="button" data-logout data-csrf={csrfToken}>Sign out</button>
+        </>
+      ) : (
+        <form data-login>
+          <p>The author admin requires one of the two server-created accounts.</p>
+          <label>
+            Account
+            <input name="name" autocomplete="username" required />
+          </label>
+          <label>
+            Password
+            <input name="password" type="password" autocomplete="current-password" required />
+          </label>
+          <button type="submit">Sign in</button>
+          <p data-status role="status" aria-live="polite"></p>
+        </form>
+      )
+    }
+
+    <script is:inline>
+      const login = document.querySelector('[data-login]');
+      login?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const status = login.querySelector('[data-status]');
+        const data = new FormData(login);
+        const response = await fetch('/api/login', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: data.get('name'), password: data.get('password') }),
+        });
+        if (response.ok) location.reload();
+        else status.textContent = 'Sign-in failed.';
+      });
+
+      const logout = document.querySelector('[data-logout]');
+      logout?.addEventListener('click', async () => {
+        const response = await fetch('/api/logout', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'X-CSRF-Token': logout.dataset.csrf },
+        });
+        if (response.ok) location.reload();
+      });
+    </script>
   </body>
 </html>

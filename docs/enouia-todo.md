@@ -99,6 +99,7 @@
 - [x] 生产形态的数据库 schema 与迁移器（ADR 0002 第 21.2 节）：六张表全 `STRICT`，frontmatter 挂 version、tags 单独成表、`articles` 带 `published_version_id` 与 `live_version_id`；迁移只向前且连记账行同事务；WAL 与 `busy_timeout` 配上并被用例读回来断言。
 - [x] **B2 修掉了**：14 个 frontmatter 字段全部有列，并有用例直接读 `src/content.config.ts` 逐个比对（负向测试：改个列名当场红）。往 content config 加字段而不加迁移会在构建时失败。
 - [x] 两个作者账户（Morii、Enouia），scrypt 参数写进哈希本身，口令下限 24 位，未知/停用/口令错返回同一结果且都跑一次哈希比对。
+- [x] 生产会话与登录：Astro Sessions 显式落在 release 目录之外；登录成功轮换 session id；JSON 写请求保留独立 CSRF token；限速分成按账户 5 次/15 分钟与全局 20 次/15 分钟。`/api/login`、`/api/session`、`/api/logout` 与最低限度登录页已接通，见 ADR 21.4。
 - [ ] 只迁移 fixture 和测试文章，不先迁移正式内容。
 - [ ] 实现作者认证、版本化 Public/Admin DTO、服务端可信 renderer、数据库迁移和备份恢复。
 - [ ] Admin 与权限草稿按需渲染；公开文章优先预渲染或缓存。
@@ -269,7 +270,9 @@ Morii 于 2026-08-30 批准，并定夺三条：暂不做告警、不做移动�
 
 文章与版本的状态机也已完成（ADR 21.3）：尖峰的语义搬上生产 schema，另加两样尖峰没有的东西——每个版本记作者、每条审计记操作者（两个账户权限相同，审计是唯一能分开它们的东西），以及**发布与上线分成两个指针**，`isAwaitingExport()` 就是两者不相等，后台要显示这个差值。当前生产侧 62 个用例、6 个套件。
 
-**下一块是会话与登录**，之后把发布闸门从尖峰搬过来接上 HTTP 层，再做真正的 Admin 界面。
+会话与登录也已完成（ADR 21.4）。Astro Sessions 的 Linux 默认目录固定在 `/var/lib/moriium/sessions/`，生产数据库默认 `/var/lib/moriium/admin.db`；两个都在 release 目录之外。生产登录不是照搬尖峰：按账户限速不会让 Morii 与 Enouia 相互锁死，另有全局阀门拦截轮换假用户名；登录成功会轮换 session id，登出和 JSON 写请求都走显式 CSRF token。本轮生产测试 70/70、`pnpm check` 0 条诊断、生产构建与渲染分裂通过；没有重跑原型测试。
+
+**下一块是 HTTP 读写 API 与发布闸门搬迁**，之后再做真正的 Admin 界面。搬闸门时要同时修围栏代码块误拦，并把发布候选扩到完整的 14 个 frontmatter 字段。
 
 还欠一条只能在服务器上跑的建账户命令——现在 `accounts.ts` 有函数但没有入口。
 

@@ -3,7 +3,7 @@
 > 日期：2026-08-30
 > 交出方：Claude
 > 接手方：Codex
-> 状态：**Phase 1 已收尾，ADR 0002 已批准并开工。生产后端 12 块里做完 4 块，读者站一直可用，写作后台还不能用。**
+> 状态：**Phase 1 已收尾，ADR 0002 已批准并开工。生产后端 12 块里做完 5 块，读者站一直可用；登录已接通，写作后台还不能用。**
 
 这份文档取代 [`handoff-codex-prototype-b.md`](handoff-codex-prototype-b.md) 作为当前交接。那一份停在「Phase 1 收尾、等 Morii 批准 ADR 0002」的状态，现在已经不成立。它保留为历史依据，**不要就地改写**——里面第 7 节那 19 条差异仍然有效，本文第 8 节按新阶段重新分了类。
 
@@ -65,7 +65,7 @@ pnpm -C prototypes test        → tests 118 / suites 30 / pass 118 / fail 0
 
 原型那 118 个用例继续跑，是为了让它作为参考实现不至于烂掉，不是因为还在开发它。
 
-## 3. 生产后端：12 块里做完 4 块
+## 3. 生产后端：12 块里做完 5 块
 
 | | 块 | 状态 | 记录 |
 | --- | --- | --- | --- |
@@ -73,8 +73,8 @@ pnpm -C prototypes test        → tests 118 / suites 30 / pass 118 / fail 0
 | 2 | 数据库 schema 与迁移器 | 完成 | ADR 21.2 |
 | 3 | 两个作者账户 | 完成 | ADR 21.2 |
 | 4 | 文章与版本状态机 | 完成 | ADR 21.3 |
-| 5 | **会话与登录** | **下一块** | — |
-| 6 | HTTP 读写 API + 发布闸门搬迁 | 未开始 | — |
+| 5 | 会话与登录 | 完成 | ADR 21.4 |
+| 6 | **HTTP 读写 API + 发布闸门搬迁** | **下一块** | — |
 | 7 | Admin 界面 | 未开始 | — |
 | 8 | 媒体导入链路（修 B7） | 未开始 | ADR 第 8 节已定 |
 | 9 | 建账户命令（只能在服务器上跑） | 未开始 | — |
@@ -84,7 +84,7 @@ pnpm -C prototypes test        → tests 118 / suites 30 / pass 118 / fail 0
 
 **5、6、7 做完就是「本机能用」**：能登录、写作、发布，跑在生产代码上。**8 到 12 才是「真正上线」。**
 
-## 4. 已完成的四块，接手需要知道的
+## 4. 已完成的五块，接手需要知道的
 
 ### 4.1 渲染分裂（`7192684`，ADR 21.1）
 
@@ -114,6 +114,16 @@ pnpm -C prototypes test        → tests 118 / suites 30 / pass 118 / fail 0
 **二、发布不等于上线。**`published_version_id` 是数据库说的真相，`live_version_id` 是构建产物实际在服务的东西。`markLive()` 是导出成功之后才调用的第二步，**不写审计行**——它报告的是一次构建，不是编辑行为。`isAwaitingExport()` 就是两个指针不相等，**后台必须把这个差值显示出来**（ADR 第 4.2 节）。
 
 `markLive` 拒绝把没发布过的版本标成上线，否则那是绕开发布闸门最省事的一条路。
+
+### 4.4 会话与登录（ADR 21.4）
+
+`src/server/auth/`、`src/server/http/auth-handlers.ts` 与三个 `/api` 端点。
+
+- Astro Sessions 显式使用文件系统 driver；Linux 默认 `/var/lib/moriium/sessions/`，Windows 本地开发用 `.astro/sessions/`，不会跟着 release 目录轮换；
+- 登录成功先轮换 session id，再存 `{ id, name }` 与独立 CSRF token；cookie 显式保留 `Secure`、`HttpOnly`、`SameSite=Lax`；
+- 同一账户 15 分钟失败 5 次只锁该账户，Morii 与 Enouia 不会相互拖死；另有 20 次/15 分钟的全局阀门挡轮换假用户名；
+- 登录/登出检查 Host 与 Origin，登出必须带 CSRF token；登录体超过 4 KiB 会在 JSON 解析前被拒；
+- `/admin` 现在能登录和登出，但还没有文章 API、列表或编辑器。没有建账户命令时，只能使用数据库中已经存在的账户。
 
 ## 5. 边界
 
@@ -155,7 +165,7 @@ pnpm -C prototypes test        → tests 118 / suites 30 / pass 118 / fail 0
 
 ```bash
 # 生产（当前工作面）
-pnpm verify                           # astro check + 62 个用例 + 构建 + 渲染分裂 + 链接 + 公开树审计
+pnpm verify                           # astro check + 70 个用例 + 构建 + 渲染分裂 + 链接 + 公开树审计
 pnpm build                            # 产物分 dist/client 与 dist/server
 
 # 原型（参考实现，不再开发）
@@ -167,17 +177,16 @@ pnpm -C prototypes roundtrip:report   # Markdown round-trip 丢失表
 pnpm -C prototypes baselines:verify   # 与 dist/ 比对，需先 pnpm build
 ```
 
-## 7. 下一块：会话与登录
+## 7. 下一块：HTTP API 与发布闸门
 
-ADR 第 9.3 节已经把形态定下来了，接手时按它做，不要重新发明。三条必须带上：
+会话与登录已完成，见 ADR 21.4。下一块把文章读写接到 `/api`，并把尖峰的发布闸门搬进生产。不要原样复制，有两处必须在搬迁时一起修：
 
-1. **会话不能落在 release 目录**（第 5.2 条第 2 点）；
-2. **显式 CSRF token 不能省**（第 5.2 条第 3 点）；
-3. **按账户限速**，不是全局计数——尖峰那套是单账户全局的，两个账户下不成立（ADR 第 9.2 节点名了这是必须改的三处之一）。
+1. `imageReferencesIn` 不能再用正则扫 Markdown 全文，围栏代码块里的示例图片不是发布引用；
+2. `publishCandidate` 必须覆盖生产 schema 已能存下的 14 个 frontmatter 字段，不能保留尖峰的字段子集。
 
-`src/server/accounts.ts` 的 `authenticate()` 已经就绪，缺的是会话本身、cookie、以及把它接到 `/api`。
+API 继续复用 `src/server/http/auth-handlers.ts` 的会话、Host/Origin 与 CSRF 边界。读 DTO 与写 DTO 分开；任何匿名端点都不得返回草稿、未发布版本或较新的自动保存。
 
-再往后是第 6 块（HTTP API 与发布闸门搬迁）与第 7 块（Admin 界面）。闸门在 `prototypes/admin-b/src/publishing/publish-gate.ts`，搬之前先读本文第 8 节第 5、6 条——**它有两个已知缺陷，不要原样搬**。
+闸门参考在 `prototypes/admin-b/src/publishing/publish-gate.ts`。第 6 块完成后才进入第 7 块 Admin 界面。
 
 ## 8. 必须随结论报告、不得当作已解决的差异
 
@@ -199,7 +208,7 @@ ADR 第 9.3 节已经把形态定下来了，接手时按它做，不要重新�
 
 ### 8.2 只属于原型的
 
-12. 尖峰的会话在内存里、cookie 没有 `Secure`、限速全局计数——**生产必须重做，第 7 节已列**。
+12. 尖峰的会话在内存里、cookie 没有 `Secure`、限速全局计数。**生产已在 ADR 21.4 重做**；此条只用于提醒不要从尖峰回抄。
 13. Vite 开发服务器会把项目树端出去，`admin-b/.data/admin.db` 曾可无会话下载（已 `server.fs.deny` 挡掉）。生产不用 Vite dev server，不适用。
 14. 预览是渲染同源，不是外观同源。生产 Admin 直接跑在站点自己的构建里，这条会自然消失，**但不要因此以为外观同源是免费的**。
 15. 尖峰库里已经保存的版本仍带着 `![]()` 填充图片（13.18 修的是以后不再加）。**生产库是新的，不受影响**；如果将来要从尖峰库迁数据，这条要重新变成阻塞项。
