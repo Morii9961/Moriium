@@ -1,9 +1,9 @@
-# 交接：Phase 6A 生产后端已开工
+# 交接：Phase 6A 生产后端，8/12
 
 > 日期：2026-08-30
 > 交出方：Claude
 > 接手方：Codex
-> 状态：**Phase 1 已收尾，ADR 0002 已批准并开工。生产后端 12 块里做完 8 块，读者站一直可用；生产 Admin 已能登录、写作、导入并选择图片、预览和操作发布指针，下一块是建账户命令。**
+> 状态：**生产后端 12 块里做完 8 块，全部已推上 `origin/main`。读者站一直可用。生产 Admin 能登录、写作、导入并选择图片、预览、发布、回滚、撤下——但只对数据库里已存在的账户，因为建账户还没有入口。下一块就是补那个入口。**
 
 这份文档取代 [`handoff-codex-prototype-b.md`](handoff-codex-prototype-b.md) 作为当前交接。那一份停在「Phase 1 收尾、等 Morii 批准 ADR 0002」的状态，现在已经不成立。它保留为历史依据，**不要就地改写**——里面第 7 节那 19 条差异仍然有效，本文第 8 节按新阶段重新分了类。
 
@@ -35,21 +35,18 @@ Morii 已于 2026-08-30 用过原型 B 后**选定 B 路线、取消原型 A**�
 
 ## 2. 当前状态（实测，非转述）
 
-分支 `main`。本轮按小块继续创建本地提交，尚未推送。以这条命令的实时结果为准；本文件所在提交不写自引用 hash：
+分支 `main`，**本地与 `origin/main` 一致**：2026-08-30 经 Morii 逐次授权推送过一次，把第 5 到第 8 块共 11 个提交一起推了上去（`50a59d0..32a0c9d`）。接手时先跑这条确认没有落后：
 
 ```bash
-git log --oneline origin/main..HEAD
+git fetch origin && git log --oneline origin/main..HEAD && git status --short
 ```
 
+第 8 块的三个提交，读顺序就是这个顺序：
+
 ```text
-（本文件所在提交）Pick images from the media library instead of typing paths
-0f4b36a  Import media through a sanitizer that re-reads its own output
-ae22b72  Add the production author editor
-984def8  Prepare the production author editor runtime
-1970ebb  Add the production article API and publish gate
-311777d  Share the author API request boundary
-1218bf4  Add production author sessions and login
-0a72146  Hand the production phase over to Codex
+0f4b36a  Import media through a sanitizer that re-reads its own output   服务端管线
+d8274d4  Pick images from the media library instead of typing paths      编辑器与那个路由缺陷
+32a0c9d  Record the media import block and the route defect it uncovered 文档
 ```
 
 第 8 块的末次生产验证，2026-08-30 跑出来的：
@@ -62,7 +59,9 @@ pnpm split                                      → 158 个公开文件不依赖
 check-links / audit-public-tree                 → 均通过
 ```
 
-另用 `astro dev` 起真实运行时逐条验证了 13 条作者 API 路径全部返回 JSON。没有重跑原型 118 例。本轮构建没有再遇到沙箱里那次 esbuild `spawn EPERM`；文件系统那边遇到了一个新的等价问题，见 5.4。
+另用 `astro dev` 起真实运行时逐条验证了 13 条作者 API 路径全部返回 JSON 而不是 404 页面。
+
+**没有做的两件，别当成做过了**：一是没有登录后的浏览器验证——代 Morii 输入口令不在可做的范围内，所以媒体库面板的渲染依据是处理器层集成用例加三份运行时模板通过 Vue 编译器，不是端到端点击；二是没有重跑原型 118 例。本轮构建没有再遇到沙箱里那次 esbuild `spawn EPERM`，但文件系统那边遇到了一个新的等价陷阱，见 5.4 第三条。
 
 ## 3. 生产后端：12 块里做完 8 块
 
@@ -130,6 +129,8 @@ check-links / audit-public-tree                 → 均通过
 
 Vue/Tiptap 只从按需 `/admin` 加载。`check-render-split` 改为扫描从公开页面实际可达的资源；曾临时让首页引用 Admin entry 做负向验证，检查抓到后已撤销临时改动。原型里的列表和编辑器已经实测过，本块没有重复跑原型测试。
 
+**这一块交出去时是坏的，第 8 块才发现。**`trailingSlash: 'always'` 同样作用于 API 路由，而 `src/admin/api.ts` 里 15 处调用都没写结尾斜杠，Astro 用 404 页面回答了全部——Admin 挂得出登录壳，却够不到自己的 API。已在 `d8274d4` 修好，并由 `tests/admin-client-routes.test.mjs` 钉住。读 4.5 时把这件事一起记住：**当时的验证是「登录壳挂载成功」，那句话是真的。**
+
 ### 4.6 媒体导入与媒体库（ADR 21.7）
 
 `scripts/lib/media.mjs`、`src/server/media/`、`src/server/http/media-handlers.ts`、`src/pages/api/media/`、`src/admin/MediaLibrary.ts`。
@@ -139,7 +140,10 @@ Vue/Tiptap 只从按需 `/admin` 加载。`check-render-split` 改为扫描从�
 - 公开路径由服务端从净化后的字节推导。摘要取自输出，所以重复导入会与自己那一行冲突而不是多出一份副本；
 - GIF 与 SVG 明确拒收，理由写在 `IMPORTABLE_FORMATS` 上方；
 - 编辑器里图片路径框已改为只读，插图只能从媒体库选。选中图片时再选一张是替换；
-- 缩略图走 `/api/media/<id>/file/`，因为导入的文件要到下一次导出才进公开目录。该路由要作者会话，且只能取出 `media_assets` 指名的文件。
+- 缩略图走 `/api/media/<id>/file/`，因为导入的文件要到下一次导出才进公开目录。该路由要作者会话，且只能取出 `media_assets` 指名的文件；
+- 媒体根由 `MORIIUM_MEDIA_ROOT` 决定，Linux 默认 `/var/lib/moriium/media`，已写进 `.env.example`。**它和数据库、会话一样必须在 release 目录之外**（5.2 第 2 条）。
+
+**`src/server/http/boundary.ts` 现在是唯一的授权路径。**第 8 块把 `authorizeRequest`（会话 → Host → Origin → CSRF）和 `responseForError` 从 `article-handlers.ts` 提了上去，媒体端点复用同一份。**新增端点不要再抄一份守卫顺序**——两份实现就是两次漏掉某一步的机会。
 
 **manifest 导出仍未接线**（第 8.2 节），它属于第 10 块。数据库里的 `exif_json` 一律是 `{}`：sharp 只给原始 EXIF 缓冲区，要保留可公开的机身字段得加解析依赖，**要先问 Morii**。
 
@@ -157,7 +161,9 @@ Vue/Tiptap 只从按需 `/admin` 加载。`check-render-split` 改为扫描从�
 
 不读 `.private/posts/`、真实口令、原始照片。`prototypes/fixtures/` 是只读输入。
 
-**仓库已公开发布**（<https://github.com/Morii9961/Moriium>）。Morii 授权每完成一小块就 commit。**push 是逐次授权的**：本轮 Morii 要求推送过一次并已执行，这不构成后续授权，下次仍要先问。部署仍未授权。
+**仓库已公开发布**（<https://github.com/Morii9961/Moriium>）。Morii 授权每完成一小块就 commit。**push 是逐次授权的**：2026-08-30 Morii 明确要求推送，第 5 到第 8 块共 11 个提交已推上去；那次授权只覆盖那一次，**下次推送仍要先问**。部署仍未授权。
+
+`.env.example` 本阶段被改过两次（数据库与会话路径由 Codex 加，媒体根由第 8 块加）。它不在上面那张「先问 Morii」的表里，但改它等于改部署合同的输入面，**只在新增一个运行时确实需要的变量时动它**，并且同一轮要在 ADR 或本文里说明这个变量是什么。
 
 ### 5.2 三条不能被顺手破坏的设计
 
@@ -187,6 +193,8 @@ Vue/Tiptap 只从按需 `/admin` 加载。`check-render-split` 改为扫描从�
 # 生产（当前工作面）
 pnpm verify                           # astro check + 89 个用例 + 构建 + 渲染分裂 + 链接 + 公开树审计
 pnpm build                            # 产物分 dist/client 与 dist/server
+pnpm dev                              # 真实运行时；astro dev stop 停掉
+node --test --test-isolation=none tests/admin-*.test.mjs   # 只跑后台那几套
 
 # 原型（参考实现，不再开发）
 pnpm -C prototypes dev:b              # 起原型 B，浏览器开 http://localhost:4320/，口令 moriium-prototype
@@ -197,13 +205,32 @@ pnpm -C prototypes roundtrip:report   # Markdown round-trip 丢失表
 pnpm -C prototypes baselines:verify   # 与 dist/ 比对，需先 pnpm build
 ```
 
-## 7. 下一块：建账户命令
+本机三处运行时数据的位置（Linux 值见 `.env.example`，Windows 本地开发默认落在 `.astro/` 下，都已被 `.gitignore` 挡住）：
 
-媒体导入已完成，见 ADR 21.7。本机现在具备登录、列表、新建、编辑、导入图片、选图、预览、自动保存、发布、回滚和撤下入口。
+| 环境变量 | Windows 默认 | 是什么 |
+| --- | --- | --- |
+| `MORIIUM_DATABASE_PATH` | `.astro/admin.db` | SQLite |
+| `MORIIUM_SESSION_DIRECTORY` | `.astro/sessions/` | Astro session driver |
+| `MORIIUM_MEDIA_ROOT` | `.astro/media/` | 已净化的公开衍生图 |
 
-下一块是第 9 块：一条**只能在服务器上跑**的建账户命令。现在建账户只能靠直接调 `createAccount`，那不是可以交给 Morii 的东西。注意两件已经实测到的事：`createAccount(db, input, now)` 的第三个参数是必填的，漏掉会在插入时抛 `now is not a function`；口令下限 24 位（ADR 第 10.4 节），命令要在读口令之前就说清这一条。
+**本机登录目前没有正规办法**，这正是第 9 块要修的。第 8 块期间用过的临时办法是起一个 Node 进程直接调 `createAccount(db, { name, password }, now)`，验完随手把 `.astro/admin.db` 删掉——**不要把这个办法写进任何脚本或文档当作流程**，它只是第 9 块存在的理由。
 
-命令不得把口令写进任何日志、命令行历史或数据库以外的文件，也不得为了方便加一条 HTTP 建账户入口——账户创建留在服务器上，是第 10.1 节那套暴露面推论的一部分。
+## 7. 下一块：建账户命令（第 9 块）
+
+媒体导入已完成，见 ADR 21.7。剩下的四块里，第 9 块最小，也最挡路：**后台已经完整可用，却没有正规办法造出第一个账户。**
+
+`src/server/accounts.ts` 里 `createAccount`、`findAccount`、`listAccounts`、`authenticate` 都在，缺的只是外壳。写它的时候有六件事已经知道：
+
+1. **`createAccount(db, input, now)` 的第三个参数是必填的。**漏掉不会在调用处报错，会在插入时抛 `now is not a function`——第 8 块实测踩过。
+2. **口令下限 24 位**（ADR 第 10.4 节把口令强度定成整套东西的地基）。命令要在读口令**之前**说清这一条，而不是让人输完再拒绝。
+3. **口令不得进入日志、命令行历史或数据库以外的任何文件。**因此不要用 `--password` 这样的参数位——它会留在 shell 历史和 `ps` 输出里。从 stdin 读，不回显，读两遍比对。
+4. **不要为了方便加一条 HTTP 建账户入口。**账户创建留在服务器本机，是第 10.1 节那套「公网加口令」暴露面推论的一部分；加一个远程入口等于把那段推理作废。
+5. **命令要能停用账户，不能删除账户。**`accounts.disabled_at` 是停用而非删除，因为历史版本和审计行引用作者（schema 注释里写了理由）。删账户会打断那条引用。
+6. **两个账户权限完全相同**，不做角色（ADR 第 9.1 节）。命令不要引入 role 参数。
+
+按第 9 节的写法，先让它失败一次：短口令被拒、重名被拒、停用后 `authenticate` 返回空、口令不出现在任何输出里——每条都要有能红的用例，不要只写一条「能建出来」。
+
+做完第 9 块之后是第 10 块（导出 + 构建 + 原子换站），它的两处已知入口：`markLive()` 是导出成功之后才调用的第二步；ADR 第 8.2 节要求 manifest 从 `media_assets` 生成而不是手写，那件事现在仍然没做。
 
 ## 8. 必须随结论报告、不得当作已解决的差异
 
@@ -211,10 +238,10 @@ pnpm -C prototypes baselines:verify   # 与 dist/ 比对，需先 pnpm build
 
 ### 8.1 会进生产的
 
-1. **发布闸门会误挡讲 Markdown 语法的文章。**`imageReferencesIn` 用正则扫全文，不区分围栏代码块，实测 ` ```markdown ` 围栏里的示例图片会被当成真实引用而被拒。方向是安全的一侧，但**搬进生产前必须改成按解析结果取图片引用**。
-2. **发布闸门只覆盖数据库存得下的字段。**`publishCandidate` 是从 schema 上 `pick` 出来的子集。生产 schema 现在 14 个字段全有了（4.2），所以**搬迁时这个子集应当一并扩到全集**，否则会保留一个没有理由的缺口。
+1. ~~**发布闸门会误挡讲 Markdown 语法的文章。**~~ 第 6 块已解决（ADR 21.5）：生产闸门读 mdast 的 `image`/`imageReference` 节点，围栏里的示例是 `code` 节点，不再被当成引用。原始 HTML `<img>` 直接拒绝。
+2. ~~**发布闸门只覆盖数据库存得下的字段。**~~ 第 6 块已解决（ADR 21.5）：`publishCandidate` 已扩到 `src/content.config.ts` 的全部 14 个字段，并额外检查 Markdown 正文。
 3. **`@tiptap/markdown` 是 Beta，且已实测会破坏 Moriium 的语法。**11/11 保真**完全依赖** `source-nodes.ts` 与 `image-node.ts`，不是 Tiptap 自身的能力。升级 Tiptap 时必须重跑 `roundtrip:report`。这套节点搬进生产 Admin 时要整体搬，不能只搬编辑器。
-4. **序列化器不吐末尾换行。**round-trip 输出比原文少一个字符。接保存路径时要补回，否则每次保存都会给文件添一行无谓 diff。
+4. **序列化器不吐末尾换行。**round-trip 输出比原文少一个字符。**这一条现在作用在生产保存路径上**：编辑器保存的是 `editor.getMarkdown()`，所以每次保存都可能给导出的 Markdown 少一个末尾换行。第 10 块把版本导出成文件时必须补回，否则每次发布都带一行无谓 diff。
 5. **`marked@17.0.6` 是依赖表之外的直接依赖**，Morii 已追认。升级 Tiptap 时若 marked 跨大版本，这个直接 pin 需要一并调整。
 6. **`scripts/encrypt-post.mjs` 仍有自己的 `featuresOf()`**，与 `shared/content-blocks.ts` 的 `markersFor` 是两份实现。合并要改生产脚本，一直没做。
 7. ~~**图片属性面板不校验路径，也没有媒体选择器。**~~ 第 8 块已解决（ADR 21.7）：路径框只读，插图只能从已净化、已登记的媒体库里选。
@@ -222,15 +249,18 @@ pnpm -C prototypes baselines:verify   # 与 dist/ 比对，需先 pnpm build
 9. **自动保存失败之后不会自动重试。**正文不会丢，状态也不谎称已保存，但**作者停手不打字就永远不会再试**。加退避重试要连着「重试期间显示什么、几次以后放弃」一起定，是界面决定。
 10. **Admin 直接暴露在公网。**Morii 在 ADR 第 1.1 节撤掉了客户端证书。后台代码自身的漏洞现在直接暴露，ADR 0001 第 5 节的测试标准在这里比之前更重要。
 11. **不做告警**（Morii 定夺，ADR 第 12 节）。可以查，但出事不会通知你，残余风险写在 12.2。
+12. **媒体 manifest 仍然没有导出。**ADR 第 8.2 节要求构建时从 `media_assets` 生成；现在 `media_assets` 有了、导入有了，导出那一半还没接。属于第 10 块，**不要以为第 8 块把它做完了**。
+13. **`media_assets.exif_json` 一律是 `{}`。**闸门的可公开 EXIF 白名单（Make、Model、FocalLength 等）因此永远是空集合——不是拒绝，是没有数据。sharp 只给出原始 EXIF 缓冲区，要保留机身字段得加一个解析依赖，**新依赖要先问 Morii**。
+14. **媒体没有删除入口，也没有引用视图。**导入之后既不能删，也看不出哪些资源没有被任何文章引用。删除要连着「删掉一张已经发布过的图会怎样」一起想，那是内容决定，不是随手加个按钮。
 
 ### 8.2 只属于原型的
 
-12. 尖峰的会话在内存里、cookie 没有 `Secure`、限速全局计数。**生产已在 ADR 21.4 重做**；此条只用于提醒不要从尖峰回抄。
-13. Vite 开发服务器会把项目树端出去，`admin-b/.data/admin.db` 曾可无会话下载（已 `server.fs.deny` 挡掉）。生产不用 Vite dev server，不适用。
-14. 预览是渲染同源，不是外观同源。生产 Admin 直接跑在站点自己的构建里，这条会自然消失，**但不要因此以为外观同源是免费的**。
-15. 尖峰库里已经保存的版本仍带着 `![]()` 填充图片（13.18 修的是以后不再加）。**生产库是新的，不受影响**；如果将来要从尖峰库迁数据，这条要重新变成阻塞项。
-16. 窄屏下右栏面板要滚很久才够得到；移动模拟下自动化点不动（工具限制）；登录回车提交没被自动化验证过。都属于界面决定或工具限制，生产界面重做时一并处理。
-17. **Vite 大分包警告仍在**，仍在 Phase 0 的体积测量清单里。
+15. 尖峰的会话在内存里、cookie 没有 `Secure`、限速全局计数。**生产已在 ADR 21.4 重做**；此条只用于提醒不要从尖峰回抄。
+16. Vite 开发服务器会把项目树端出去，`admin-b/.data/admin.db` 曾可无会话下载（已 `server.fs.deny` 挡掉）。生产不用 Vite dev server，不适用。
+17. 预览是渲染同源，不是外观同源。生产 Admin 直接跑在站点自己的构建里，这条会自然消失，**但不要因此以为外观同源是免费的**。
+18. 尖峰库里已经保存的版本仍带着 `![]()` 填充图片（13.18 修的是以后不再加）。**生产库是新的，不受影响**；如果将来要从尖峰库迁数据，这条要重新变成阻塞项。
+19. 窄屏下右栏面板要滚很久才够得到；移动模拟下自动化点不动（工具限制）；登录回车提交没被自动化验证过。都属于界面决定或工具限制，生产界面重做时一并处理。
+20. **Vite 大分包警告仍在**，仍在 Phase 0 的体积测量清单里。
 
 ## 9. 测试的写法约定
 
