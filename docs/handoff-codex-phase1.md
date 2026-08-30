@@ -1,6 +1,6 @@
 # 交接：Phase 1 原型骨干已就位
 
-> **已被取代。**当前交接是 [`handoff-codex-prototype-b.md`](handoff-codex-prototype-b.md)。
+> **已被取代。**当前交接是 [`handoff-codex-phase6-production.md`](handoff-codex-phase6-production.md)。
 > 本文件停在「骨干就位、两个原型都还不能被操作」的状态，已经不成立：Tiptap 已接入并测过保真，源码块可编辑，图片有真节点，原型 B 已经可以被实际打开使用。保留为历史依据，不要就地改写。
 
 > 日期：2026-08-29

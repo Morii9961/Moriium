@@ -1,5 +1,8 @@
 # 交接：Morii 已选定原型 B
 
+> **已被取代。**当前交接是 [`handoff-codex-phase6-production.md`](handoff-codex-phase6-production.md)。
+> 本文件停在「Phase 1 收尾、等 Morii 批准 ADR 0002」的状态，已经不成立：ADR 0002 已批准并开工，工作面已从 `prototypes/` 移到 `src/server/`。第 7 节那 19 条差异仍然有效，新交接第 8 节按新阶段重新分了类。保留为历史依据，不要就地改写。
+
 > 日期：2026-08-29
 > 决策更新：2026-08-30
 > 进度更新：2026-08-30（发布闸门、图片属性面板、生产同源预览全部完成）

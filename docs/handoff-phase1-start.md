@@ -1,6 +1,6 @@
 # 交接：Phase 1 开工
 
-> **已被取代。**当前交接是 [`handoff-codex-prototype-b.md`](handoff-codex-prototype-b.md)。
+> **已被取代。**当前交接是 [`handoff-codex-phase6-production.md`](handoff-codex-phase6-production.md)。
 > 本文件描述的是「Phase 1 已批准、代码尚未开始」的状态，已经不成立：骨架、语料、基线、共享契约、B 的存储层与安全层都已完成。保留为历史依据，不要就地改写。
 
 > 日期：2026-08-29
