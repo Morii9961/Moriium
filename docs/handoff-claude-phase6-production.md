@@ -1,33 +1,35 @@
-# 交接给 Claude：Phase 6A 仓库侧完成，下一步是故障矩阵
+# 交接给 Claude：Phase 6A 本机故障矩阵完成，下一步是影子部署验收
 
 > 日期：2026-08-31
 > 交出方：Codex
 > 接手方：Claude
-> 当前结论：**Phase 6A 第 1–12 块的仓库侧实现已经接通，第 13 块已把 5 篇固定 fixture/测试文章迁移为数据库草稿。现在进入故障矩阵，不迁移正式内容，也不连接或部署 VPS。**
+> 当前结论：**Phase 6A 第 1–13 块和六项故障矩阵的仓库/本机工作已经完成。下一阶段是影子 VPS 安装与验收，但尚未获得本轮部署授权，也没有迁移正式内容。**
 
-这份文档是当前生产工作的入口。[`handoff-codex-phase6-production.md`](handoff-codex-phase6-production.md) 保留前九块的详细实施记录；本文件记录第 10–13 块之后的 checkout、边界、验证证据和下一步。
+这份文档替代上一版同名交接，作为当前生产工作的入口。[`handoff-codex-phase6-production.md`](handoff-codex-phase6-production.md) 保留前九块的详细实施记录；当前状态以本文件、[`adr-0002-phase5-production.md`](adr-0002-phase5-production.md) 第 21.9–21.19 节和 [`enouia-todo.md`](enouia-todo.md) 第 06A 节为准。
 
-## 1. 当前 checkout
+## 1. Checkout 与推送状态
 
-交接文档修改前的 Git 状态：
+生成本文前的状态：
 
 ```text
 branch: main
-HEAD: bb9cdf2 Migrate approved fixture content into database drafts
+HEAD: 3b54423 Complete the local production failure matrix
 origin/main: 5c874ca Give the export and the release their own pnpm commands
-ahead / behind: 8 / 0
+ahead / behind: 11 / 0
 worktree: clean
 ```
 
-本文提交会位于这 8 个本地提交之后，不在文档里写自己的 hash。接手时以实际命令为准：
+本文提交后，Morii 已明确要求把 `main` 的全部本地提交推送到 `origin`。因此接手时不要沿用上面的历史 ahead 数字，应先核对实际状态：
 
 ```bash
 git status --short --branch
-git log --oneline --decorate -12
-git diff --stat origin/main..HEAD
+git log --oneline --decorate -15
+git rev-list --left-right --count origin/main...HEAD
 ```
 
-这 8 个提交都还没有推送：
+推送目标是 `main` 与 `origin/main` 同步，ahead/behind 为 `0 / 0`。本文不写自己的提交 hash；若推送没有达到这个状态，以实际 Git 输出为准，不要假定远端已经更新。
+
+从原远端基线 `5c874ca` 到本文之前共有 11 个本地提交：
 
 ```text
 82bab04  Back up and drill the production database
@@ -38,102 +40,126 @@ c11c76e  Add the Hanshin page layouts
 fc0b980  Add the Hanshin design study routes
 7cb08c9  Extract the production content schema
 bb9cdf2  Migrate approved fixture content into database drafts
+c8b758f  Hand the Phase 6A fault matrix to Claude
+2a3ae51  Exercise API and database failure paths
+3b54423  Complete the local production failure matrix
 ```
 
-其中 `82bab04`、`73c4301`、`7cb08c9`、`bb9cdf2` 属于 Phase 6A；`7a3ce3a` 到 `fc0b980` 属于独立的 Hanshin 设计研究。不要把设计研究当成生产视觉定案，也不要为了继续后端工作改动它。
+其中 Hanshin 三个主体提交和字体修复仍是隔离的设计研究，不是生产视觉定案。其余提交属于 Phase 6A 生产链路、证据或交接。
 
 ## 2. 现在到了哪一步
 
-| 块 | 当前状态 | 尚缺什么 |
+| 工作块 | 当前状态 | 仍缺什么 |
 | --- | --- | --- |
-| 1–9 | 完成 | 详细记录见旧交接与 ADR 21.1–21.8 |
-| 10. 导出、构建、原子换站 | 代码完成 | 尚未在真实 VPS 执行 |
-| 11. 在线备份与恢复演练 | 本机代码和隔离演练完成 | 异地传输、媒体同步、VPS 完整 RTO 仍无证据 |
-| 12. systemd、Nginx、fail2ban 与部署 | 仓库侧完成 | 尚未安装配置、打开 `DEPLOY_ENABLED` 或做生产验收 |
-| 13. fixture/测试文章迁移 | 完成 | 只写临时数据库草稿；没有迁移正式内容、发布或上线 |
+| 1–9. 数据库、认证、Admin、媒体、发布闸门 | 仓库侧完成 | 真实作者登录与浏览器验收 |
+| 10. 导出、构建、原子换站 | 代码与失败顺序完成 | 真实 VPS 首次执行 |
+| 11. 在线备份与恢复演练 | 本机备份和隔离恢复完成 | 异地传输、媒体同步、完整 VPS RTO |
+| 12. systemd、Nginx、fail2ban、部署脚本 | 仓库侧完成 | 安装配置、打开部署开关、生产验收 |
+| 13. fixture/测试文章迁移 | 完成 | 只进临时数据库草稿；正式内容未迁移 |
+| 六项故障矩阵 | 仓库/本机完成 | VPS 停 Node 静态验收仍属于第 12 块生产证据 |
 
-第 13 块之后，Phase 6A 的下一条明确工作是 [`enouia-todo.md`](enouia-todo.md) 第 06A 节的故障矩阵：
+不要继续增加 Phase 6A 功能。下一个工程阶段是影子部署验收：先取得 Morii 对具体 VPS、备份目标和操作窗口的当轮授权，再安装和验证；没有这些信息时只做只读盘点或文档准备。
 
-- API 断开；
-- SQLite 锁；
-- 备份恢复；
-- 草稿越权；
-- 媒体故障；
-- Node 停止后的静态回退。
+## 3. 本轮完成的六项故障矩阵
 
-不要直接把六项一次性铺开。先盘点现有用例已经覆盖到哪里，再完成一个最小、可独立验证和提交的故障切片，避免重复写已经存在的数据库锁或备份单元测试。
+### 3.1 Admin API 断开
 
-## 3. 第 10–13 块留下的生产合同
+`src/admin/api.ts` 现在统一区分可读的服务端拒绝、浏览器网络 `TypeError` 和其他程序错误。登录/列表、文章编辑和媒体导入各自给出明确断网提示，不再把 `TypeError: Failed to fetch` 暴露给作者。文章编辑器说明本次没有保存、改动仍在页面中；本轮没有擅自加入自动重试。
 
-### 3.1 公开路径始终是静态站
+### 3.2 生产 SQLite 写锁
 
-Astro 的 `output` 继续是 `static`。公开首页、文章、归档、分类、标签、搜索、RSS 和 Sitemap 都预渲染；只有 `/admin/*` 与 `/api/*` 进入 Node。Node 停止时，Nginx 仍必须从 `current` 直接服务公开站。Vue、Tiptap、ProseMirror 和 `node:sqlite` 不得进入公开可达 bundle。
+真实双连接测试发现并修正了 `ArticleStore.#transaction()` 的边界：`BEGIN IMMEDIATE` 原先在 `try` 外，真正抢锁失败会绕过 `asStoreError()` 并返回 500。现在事务起点也经过统一分类，文章接口返回 `db-locked`/503，`articles` 与 `versions` 都不留下残行。
 
-### 3.2 发布与上线分属两个指针
+### 3.3 本机备份恢复
 
-作者发布只更新 `published_version_id`。导出、构建、上线前检查、原子换链和 curl 健康检查全部成功后，才能写 `live_version_id`。换站前失败不得碰 `current` 或上线指针；换站后健康检查失败必须恢复旧链接，也不能记录上线成功。
+复用第 11 块的 7 个用例，没有另造恢复代码。它们覆盖旧副本保全、损坏副本拒绝、干净副本迁移、持久写入、关闭和只读重开。异地下载、换生产库、重启 Admin、重建站点和完整计时仍未发生；RTO 小于等于 30 分钟仍是目标。
 
-### 3.3 数据不进入 release
+### 3.4 草稿越权
 
-数据库、会话、净化媒体、导出内容与备份都放在 `/var/lib/moriium/`。`releases/` 只保存不可变静态产物，`workspace/` 保存服务端代码和依赖。数据库在线备份只能由持有常驻 `DatabaseSync` 的进程执行，外部任务以后只负责搬走已经完成并校验过的副本。
+匿名文章列表、单篇详情和未保存预览都返回 401；新增单篇详情断言确认响应不含最新自动保存。公开导出只读 `published_version_id`，未发布文章不导出，已发布文章也不会被较新的自动保存覆盖。Morii 与 Enouia 权限相同，本轮没有引入按文章所有者隔离。
 
-### 3.4 fixture 迁移不是正式内容迁移
+### 3.5 媒体故障
 
-`pnpm content:migrate-fixtures <Morii|Enouia>` 只接受四篇虚构 Markdown fixture 和 `reader-capabilities` 验收文章，共 5 篇固定来源。命令不接收路径。导入前全部经过生产 schema 与身份冲突预检，整批在一个事务里写入；重复执行保留已有编辑。
+媒体 HTTP 接口在真实 SQLite 写锁下返回 `db-locked`/503，`media_assets` 保持 0 行，已净化但未落库的 WebP 会被删除。反向不一致也有明确结果：数据库有记录但文件丢失时，作者收到 `validation-failed` 和存储缺失说明；匿名请求仍先停在 401。
 
-这些文章只创建数据库版本。`published_version_id` 与 `live_version_id` 都保持 `NULL`，SVG fixture 也不会冒充已净化媒体。当前没有运行默认 `.astro/admin.db`，没有连接 VPS，更没有发布任何文章。
+### 3.6 静态回退
 
-### 3.5 Hanshin 仍是隔离研究
+部署/渲染契约确认公开文件默认由静态目录提供，只有 `/admin/` 与 `/api/` 进入 Node。本机没有启动 Astro Admin，而是用 Python 直接托管 `dist/client`：三语首页与 sitemap 都返回 200，静态树中的 `/admin/` 返回预期的 404。
 
-`/design/hanshin/` 已有三语首页、文章、归档、分类、标签、写作页、关于页和懒加载搜索，并修正了分裂构建后的字体审计路径。它是单独提交的设计研究，不改变生产路由，不表示已经完成三方案比较或选定生产方向。
+这个结果只证明构建产物不依赖 Admin Node，不能代替真实 VPS 上停止 `moriium-admin.service` 后由 Nginx 继续服务公开页的验收。
 
-## 4. 最近的验证证据
+## 4. 最新验证证据
 
-以下是各源代码提交写入 ADR/TODO 的提交前证据，接手时不要把它们误写成 VPS 证据：
+以下结果都在 `3b54423` 的代码与测试上重新运行：
 
 ```text
-第 11 块专项：tests/admin-backup.test.mjs 7/7 通过
-第 11 块全套：140 例，139 通过，0 失败，1 个 Windows symlink 跳过
-第 12 块专项：tests/deployment-contract.test.mjs 5/5 通过
-第 12 块脚本：Git Bash `bash -n deploy/bin/deploy-code.sh` 退出码 0
+pnpm check
+  → Astro 144 个文件，0 errors / 0 warnings / 0 hints
 
-第 13 块完整门禁：
-  pnpm verify
-  → Astro 143 个文件，0 条诊断
-  → 150 例 / 31 套，149 通过，0 失败，1 跳过
-  → build、links、public-tree audit、render split 通过
+node --test --test-isolation=none tests/*.test.mjs
+  → 沙箱内：154 tests / 152 pass / 1 fail / 1 skip
+  → 唯一 fail：release-host 启动 Node 子进程时 spawnSync EPERM
 
-  pnpm -C prototypes check
-  → exit 0
+node --test --test-isolation=none tests/admin-release.test.mjs（沙箱外）
+  → 22 tests / 21 pass / 0 fail / 1 Windows symlink skip
 
-  pnpm -C prototypes fixtures:check
-  → 4 篇公开 fixture、1 篇受保护 fixture、2 个媒体文件、
-    11 种内容块、4 份 baseline 通过
+合并证据
+  → 154 tests / 153 pass / 0 assertion failures / 1 platform skip
+
+故障矩阵专项
+  → article API + export + media：34 / 34
+  → deployment contract + render split：7 / 7
+
+pnpm build（沙箱外）
+  → exit 0；内容、指令和媒体检查通过；生产构建完成
+
+pnpm links
+  → exit 0；本地链接通过
+
+pnpm run audit
+  → exit 0；公开树未发现私有路径、退役受保护内容或口令 frontmatter
+
+pnpm split
+  → exit 0；192 个公开文件不依赖 Node；
+    190 个公开可达 HTML/CSS/JS 文件不含 Admin 代码
 ```
 
-完整门禁已经在最新源代码提交上运行过；本交接只改 Markdown，不要无条件重复耗时门禁。若后续改了代码，再按改动面运行新证据。
+`pnpm verify` 的默认 Node 隔离在当前 Windows 沙箱中会因 `spawn EPERM` 无法启动测试文件，因此本轮没有把单一命令的非零退出写成绿灯。上面列出的是逐项重跑和 release-host 沙箱外复核后的真实结果。
+
+本机静态 HTTP 探测：
+
+```text
+/zh/               → 200
+/ja/               → 200
+/en/               → 200
+/sitemap-index.xml → 200
+/admin/            → 404（纯静态树的预期结果）
+```
 
 ## 5. 接手顺序
 
-1. 读 [`AGENTS.md`](../AGENTS.md)，它是当前唯一有约束力的项目合同。
-2. 读 [`adr-0002-phase5-production.md`](adr-0002-phase5-production.md) 第 21.9–21.13 节，尤其区分“仓库侧完成”和“真实 VPS 已验证”。
-3. 读 [`enouia-todo.md`](enouia-todo.md) 第 06A 节，以故障矩阵为下一入口。
-4. 搜索现有测试对六类故障的覆盖，先写缺口清单，不重复已有证据。
-5. 只完成一个最小故障切片，运行对应专项检查，审阅 diff 后单独提交。
+1. 读仓库根目录 [`AGENTS.md`](../AGENTS.md)，它是当前共享合同。
+2. 运行第 1 节的 Git 命令，确认本次 push 是否已经让 `main` 与 `origin/main` 同步。
+3. 读 ADR 21.9–21.19，尤其区分仓库/本机证据与真实 VPS 证据。
+4. 读 [`deployment.md`](deployment.md) 和 `deploy/`，只读核对首装、回滚、恢复和验收步骤。
+5. 若 Morii 明确授权影子部署，再先确认主机、数据目录、备份目的地、维护窗口与回滚点；一次完成一个可恢复步骤并留下真实输出。
+6. 第一个 VPS 验收切片应是：安装配置但保持可回滚，验证 Admin 只监听回环地址，随后停止 Admin 服务并确认三语公开页仍由 Nginx 返回 200。
 
 ## 6. 仍未完成或未经授权
 
 - 没有用 Morii 的真实口令做生产登录后的浏览器端到端验证；
-- 没有迁移正式文章，也没有把任何数据库草稿发布或标记为上线；
-- 没有安装 VPS 配置、打开部署开关或执行真实原子换站；
+- 没有迁移正式文章，没有发布数据库草稿，也没有写入 `live_version_id`；
+- 没有安装 VPS 配置、打开 `DEPLOY_ENABLED` 或执行真实原子换站；
 - 没有选定异地备份目标，数据库异地保留 30 天与媒体每日同步尚未落地；
-- 没有从异地副本完成 VPS 计时恢复，RTO 小于等于 30 分钟仍是目标，不是结果；
-- fail2ban 的初始阈值没有用真实访问日志校准；
+- 没有从异地副本完成 VPS 计时恢复，RTO 小于等于 30 分钟仍无生产证据；
+- 没有在 VPS 上停 Admin 服务并验证静态公开站；
+- fail2ban 初始阈值没有用真实访问日志校准；
 - Admin 仍只显示“等待导出”，没有经过评审的自动构建或重试入口；
 - `.gitignore` 是否加入 `src/content/posts/exported/`、`public/media/`、`src/generated/` 仍待决定；
-- Hanshin 设计研究没有取得生产视觉选择授权；
-- 本地提交尚未推送，VPS、GitHub Actions 和远端状态都没有在本轮改变。
+- Hanshin 设计研究没有取得生产视觉选择授权。
 
-## 7. 交接边界
+## 7. 不可越过的边界
 
-继续工作时不要读取或迁移 `.private/posts/`，不要接触真实口令、原图或正式内容；不要部署、推送或改变远端状态，除非 Morii 在当轮明确授权。故障矩阵完成一个逻辑块后，更新 ADR/TODO/本交接，写清改动文件、专项证据、残余风险和下一个入口，再单独提交。
+不要读取或迁移 `.private/posts/`，不要接触真实口令、原图或正式内容。不要把 fixture 草稿发布出去。不要因为仓库侧故障矩阵完成就宣称 VPS 已上线、异地备份已建立或 RTO 已达标。
+
+本轮授权只包括提交并推送当前 `main` 的仓库修改，不包括部署、发布站点、运行数据库迁移或改变 VPS。接手后任何远端基础设施操作都需要 Morii 在当轮重新明确授权。
