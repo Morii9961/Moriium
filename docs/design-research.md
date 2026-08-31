@@ -1,5 +1,7 @@
 # Design research record
 
+The canonical public visual/design constitution and design-Skills specification is [`DESIGN.md`](../DESIGN.md). This file records inspected evidence, extracted principles, and historical rejection decisions; it is not an authority that can override the constitution.
+
 Research is limited to principles. No reference layout, code, copy, photograph, font file, or brand asset is copied.
 
 ## Visited sources
