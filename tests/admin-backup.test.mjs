@@ -81,6 +81,19 @@ describe('online database backups', () => {
     }
   });
 
+  it('leaves no staging database sidecars after validating the backup', async () => {
+    const db = freshDatabase();
+    const root = join(directory, 'no-staging-sidecars');
+
+    const result = await createDatabaseBackup({
+      db,
+      root,
+      now: () => new Date('2026-08-30T01:02:03.004Z'),
+    });
+
+    assert.deepEqual(readdirSync(root), [result.file.split(/[\\/]/).pop()]);
+  });
+
   it('leaves previous backups unchanged when a new backup fails', async () => {
     const db = freshDatabase();
     const root = join(directory, 'failed');

@@ -72,6 +72,17 @@ async function pruneBackups(root: string, keep: number): Promise<string[]> {
   return removed;
 }
 
+async function removeBackupSidecars(path: string): Promise<void> {
+  await Promise.all([
+    rm(`${path}-wal`, { force: true }),
+    rm(`${path}-shm`, { force: true }),
+  ]);
+}
+
+async function removeStagingArtifacts(path: string): Promise<void> {
+  await Promise.all([rm(path, { force: true }), removeBackupSidecars(path)]);
+}
+
 /**
  * Writes, reads back, and only then promotes one online database backup.
  *
@@ -97,6 +108,10 @@ export async function createDatabaseBackup(options: BackupOptions): Promise<Data
   try {
     const pages = await runBackup(options.db, stagingPath);
     assertHealthyBackup(stagingPath);
+    // Opening the staged WAL-mode database for validation creates sidecars
+    // beside it. They retain the random staging name after promotion, so an
+    // hourly schedule would otherwise leak two files on every successful run.
+    await removeBackupSidecars(stagingPath);
     await rename(stagingPath, finalPath);
     let removed: string[];
     try {
@@ -113,7 +128,7 @@ export async function createDatabaseBackup(options: BackupOptions): Promise<Data
     }
     return { file: finalPath, pages, removed };
   } catch (error) {
-    await rm(stagingPath, { force: true }).catch(() => undefined);
+    await removeStagingArtifacts(stagingPath).catch(() => undefined);
     if (error instanceof AdminError) throw error;
     throw new AdminError(
       'backup-failed',
