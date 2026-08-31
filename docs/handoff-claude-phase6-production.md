@@ -1,165 +1,98 @@
-# 交接给 Claude：Phase 6A 本机故障矩阵完成，下一步是影子部署验收
+# 交接：分支已收束，下一步仍是影子部署
 
 > 日期：2026-08-31
 > 交出方：Codex
-> 接手方：Claude
-> 当前结论：**Phase 6A 第 1–13 块和六项故障矩阵的仓库/本机工作已经完成。下一阶段是影子 VPS 安装与验收，但尚未获得本轮部署授权，也没有迁移正式内容。**
+> 当前结论：**公共 UI 研究已经移出 `main`，主线保留并补齐了后端运维能力。VPS 尚未购置，影子部署、异地备份和生产恢复仍未发生。**
 
-这份文档替代上一版同名交接，作为当前生产工作的入口。[`handoff-codex-phase6-production.md`](handoff-codex-phase6-production.md) 保留前九块的详细实施记录；当前状态以本文件、[`adr-0002-phase5-production.md`](adr-0002-phase5-production.md) 第 21.9–21.19 节和 [`enouia-todo.md`](enouia-todo.md) 第 06A 节为准。
+这份文档替代上一版同名交接。当前事实以实际 Git 状态、ADR 21.9–21.22、[`enouia-todo.md`](enouia-todo.md) 第 00 与 06A 节为准。
 
-## 1. Checkout 与推送状态
+## 1. 三个分支怎么处理
 
-生成本文前的状态：
+### `main`
 
-```text
-branch: main
-HEAD: 3b54423 Complete the local production failure matrix
-origin/main: 5c874ca Give the export and the release their own pnpm commands
-ahead / behind: 11 / 0
-worktree: clean
-```
+`main` 继续承载生产后端与当前公开站。Hanshin 的三个已推送提交没有通过 rebase 或 force-push 从历史里抹掉；本轮新增一个反向提交，把它们的文件从当前树移除。后续数据库、fixture 迁移、故障矩阵与部署提交全部保留。
 
-本文提交后，Morii 已明确要求把 `main` 的全部本地提交推送到 `origin`。因此接手时不要沿用上面的历史 ahead 数字，应先核对实际状态：
-
-```bash
-git status --short --branch
-git log --oneline --decorate -15
-git rev-list --left-right --count origin/main...HEAD
-```
-
-推送目标是 `main` 与 `origin/main` 同步，ahead/behind 为 `0 / 0`。本文不写自己的提交 hash；若推送没有达到这个状态，以实际 Git 输出为准，不要假定远端已经更新。
-
-从原远端基线 `5c874ca` 到本文之前共有 11 个本地提交：
+本轮新增的主线提交：
 
 ```text
-82bab04  Back up and drill the production database
-73c4301  Prepare the Phase 6 production deployment
-7a3ce3a  Fix the design font audit output path
-8706867  Add the Hanshin design foundation
-c11c76e  Add the Hanshin page layouts
-fc0b980  Add the Hanshin design study routes
-7cb08c9  Extract the production content schema
-bb9cdf2  Migrate approved fixture content into database drafts
-c8b758f  Hand the Phase 6A fault matrix to Claude
-2a3ae51  Exercise API and database failure paths
-3b54423  Complete the local production failure matrix
+337edcc  Remove the unapproved Hanshin study from main
+b3f2d04  Clean up validated backup sidecars
+67280a9  Show operational failures in the author admin
 ```
 
-其中 Hanshin 三个主体提交和字体修复仍是隔离的设计研究，不是生产视觉定案。其余提交属于 Phase 6A 生产链路、证据或交接。
+本交接、体积基线与 VPS 清单会作为下一笔独立提交落在它们之后。
 
-## 2. 现在到了哪一步
+### `codex/ui-comparison-recovery`
 
-| 工作块 | 当前状态 | 仍缺什么 |
-| --- | --- | --- |
-| 1–9. 数据库、认证、Admin、媒体、发布闸门 | 仓库侧完成 | 真实作者登录与浏览器验收 |
-| 10. 导出、构建、原子换站 | 代码与失败顺序完成 | 真实 VPS 首次执行 |
-| 11. 在线备份与恢复演练 | 本机备份和隔离恢复完成 | 异地传输、媒体同步、完整 VPS RTO |
-| 12. systemd、Nginx、fail2ban、部署脚本 | 仓库侧完成 | 安装配置、打开部署开关、生产验收 |
-| 13. fixture/测试文章迁移 | 完成 | 只进临时数据库草稿；正式内容未迁移 |
-| 六项故障矩阵 | 仓库/本机完成 | VPS 停 Node 静态验收仍属于第 12 块生产证据 |
-
-不要继续增加 Phase 6A 功能。下一个工程阶段是影子部署验收：先取得 Morii 对具体 VPS、备份目标和操作窗口的当轮授权，再安装和验证；没有这些信息时只做只读盘点或文档准备。
-
-## 3. 本轮完成的六项故障矩阵
-
-### 3.1 Admin API 断开
-
-`src/admin/api.ts` 现在统一区分可读的服务端拒绝、浏览器网络 `TypeError` 和其他程序错误。登录/列表、文章编辑和媒体导入各自给出明确断网提示，不再把 `TypeError: Failed to fetch` 暴露给作者。文章编辑器说明本次没有保存、改动仍在页面中；本轮没有擅自加入自动重试。
-
-### 3.2 生产 SQLite 写锁
-
-真实双连接测试发现并修正了 `ArticleStore.#transaction()` 的边界：`BEGIN IMMEDIATE` 原先在 `try` 外，真正抢锁失败会绕过 `asStoreError()` 并返回 500。现在事务起点也经过统一分类，文章接口返回 `db-locked`/503，`articles` 与 `versions` 都不留下残行。
-
-### 3.3 本机备份恢复
-
-复用第 11 块的 7 个用例，没有另造恢复代码。它们覆盖旧副本保全、损坏副本拒绝、干净副本迁移、持久写入、关闭和只读重开。异地下载、换生产库、重启 Admin、重建站点和完整计时仍未发生；RTO 小于等于 30 分钟仍是目标。
-
-### 3.4 草稿越权
-
-匿名文章列表、单篇详情和未保存预览都返回 401；新增单篇详情断言确认响应不含最新自动保存。公开导出只读 `published_version_id`，未发布文章不导出，已发布文章也不会被较新的自动保存覆盖。Morii 与 Enouia 权限相同，本轮没有引入按文章所有者隔离。
-
-### 3.5 媒体故障
-
-媒体 HTTP 接口在真实 SQLite 写锁下返回 `db-locked`/503，`media_assets` 保持 0 行，已净化但未落库的 WebP 会被删除。反向不一致也有明确结果：数据库有记录但文件丢失时，作者收到 `validation-failed` 和存储缺失说明；匿名请求仍先停在 401。
-
-### 3.6 静态回退
-
-部署/渲染契约确认公开文件默认由静态目录提供，只有 `/admin/` 与 `/api/` 进入 Node。本机没有启动 Astro Admin，而是用 Python 直接托管 `dist/client`：三语首页与 sitemap 都返回 200，静态树中的 `/admin/` 返回预期的 404。
-
-这个结果只证明构建产物不依赖 Admin Node，不能代替真实 VPS 上停止 `moriium-admin.service` 后由 Nginx 继续服务公开页的验收。
-
-## 4. 最新验证证据
-
-以下结果都在 `3b54423` 的代码与测试上重新运行：
+未完成的 Hanshin、Jiege、Juanshou 研究和并行出现的设计文档保存在：
 
 ```text
-pnpm check
-  → Astro 144 个文件，0 errors / 0 warnings / 0 hints
-
-node --test --test-isolation=none tests/*.test.mjs
-  → 沙箱内：154 tests / 152 pass / 1 fail / 1 skip
-  → 唯一 fail：release-host 启动 Node 子进程时 spawnSync EPERM
-
-node --test --test-isolation=none tests/admin-release.test.mjs（沙箱外）
-  → 22 tests / 21 pass / 0 fail / 1 Windows symlink skip
-
-合并证据
-  → 154 tests / 153 pass / 0 assertion failures / 1 platform skip
-
-故障矩阵专项
-  → article API + export + media：34 / 34
-  → deployment contract + render split：7 / 7
-
-pnpm build（沙箱外）
-  → exit 0；内容、指令和媒体检查通过；生产构建完成
-
-pnpm links
-  → exit 0；本地链接通过
-
-pnpm run audit
-  → exit 0；公开树未发现私有路径、退役受保护内容或口令 frontmatter
-
-pnpm split
-  → exit 0；192 个公开文件不依赖 Node；
-    190 个公开可达 HTML/CSS/JS 文件不含 Admin 代码
+0fd8124  Preserve public design studies off main
 ```
 
-`pnpm verify` 的默认 Node 隔离在当前 Windows 沙箱中会因 `spawn EPERM` 无法启动测试文件，因此本轮没有把单一命令的非零退出写成绿灯。上面列出的是逐项重跑和 release-host 沙箱外复核后的真实结果。
+这个分支只负责保全和后续视觉评审，不是生产批准。
 
-本机静态 HTTP 探测：
+### `design/ui-restart`
+
+保持 Claude 当时留下的两笔提交不动：
 
 ```text
-/zh/               → 200
-/ja/               → 200
-/en/               → 200
-/sitemap-index.xml → 200
-/admin/            → 404（纯静态树的预期结果）
+4bbf3c8  Back up the database from inside the process that owns it
+4d2f5ce  Put the failures nobody would be told about on a screen
 ```
 
-## 5. 接手顺序
+它与 `main` 从 `5c874ca` 分叉。不要把它整体 merge 或 cherry-pick 回主线；其中备份文件名、测试文件和数据库 runtime 都与主线另一套实现冲突。该分支作为原始工作记录保留。
 
-1. 读仓库根目录 [`AGENTS.md`](../AGENTS.md)，它是当前共享合同。
-2. 运行第 1 节的 Git 命令，确认本次 push 是否已经让 `main` 与 `origin/main` 同步。
-3. 读 ADR 21.9–21.19，尤其区分仓库/本机证据与真实 VPS 证据。
-4. 读 [`deployment.md`](deployment.md) 和 `deploy/`，只读核对首装、回滚、恢复和验收步骤。
-5. 若 Morii 明确授权影子部署，再先确认主机、数据目录、备份目的地、维护窗口与回滚点；一次完成一个可恢复步骤并留下真实输出。
-6. 第一个 VPS 验收切片应是：安装配置但保持可回滚，验证 Admin 只监听回环地址，随后停止 Admin 服务并确认三语公开页仍由 Nginx 返回 200。
+## 2. 后端取舍
 
-## 6. 仍未完成或未经授权
+主线继续使用 `src/server/backup/database-backup.ts` 和非破坏性的恢复演练。没有引入 Claude 分支里的覆盖式 restore，也没有把同机媒体镜像写成异地备份。
 
-- 没有用 Morii 的真实口令做生产登录后的浏览器端到端验证；
-- 没有迁移正式文章，没有发布数据库草稿，也没有写入 `live_version_id`；
-- 没有安装 VPS 配置、打开 `DEPLOY_ENABLED` 或执行真实原子换站；
-- 没有选定异地备份目标，数据库异地保留 30 天与媒体每日同步尚未落地；
-- 没有从异地副本完成 VPS 计时恢复，RTO 小于等于 30 分钟仍无生产证据；
-- 没有在 VPS 上停 Admin 服务并验证静态公开站；
-- fail2ban 初始阈值没有用真实访问日志校准；
-- Admin 仍只显示“等待导出”，没有经过评审的自动构建或重试入口；
-- `.gitignore` 是否加入 `src/content/posts/exported/`、`public/media/`、`src/generated/` 仍待决定；
-- Hanshin 设计研究没有取得生产视觉选择授权。
+本轮从真实文件复现出一个主线缺陷：每次校验 staging 数据库都会遗留随机名的 `-wal` 与 `-shm`。修复前回归用例确实失败，修复后备份与恢复专项 8/8。
 
-## 7. 不可越过的边界
+运维状态没有照搬 Claude 那套备份 API，而是接到主线调度器上。作者后台现在汇总：
 
-不要读取或迁移 `.private/posts/`，不要接触真实口令、原图或正式内容。不要把 fixture 草稿发布出去。不要因为仓库侧故障矩阵完成就宣称 VPS 已上线、异地备份已建立或 RTO 已达标。
+- 本机备份是否存在、是否过期、最近一次是否失败；
+- 已发布但尚未上线的文章是否超过 15 分钟；
+- 数据盘剩余空间；
+- 异地副本与服务健康这两项当前无法自证的状态，明确显示为「未观测」。
 
-本轮授权只包括提交并推送当前 `main` 的仓库修改，不包括部署、发布站点、运行数据库迁移或改变 VPS。接手后任何远端基础设施操作都需要 Morii 在当轮重新明确授权。
+接口仍是作者会话专用的 `/api/status/`。公开路由保持静态，不新增读者分析。
+
+## 3. 第 00 节补完的两项
+
+`scripts/measure-baseline.mjs`、`tests/public-baseline.test.mjs` 与 `pnpm baseline` 固定了公开构建体积口径，并接到 `pnpm verify` 末尾。`/design/` 研究资源按可达性排除，不会把研究专用的共享 `_astro/` 文件误算进生产；生产页面一旦引用同一资源，它会立刻重新计入生产。
+
+[`vps-acceptance-checklist.md`](vps-acceptance-checklist.md) 把采购、部署、安全、恢复和运维面板整理成可验收条目。采购默认下限为 2 核、4 GB 内存、80 GB SSD。影子阶段不改主域名；会改状态的验收只使用隔离测试库、fixture 账户和生成的虚构图片；日志检查只报命中数，不回显内容。
+
+## 4. 验证边界
+
+移除 Hanshin 时已经取得以下新鲜证据：
+
+```text
+Astro check                 0 errors / 0 warnings / 0 hints
+主测试集                    154 tests；152 pass；1 sandbox EPERM；1 Windows skip
+admin-release 沙箱外重跑    21 pass / 0 fail / 1 Windows skip
+Astro build                 exit 0
+links / audit / split       全部 exit 0
+```
+
+备份 sidecar 修复在用户叫停后续测试前完成红绿验证，专项 8/8。
+
+Morii 随后明确要求不再继续测试，直接整理并推送。因此运维状态的最终实现、体积基线恢复后的组合状态，以及本交接提交都没有再跑新门禁。不要把测试文件存在误写成已经通过。
+
+## 5. 仍未完成
+
+- VPS 未购置，验收清单尚未执行；
+- 没有真实作者口令的浏览器端到端验证；
+- 没有迁移或发布正式文章；
+- 没有打开 `DEPLOY_ENABLED`，没有真实换站；
+- 没有选定异地备份目标，数据库 30 天保留与媒体每日同步未落地；
+- 没有从异地副本完成计时恢复，RTO 小于等于 30 分钟仍是目标；
+- fail2ban 初值尚未用真实日志校准；
+- `.gitignore` 是否加入 `src/content/posts/exported/`、`public/media/`、`src/generated/` 仍待决定。
+
+## 6. 下一入口
+
+若 Morii 购置 VPS 并授权影子部署，按 [`vps-acceptance-checklist.md`](vps-acceptance-checklist.md) 从 A、B 两节开始。先安装为可回滚状态，确认 Admin 只监听回环地址，再停止 `moriium-admin.service`，验证三语公开页仍由 Nginx 返回 200。正式内容继续不迁移。
+
+不要读取 `.private/posts/`，不要接触真实口令、原图或正式内容，也不要把 fixture 草稿发布出去。
