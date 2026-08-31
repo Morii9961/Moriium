@@ -1,11 +1,24 @@
 ---
+/*
+ * DESIGN.md 8.6: no illustration, no mascot. A missing page is a typographic
+ * fact, and the useful part of the page is the way back out — so the routes are
+ * the content, in all three languages, because a reader who reached a dead URL
+ * may not have arrived through their own language's tree.
+ */
 import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 
 <BaseLayout lang="zh" title="404" noindex>
-  <section class="site-shell page-heading">
-    <p class="page-heading__eyebrow">404</p>
+  <section class="measure measure--media not-found">
+    <p class="not-found__code">404</p>
     <h1>这里没有这个页面。</h1>
-    <p><a href="/zh/">回到首页</a></p>
+    <p>地址可能写错了，或者这篇文章已经改名、下线。下面几个入口都还在。</p>
+    <nav aria-label="回到站内">
+      <a href="/zh/">首页</a>
+      <a href="/zh/writing/">全部文章</a>
+      <a href="/zh/archive/">归档</a>
+      <a href="/ja/" lang="ja-JP">日本語</a>
+      <a href="/en/" lang="en-US">English</a>
+    </nav>
   </section>
 </BaseLayout>

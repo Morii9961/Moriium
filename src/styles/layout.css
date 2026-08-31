@@ -1,0 +1,1011 @@
+/*
+ * The global frame and the shared editorial devices.
+ *
+ * The design's one structural gesture is the measure rule: every editorial unit
+ * opens with a hairline that spans exactly that unit's width. Because the units
+ * sit on different rungs of the width ladder, the rules step in and out down the
+ * page, and the page's structure becomes readable as a sequence of measured
+ * lines. It is the width hierarchy of DESIGN.md 6.1 made visible, and it does
+ * the work that cards, boxes, and shadows do elsewhere — which is why there are
+ * none here.
+ *
+ * Moriium Blue marks the rule of whatever is current or lead. Everywhere else
+ * the rule is a quiet border, so the blue keeps meaning something.
+ */
+
+@layer components {
+  /* ---------------------------------------------------------------- masthead */
+
+  .masthead {
+    border-bottom: var(--hairline) solid var(--color-border-default);
+  }
+
+  .masthead__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-5);
+    min-height: 4rem;
+  }
+
+  .masthead__mark {
+    font-family: var(--font-serif);
+    font-size: 1.5rem;
+    letter-spacing: 0.01em;
+    line-height: 1;
+    text-decoration: none;
+  }
+
+  /* The one piece of pure identity drawing on the site: a blue full stop after
+   * the name, sized to the type rather than added as an icon. */
+  .masthead__mark::after {
+    content: '.';
+    color: var(--color-accent-mark);
+  }
+
+  .masthead__mark:hover {
+    color: var(--color-accent-ink);
+  }
+
+  .masthead__tools {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .masthead__bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-5);
+    min-height: 2.75rem;
+    border-top: var(--hairline) solid var(--color-border-subtle);
+  }
+
+  .site-nav {
+    display: flex;
+    align-items: center;
+    gap: clamp(0.9rem, 2.4vw, 2rem);
+    margin-inline: calc(-1 * var(--space-2));
+    padding-inline: var(--space-2);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .site-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .site-nav a {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+    font-family: var(--font-sans);
+    font-size: 0.8125rem;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    color: var(--color-text-secondary);
+    text-decoration: none;
+  }
+
+  .site-nav a::after {
+    content: '';
+    position: absolute;
+    inset: auto 0 0.55rem 0;
+    height: var(--hairline);
+    background: var(--color-accent-mark);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform var(--motion-fast) var(--motion-ease);
+  }
+
+  .site-nav a:hover {
+    color: var(--color-text-primary);
+  }
+
+  .site-nav a:hover::after,
+  .site-nav a[aria-current='page']::after {
+    transform: scaleX(1);
+  }
+
+  .site-nav a[aria-current='page'] {
+    color: var(--color-accent-ink);
+  }
+
+  .language-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: var(--tracking-label);
+    color: var(--color-text-tertiary);
+  }
+
+  .language-nav a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.25rem;
+    padding-inline: 0.15rem;
+    text-decoration: none;
+  }
+
+  .language-nav a:hover {
+    color: var(--color-accent-ink);
+  }
+
+  .language-nav a[aria-current='page'] {
+    color: var(--color-text-primary);
+  }
+
+  .icon-button {
+    display: grid;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--color-text-secondary);
+    transition: color var(--motion-fast) var(--motion-ease),
+      background-color var(--motion-fast) var(--motion-ease);
+  }
+
+  .icon-button:hover {
+    background: var(--color-interactive-hover);
+    color: var(--color-text-primary);
+  }
+
+  .icon-button svg {
+    width: 1.125rem;
+    height: 1.125rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .theme-icon--moon,
+  :root[data-theme='dark'] .theme-icon--sun {
+    display: none;
+  }
+
+  :root[data-theme='dark'] .theme-icon--moon {
+    display: block;
+  }
+
+  /* ------------------------------------------------------ the measure rule */
+
+  .mark {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-2) var(--space-5);
+    padding-top: var(--space-3);
+    border-top: var(--hairline) solid var(--color-border-default);
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    letter-spacing: var(--tracking-label);
+    color: var(--color-text-tertiary);
+  }
+
+  /* Lead or current unit. The only place a rule is drawn in brand blue. */
+  .mark--lead {
+    border-top-color: var(--color-accent-mark);
+    color: var(--color-accent-ink);
+  }
+
+  .mark__label {
+    text-transform: uppercase;
+  }
+
+  .mark__aside {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .mark__action {
+    color: var(--color-text-secondary);
+    text-decoration: none;
+    text-decoration-color: transparent;
+  }
+
+  .mark__action:hover {
+    color: var(--color-accent-ink);
+    text-decoration: underline;
+  }
+
+  .band {
+    padding-block: var(--space-section);
+  }
+
+  /* Consecutive bands share one gap rather than stacking two. The page head is
+   * the same case: it already closes with its own space. */
+  .band + .band,
+  .page-head + .band {
+    padding-top: 0;
+  }
+
+  .band__heading {
+    margin-top: var(--space-5);
+    font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.125rem);
+  }
+
+  .band__lede {
+    max-width: 42rem;
+    margin-top: var(--space-3);
+    color: var(--color-text-secondary);
+  }
+
+  .band__body {
+    margin-top: var(--space-6);
+  }
+
+  /* ------------------------------------------------------------- page head */
+
+  .page-head {
+    padding-block: var(--space-page-top) var(--space-6);
+  }
+
+  .page-head__eyebrow,
+  .meta-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.55rem;
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    letter-spacing: var(--tracking-label);
+    color: var(--color-text-tertiary);
+  }
+
+  .meta-line time,
+  .meta-line .meta-line__count {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+  }
+
+  .meta-line__sep {
+    color: var(--color-border-default);
+  }
+
+  .page-head h1 {
+    margin-top: var(--space-4);
+    font-size: clamp(2.25rem, 1.4rem + 3.6vw, 3.75rem);
+    line-height: var(--leading-display);
+  }
+
+  .page-head__lede {
+    max-width: 38rem;
+    margin-top: var(--space-4);
+    color: var(--color-text-secondary);
+  }
+
+  .page-head__facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-6);
+    margin-top: var(--space-6);
+    padding-top: var(--space-3);
+    border-top: var(--hairline) solid var(--color-border-subtle);
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+  }
+
+  .page-head__facts dt {
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+  }
+
+  .page-head__facts dd {
+    margin-top: 0.35rem;
+    font-family: var(--font-mono);
+    font-size: 0.9375rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-text-primary);
+  }
+
+  /* -------------------------------------------------------- home opening */
+
+  .opening {
+    padding-block: clamp(3.5rem, 10vw, 7.5rem) var(--space-7);
+  }
+
+  .opening__name {
+    font-size: clamp(3rem, 1.5rem + 6.5vw, 6.5rem);
+    line-height: 0.94;
+    letter-spacing: -0.025em;
+  }
+
+  /* The longest rule on the site, and the site's brand image: name, blue line,
+   * sentence. Nothing else opens the page. */
+  .opening__rule {
+    margin-top: clamp(1.25rem, 3vw, 2rem);
+    border-top: 2px solid var(--color-accent-mark);
+  }
+
+  .opening__thesis {
+    margin-top: var(--space-5);
+    max-width: 30rem;
+    font-size: clamp(1.25rem, 1rem + 1vw, 1.6rem);
+    line-height: 1.5;
+  }
+
+  .opening__intro {
+    max-width: 36rem;
+    margin-top: var(--space-4);
+    color: var(--color-text-secondary);
+  }
+
+  .opening__entry {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 2.75rem;
+    margin-top: var(--space-5);
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+    color: var(--color-accent-ink);
+    text-decoration: none;
+    border-bottom: var(--hairline) solid var(--color-accent-mark);
+  }
+
+  .opening__entry span {
+    transition: transform var(--motion-fast) var(--motion-ease);
+  }
+
+  .opening__entry:hover {
+    border-bottom-color: var(--color-accent-ink);
+  }
+
+  .opening__entry:hover span {
+    transform: translateX(0.2rem);
+  }
+
+  /* ------------------------------------------------------------ the ledger */
+
+  .ledger > li {
+    border-bottom: var(--hairline) solid var(--color-border-subtle);
+  }
+
+  .ledger > li:first-child {
+    border-top: var(--hairline) solid var(--color-border-subtle);
+  }
+
+  .ledger a {
+    display: grid;
+    grid-template-columns: 8.5rem minmax(0, 1fr);
+    gap: var(--space-2) var(--space-5);
+    align-items: start;
+    padding-block: var(--space-5);
+    text-decoration: none;
+  }
+
+  .ledger__meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding-top: 0.4rem;
+  }
+
+  .ledger__date {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-text-secondary);
+  }
+
+  .ledger__category {
+    font-family: var(--font-sans);
+    font-size: 0.6875rem;
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+  }
+
+  .ledger__body {
+    display: block;
+    min-width: 0;
+  }
+
+  .ledger__title {
+    font-size: clamp(1.1875rem, 1.05rem + 0.6vw, 1.5rem);
+    transition: color var(--motion-fast) var(--motion-ease);
+  }
+
+  .ledger__summary {
+    display: block;
+    max-width: 40rem;
+    margin-top: var(--space-2);
+    color: var(--color-text-secondary);
+    font-size: 0.9375rem;
+  }
+
+  .ledger__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem var(--space-3);
+    margin-top: var(--space-3);
+    font-family: var(--font-sans);
+    font-size: 0.6875rem;
+    letter-spacing: 0.04em;
+    color: var(--color-text-tertiary);
+  }
+
+  .ledger a:hover .ledger__title,
+  .ledger a:focus-visible .ledger__title {
+    color: var(--color-accent-ink);
+  }
+
+  /* ------------------------------------------------------------ home lead */
+
+  .lead__title {
+    margin-top: var(--space-5);
+    font-size: clamp(1.875rem, 1.3rem + 2.4vw, 3rem);
+    line-height: 1.1;
+  }
+
+  .lead__title a {
+    text-decoration: none;
+  }
+
+  .lead__title a:hover {
+    color: var(--color-accent-ink);
+  }
+
+  .lead__summary {
+    max-width: 38rem;
+    margin-top: var(--space-4);
+    color: var(--color-text-secondary);
+  }
+
+  /* DESIGN.md 9.2: an important photograph is shown at media or gallery width,
+   * wider than the prose it belongs to. */
+  .plate {
+    margin-top: var(--space-6);
+    background: var(--color-plate);
+  }
+
+  .plate img {
+    width: 100%;
+    height: auto;
+  }
+
+  .plate figcaption {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--space-2) var(--space-4);
+    padding-top: var(--space-3);
+    background: var(--color-bg-primary);
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    color: var(--color-text-tertiary);
+  }
+
+  /* --------------------------------------------------------- entry points */
+
+  .entries {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    gap: var(--space-3) var(--space-6);
+    margin-top: var(--space-5);
+  }
+
+  .entries a {
+    display: block;
+    padding-block: var(--space-4);
+    border-top: var(--hairline) solid var(--color-border-subtle);
+    text-decoration: none;
+  }
+
+  .entries strong {
+    display: block;
+    font-weight: 400;
+    font-size: 1.125rem;
+    transition: color var(--motion-fast) var(--motion-ease);
+  }
+
+  .entries span {
+    display: block;
+    margin-top: 0.3rem;
+    font-family: var(--font-sans);
+    font-size: 0.8125rem;
+    color: var(--color-text-tertiary);
+  }
+
+  .entries a:hover strong,
+  .entries a:focus-visible strong {
+    color: var(--color-accent-ink);
+  }
+
+  /* ------------------------------------------------------------ principles */
+
+  /*
+   * Numbered because the order is the point: these are priorities, and the
+   * first outranks the third. Numbering a list that is not a sequence would be
+   * decoration, which DESIGN.md 3 rules out.
+   */
+  .principles {
+    counter-reset: principle;
+    margin-top: var(--space-5);
+  }
+
+  .principles > li {
+    counter-increment: principle;
+    display: grid;
+    grid-template-columns: 3rem minmax(0, 1fr);
+    gap: var(--space-2) var(--space-4);
+    padding-block: var(--space-5);
+    border-top: var(--hairline) solid var(--color-border-subtle);
+  }
+
+  .principles > li::before {
+    content: counter(principle, decimal-leading-zero);
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    color: var(--color-accent-ink);
+  }
+
+  .principles h3 {
+    font-size: 1.125rem;
+  }
+
+  .principles p {
+    margin-top: 0.35rem;
+    font-size: 0.9375rem;
+    color: var(--color-text-secondary);
+  }
+
+  /* ---------------------------------------------------------- traces / now */
+
+  .traces > li {
+    display: grid;
+    grid-template-columns: 6rem minmax(0, 1fr);
+    gap: var(--space-2) var(--space-5);
+    padding-block: var(--space-4);
+    border-top: var(--hairline) solid var(--color-border-subtle);
+  }
+
+  .traces time {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-text-tertiary);
+  }
+
+  .traces h3 {
+    font-size: 1.0625rem;
+  }
+
+  .traces p {
+    margin-top: 0.35rem;
+    font-size: 0.9375rem;
+    color: var(--color-text-secondary);
+  }
+
+  /* ------------------------------------------------------------- colophon */
+
+  /*
+   * Author, counts, and recent dates. DESIGN.md 3 rules out the statistics
+   * dashboard and the contribution calendar that this information usually
+   * arrives in, so it is set as a book's colophon instead: one hairline, three
+   * plain columns, no panels.
+   */
+  .colophon {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--space-6);
+    margin-top: var(--space-5);
+  }
+
+  .colophon p {
+    color: var(--color-text-secondary);
+    font-size: 0.9375rem;
+  }
+
+  .colophon h3 {
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    font-weight: 400;
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+  }
+
+  .colophon__body > * + * {
+    margin-top: var(--space-3);
+  }
+
+  .colophon__counts {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-3) var(--space-4);
+    margin-top: var(--space-4);
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+  }
+
+  .colophon__counts dt {
+    color: var(--color-text-tertiary);
+  }
+
+  .colophon__counts dd {
+    margin-top: 0.2rem;
+    font-family: var(--font-mono);
+    font-size: 1.25rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .colophon__updates {
+    margin-top: var(--space-4);
+  }
+
+  .colophon__updates li {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding-block: var(--space-2);
+    border-top: var(--hairline) solid var(--color-border-subtle);
+    font-size: 0.9375rem;
+  }
+
+  .colophon__updates a {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+
+  .colophon__updates a:hover {
+    color: var(--color-accent-ink);
+  }
+
+  .colophon__updates time {
+    flex: none;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-text-tertiary);
+  }
+
+  .colophon__links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+    margin-top: var(--space-4);
+    font-family: var(--font-sans);
+    font-size: 0.8125rem;
+  }
+
+  .colophon__links a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.25rem;
+    color: var(--color-text-secondary);
+    text-decoration-color: var(--color-border-default);
+  }
+
+  .colophon__links a:hover {
+    color: var(--color-accent-ink);
+    text-decoration-color: currentColor;
+  }
+
+  /* -------------------------------------------------------------- archive */
+
+  .archive-year {
+    display: grid;
+    grid-template-columns: 8.5rem minmax(0, 1fr);
+    gap: var(--space-3) var(--space-5);
+    padding-block: var(--space-6);
+    border-top: var(--hairline) solid var(--color-border-default);
+  }
+
+  .archive-year__label {
+    font-family: var(--font-mono);
+    font-size: 1.5rem;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+  }
+
+  .archive-year__count {
+    margin-top: 0.3rem;
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    letter-spacing: var(--tracking-label);
+    color: var(--color-text-tertiary);
+  }
+
+  .archive-list li {
+    border-bottom: var(--hairline) solid var(--color-border-subtle);
+  }
+
+  .archive-list li:last-child {
+    border-bottom: 0;
+  }
+
+  .archive-list a {
+    display: grid;
+    grid-template-columns: 4rem minmax(0, 1fr) auto;
+    gap: var(--space-2) var(--space-4);
+    align-items: baseline;
+    min-height: 2.75rem;
+    padding-block: var(--space-3);
+    text-decoration: none;
+  }
+
+  .archive-list time {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-text-tertiary);
+  }
+
+  .archive-list__title {
+    transition: color var(--motion-fast) var(--motion-ease);
+  }
+
+  .archive-list__category {
+    font-family: var(--font-sans);
+    font-size: 0.6875rem;
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+  }
+
+  .archive-list a:hover .archive-list__title,
+  .archive-list a:focus-visible .archive-list__title {
+    color: var(--color-accent-ink);
+  }
+
+  /* ------------------------------------------------------------- taxonomy */
+
+  .category-index li {
+    border-top: var(--hairline) solid var(--color-border-subtle);
+  }
+
+  .category-index a {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-2) var(--space-5);
+    align-items: baseline;
+    padding-block: var(--space-5);
+    text-decoration: none;
+  }
+
+  .category-index__name {
+    font-size: 1.375rem;
+    transition: color var(--motion-fast) var(--motion-ease);
+  }
+
+  .category-index__latest {
+    grid-column: 1;
+    margin-top: 0.35rem;
+    font-size: 0.9375rem;
+    color: var(--color-text-secondary);
+  }
+
+  .category-index__count {
+    grid-row: 1;
+    grid-column: 2;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-text-tertiary);
+  }
+
+  .category-index a:hover .category-index__name,
+  .category-index a:focus-visible .category-index__name {
+    color: var(--color-accent-ink);
+  }
+
+  /*
+   * Tags are a field, not a grid of equal cells. Size carries frequency, which
+   * is real information; the shape stays a chip because DESIGN.md 7.3 reserves
+   * the pill for exactly this case.
+   */
+  .tag-field {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-3);
+    margin-top: var(--space-5);
+  }
+
+  .tag-field a {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    min-height: 2.5rem;
+    padding: 0.5rem 0.9rem;
+    border: var(--hairline) solid var(--color-border-default);
+    border-radius: var(--radius-pill);
+    font-size: var(--tag-size, 0.9375rem);
+    text-decoration: none;
+    transition: border-color var(--motion-fast) var(--motion-ease),
+      color var(--motion-fast) var(--motion-ease);
+  }
+
+  .tag-field a small {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-text-tertiary);
+  }
+
+  .tag-field a:hover {
+    border-color: var(--color-accent-mark);
+    color: var(--color-accent-ink);
+  }
+
+  .crosslink {
+    margin-top: var(--space-6);
+    padding-top: var(--space-4);
+    border-top: var(--hairline) solid var(--color-border-subtle);
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+    color: var(--color-text-tertiary);
+  }
+
+  .crosslink a {
+    color: var(--color-accent-ink);
+    text-decoration-color: var(--color-accent-mark);
+  }
+
+  .empty-state {
+    padding-block: var(--space-7);
+    border-top: var(--hairline) solid var(--color-border-default);
+  }
+
+  .empty-state h2 {
+    font-size: 1.5rem;
+  }
+
+  .empty-state p {
+    max-width: 32rem;
+    margin-top: var(--space-3);
+    color: var(--color-text-secondary);
+  }
+
+  /* --------------------------------------------------------------- footer */
+
+  .site-footer {
+    margin-top: var(--space-7);
+    border-top: var(--hairline) solid var(--color-border-default);
+    font-family: var(--font-sans);
+    font-size: 0.8125rem;
+    color: var(--color-text-tertiary);
+  }
+
+  .site-footer__inner {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) auto;
+    gap: var(--space-5) var(--space-6);
+    padding-block: var(--space-6) var(--space-7);
+  }
+
+  .site-footer__name {
+    font-family: var(--font-serif);
+    font-size: 1.125rem;
+    color: var(--color-text-primary);
+  }
+
+  .site-footer__name::after {
+    content: '.';
+    color: var(--color-accent-mark);
+  }
+
+  .site-footer__identity p {
+    margin-top: 0.4rem;
+  }
+
+  .site-footer nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem var(--space-5);
+  }
+
+  .site-footer nav a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.5rem;
+    text-decoration: none;
+  }
+
+  .site-footer nav a:hover {
+    color: var(--color-accent-ink);
+    text-decoration: underline;
+  }
+
+  .site-footer__rights {
+    text-align: right;
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    line-height: 1.9;
+  }
+}
+
+/* ------------------------------------------------------------- responsive */
+
+@media (max-width: 60rem) {
+  .colophon {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-5);
+  }
+
+  .site-footer__inner {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .site-footer__rights {
+    grid-column: 1 / -1;
+    text-align: left;
+  }
+}
+
+@media (max-width: 46rem) {
+  .masthead__top {
+    min-height: 3.5rem;
+  }
+
+  .masthead__mark {
+    font-size: 1.3125rem;
+  }
+
+  .ledger a {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-2);
+    padding-block: var(--space-4);
+  }
+
+  .ledger__meta {
+    flex-direction: row;
+    align-items: baseline;
+    gap: var(--space-3);
+    padding-top: 0;
+  }
+
+  .archive-year {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-3);
+    padding-block: var(--space-5);
+  }
+
+  .archive-year__header {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-3);
+  }
+
+  .archive-year__count {
+    margin-top: 0;
+  }
+
+  .archive-list a {
+    grid-template-columns: 3.5rem minmax(0, 1fr);
+  }
+
+  .archive-list__category {
+    grid-column: 2;
+  }
+
+  .traces > li {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-2);
+  }
+
+  .colophon__counts {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .site-footer__inner {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

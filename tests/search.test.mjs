@@ -22,16 +22,21 @@ test('search index is generated per language from listed public metadata', async
 });
 
 test('production shell lazily opens an accessible native search dialog', async () => {
-  const [layout, script, styles] = await Promise.all([
+  const [layout, dialog, script, styles] = await Promise.all([
     read('src/layouts/BaseLayout.astro'),
+    read('src/components/SearchDialog.astro'),
     read('src/scripts/search.ts'),
-    read('src/styles/base.css'),
+    read('src/styles/content.css'),
   ]);
 
-  for (const marker of ['data-search-open', 'data-search-dialog', 'data-search-input', 'data-search-results', 'data-search-summary']) {
-    assert.match(layout, new RegExp(marker));
+  // The trigger lives in the masthead, the markup in its own component, and the
+  // index and the module that reads it are fetched only on first open.
+  assert.match(layout, /data-search-open/);
+  for (const marker of ['data-search-dialog', 'data-search-input', 'data-search-results', 'data-search-summary']) {
+    assert.match(dialog, new RegExp(marker));
   }
-  assert.match(layout, /<dialog/);
+  assert.match(dialog, /<dialog/);
+  assert.match(dialog, /data-search-index=\{`\/search\/\$\{lang\}\.json`\}/);
   assert.match(layout, /import\('\.\.\/scripts\/search'\)/);
   assert.doesNotMatch(layout, /^import .*scripts\/search/m);
   assert.match(layout, /event\.ctrlKey && !event\.metaKey/);
@@ -40,6 +45,6 @@ test('production shell lazily opens an accessible native search dialog', async (
   assert.match(script, /dialog\.showModal\(\)/);
   assert.match(script, /event\.key === 'ArrowDown'/);
   assert.match(script, /state\.trigger\?\.focus\(\)/);
-  assert.match(styles, /\.site-search::backdrop/);
-  assert.match(styles, /\.site-search__results a:focus-visible strong/);
+  assert.match(styles, /\.search-panel::backdrop/);
+  assert.match(styles, /\.search-panel__results a:hover strong,\s*\.search-panel__results a:focus-visible strong/);
 });

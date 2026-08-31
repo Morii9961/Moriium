@@ -1,0 +1,28 @@
+---
+/*
+ * The measure rule: a hairline the width of the unit it opens, with a small
+ * label sitting on it. Because the units around it stand on different rungs of
+ * the width ladder, the rules step in and out down the page and the structure
+ * becomes readable without a single box.
+ *
+ * `lead` draws the rule in Moriium Blue. Reserved for the current or lead unit,
+ * so the accent keeps meaning something (DESIGN.md 2.2, 4.3).
+ */
+interface Props {
+  label: string;
+  aside?: string;
+  actionLabel?: string;
+  actionHref?: string;
+  lead?: boolean;
+}
+
+const { label, aside, actionLabel, actionHref, lead = false } = Astro.props;
+---
+
+<p class:list={['mark', lead && 'mark--lead']}>
+  <span class="mark__label">{label}</span>
+  {aside && <span class="mark__aside">{aside}</span>}
+  {actionLabel && actionHref && (
+    <a class="mark__action" href={actionHref}>{actionLabel} <span aria-hidden="true">→</span></a>
+  )}
+</p>

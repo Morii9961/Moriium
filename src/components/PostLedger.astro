@@ -1,0 +1,59 @@
+---
+/*
+ * The post list, everywhere it appears.
+ *
+ * DESIGN.md 8.3 asks for a ledger rather than cards, and explicitly does not
+ * want an image required to fill a template slot — so this renders date,
+ * category, title, and summary, and nothing is padded out when a post has no
+ * cover. One component serves the home page, Writing, and both taxonomy detail
+ * pages, which is what keeps their rhythm identical.
+ *
+ * The whole row is the link, so the pointer target is the full entry, and the
+ * title stays a heading inside it so screen readers can still walk the list by
+ * heading rather than by link.
+ */
+import type { CollectionEntry } from 'astro:content';
+import { UI, type Language } from '../data/site';
+import { postPath } from '../utils/content';
+
+type Entry = CollectionEntry<'posts'> | CollectionEntry<'protected'>;
+
+interface Props {
+  posts: Entry[];
+  lang: Language;
+  showTags?: boolean;
+  labelledBy?: string;
+}
+
+const { posts, lang, showTags = false, labelledBy } = Astro.props;
+const ui = UI[lang];
+const dateFormat = new Intl.DateTimeFormat(ui.locale, {
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+---
+
+<ol class="ledger" aria-labelledby={labelledBy}>
+  {posts.map((post) => (
+    <li>
+      <a href={postPath(post)}>
+        <span class="ledger__meta">
+          <time class="ledger__date" datetime={post.data.publishedAt.toISOString()}>
+            {dateFormat.format(post.data.publishedAt)}
+          </time>
+          <span class="ledger__category">{post.data.category}</span>
+        </span>
+        <span class="ledger__body">
+          <h3 class="ledger__title">{post.data.title}</h3>
+          <span class="ledger__summary">{post.data.summary}</span>
+          {showTags && post.data.tags.length > 0 && (
+            <span class="ledger__tags">
+              {post.data.tags.map((tag) => <span># {tag}</span>)}
+            </span>
+          )}
+        </span>
+      </a>
+    </li>
+  ))}
+</ol>

@@ -85,60 +85,76 @@ test('selected A prototype exposes an expressive home, independent directories, 
   assert.match(article, /本文没有加载代码、图表或媒体模块/);
 });
 
-test('production shell uses the selected A typography and global frame', async () => {
-  const [layout, styles] = await Promise.all([
+test('production shell loads the three type roles and the token layers', async () => {
+  const [layout, tokens] = await Promise.all([
     read('src/layouts/BaseLayout.astro'),
-    read('src/styles/base.css'),
+    read('src/styles/tokens.css'),
   ]);
 
+  // DESIGN.md 5.1 defines three roles. The public shell loads exactly three
+  // families for them; Sora belongs to the design study and must not follow the
+  // reader onto a production page.
   assert.match(layout, /@fontsource-variable\/noto-sans-sc\/wght\.css/);
-  assert.match(layout, /@fontsource-variable\/sora\/wght\.css/);
   assert.match(layout, /@fontsource\/ibm-plex-mono\/latin-400\.css/);
   assert.match(layout, /lxgw-wenkai-screen-webfont\/lxgwwenkaigbscreen\.css/);
+  assert.doesNotMatch(layout, /sora/i);
+  assert.doesNotMatch(layout, /https?:\/\//);
 
-  for (const marker of ['site-actions', 'theme-icon--sun', 'theme-icon--moon', 'site-footer__identity']) {
-    assert.match(layout, new RegExp(marker));
+  for (const marker of ['masthead__tools', 'theme-icon--sun', 'theme-icon--moon', 'site-footer__identity']) {
+    assert.match(layout + (await read('src/components/SiteHeader.astro')) + (await read('src/components/SiteFooter.astro')), new RegExp(marker));
   }
 
-  assert.match(styles, /--surface:\s*#f7f8f8/);
-  assert.match(styles, /--font-display:\s*"Sora Variable",\s*"LXGW WenKai Screen"/);
-  assert.match(styles, /\.site-header__inner\s*{[^}]*grid-template-columns:\s*1fr auto 1fr/s);
+  // Reading is set in the serif, labels in the sans, figures in the monospace.
+  assert.match(tokens, /--font-serif: 'LXGW WenKai Screen'/);
+  assert.match(tokens, /--font-sans: 'Noto Sans SC Variable'/);
+  assert.match(tokens, /--font-mono: 'IBM Plex Mono'/);
+  assert.match(tokens, /--color-bg-primary: #f2f5f9/);
 });
 
-test('production home and writing index promote selected A with real content', async () => {
-  const [layout, home, writing] = await Promise.all([
+test('the home page is an editorial index built from real content', async () => {
+  const [layout, header, home, writing] = await Promise.all([
     read('src/layouts/BaseLayout.astro'),
+    read('src/components/SiteHeader.astro'),
     read('src/pages/[lang]/index.astro'),
     read('src/pages/[lang]/writing/index.astro'),
   ]);
 
-  for (const marker of ['a-opening', 'a-feature-reel', 'a-home-section', 'a-home-utility', 'a-discovery', 'a-about']) {
-    assert.match(home, new RegExp(`class=\"[^\"]*${marker}`));
+  // The composition is the width sequence: gallery, media, the reading measure
+  // at the centre, then media and gallery on the way back out.
+  for (const band of ['measure--gallery opening', 'measure--media band', 'measure--text band']) {
+    assert.match(home, new RegExp(`class="measure ${band}`));
   }
   assert.match(home, /getListedPosts\(lang\)/);
   assert.match(home, /postPath\(post\)/);
-  assert.doesNotMatch(home, /PROTOTYPE_POSTS|PROTOTYPE_CATEGORIES/);
+  assert.match(home, /<PostLedger/);
+  assert.doesNotMatch(home, /PROTOTYPE_POSTS|PROTOTYPE_CATEGORIES|concept-a/);
 
-  assert.match(writing, /bodyClass=\"concept-a\"/);
+  // No dashboard: DESIGN.md 3 rules out the statistics panel and the
+  // contribution calendar this information usually arrives in.
+  assert.doesNotMatch(home, /a-stats-panel|a-activity-panel|activity-calendar/);
+
   assert.match(writing, /getListedPosts\(lang\)/);
-  assert.match(writing, /class=\"a-directory\"/);
-  assert.match(layout, /`\/\$\{lang\}\/writing\/`/);
+  assert.match(writing, /class="measure measure--media page-head"/);
+  assert.match(header, /`\/\$\{lang\}\/writing\/`/);
   assert.match(layout, /<body class=\{bodyClass\}>/);
 });
 
-test('production copy removes prototype fillers and keeps the Moriium voice', async () => {
-  const [home, layout, todo] = await Promise.all([
+test('production copy keeps the Moriium voice and the accessible frame', async () => {
+  const [home, layout, header, todo] = await Promise.all([
     read('src/pages/[lang]/index.astro'),
     read('src/layouts/BaseLayout.astro'),
+    read('src/components/SiteHeader.astro'),
     read('docs/enouia-todo.md'),
   ]);
 
-  assert.doesNotMatch(home, /edition:|\{c\.edition\}|记录与留白/);
-  assert.match(home, /Morii &amp; Enouia/);
-  assert.match(home, /Morii 和 Enouia 一起维护 Moriium/);
-  assert.doesNotMatch(home, /Morii's personal edition · Dalian|STATIC<br \/>FIRST|a-profile-panel__mark|在大连生活，持续记录/);
+  assert.doesNotMatch(home, /edition:|\{c\.edition\}/);
+  assert.match(home, /Morii 与 Enouia/);
+  assert.match(home, /Morii と Enouia/);
+  assert.match(home, /Morii and Enouia/);
+  assert.doesNotMatch(home, /Morii's personal edition · Dalian|STATIC<br \/>FIRST|在大连生活，持续记录/);
+
   assert.match(layout, /\{ui\.skip\}/);
-  assert.match(layout, /aria-label=\{ui\.primaryNav\}/);
+  assert.match(header, /aria-label=\{ui\.primaryNav\}/);
 
   assert.match(todo, /一次只拿一个待办/);
   assert.match(todo, /01　生产搜索/);
@@ -146,21 +162,27 @@ test('production copy removes prototype fillers and keeps the Moriium voice', as
   assert.match(todo, /## 明确不做/);
 });
 
-test('article pages keep language alternates in metadata without an inline language switch', async () => {
-  const [article, protectedArticle, layout, styles] = await Promise.all([
+test('the language switch is global, and an article never invents a translation', async () => {
+  const [article, protectedArticle, header] = await Promise.all([
     read('src/layouts/ArticleLayout.astro'),
     read('src/pages/[lang]/protected/[slug].astro'),
-    read('src/layouts/BaseLayout.astro'),
-    read('src/styles/base.css'),
+    read('src/components/SiteHeader.astro'),
   ]);
 
   for (const source of [article, protectedArticle]) {
     assert.match(source, /rel="alternate"/);
     assert.match(source, /hreflang=/);
-    assert.doesNotMatch(source, /TranslationLinks|translation-list/);
   }
-  assert.match(layout, /class="language-nav"/);
-  assert.doesNotMatch(styles, /\.translation-list/);
+
+  // Switching language is a site-wide control and lives in the masthead.
+  assert.match(header, /class="language-nav"/);
+  assert.doesNotMatch(article, /class="language-nav"/);
+
+  // The article states availability instead: the current version, a real link,
+  // or an explicit "unavailable" — never a link to another language's page.
+  assert.match(article, /entry\s*\? <a href=\{postPath\(entry\)\}/);
+  assert.match(article, /: <span>\{UI\[code\]\.label\}<\/span>/);
+  assert.match(article, /c\.unavailable/);
 });
 
 test('bundled font CSS uses WOFF2 subsets and swap rendering without remote URLs', async () => {

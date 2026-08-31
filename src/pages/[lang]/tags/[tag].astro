@@ -1,10 +1,13 @@
 ---
+/*
+ * One tag, in the same ledger as everything else.
+ */
 import type { GetStaticPaths } from 'astro';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
-import TaxonomyPostList from '../../../components/TaxonomyPostList.astro';
+import PostLedger from '../../../components/PostLedger.astro';
+import SectionMark from '../../../components/SectionMark.astro';
 import { SITE, UI, type Language } from '../../../data/site';
 import { formatDate, getListedPosts } from '../../../utils/content';
-import '../../../styles/prototypes.css';
 
 export const getStaticPaths: GetStaticPaths = async () => {
   const paths = [];
@@ -24,34 +27,41 @@ if (!latest) throw new Error(`Tag "${tag}" has no listed posts.`);
 
 const copy = {
   zh: {
-    kicker: '04 / Tag', intro: `带有“${tag}”标签的文章，按发布时间从新到旧排列。`, posts: '文章', updated: '最近更新',
-    entries: (count: number) => `${String(count).padStart(2, '0')} 篇`, back: '返回全部标签 ←', tags: '标签',
+    mark: '标签', intro: `带有“${tag}”标签的文章，按发布时间从新到旧排列。`, posts: '篇数', updated: '最近更新',
+    entries: (count: number) => `${String(count).padStart(2, '0')} 篇`, back: '← 返回全部标签',
   },
   ja: {
-    kicker: '04 / Tag', intro: `「${tag}」タグの記事を、公開日の新しい順に並べています。`, posts: '記事', updated: '最終更新',
-    entries: (count: number) => `${String(count).padStart(2, '0')} 件`, back: 'タグ一覧へ戻る ←', tags: 'タグ',
+    mark: 'タグ', intro: `「${tag}」タグの記事を、公開日の新しい順に並べています。`, posts: '件数', updated: '最終更新',
+    entries: (count: number) => `${String(count).padStart(2, '0')} 件`, back: '← タグ一覧へ戻る',
   },
   en: {
-    kicker: '04 / Tag', intro: `Posts tagged “${tag}”, ordered from newest to oldest.`, posts: 'Posts', updated: 'Latest update',
-    entries: (count: number) => `${String(count).padStart(2, '0')} ${count === 1 ? 'post' : 'posts'}`, back: 'Back to all tags ←', tags: 'Tags',
+    mark: 'Tag', intro: `Posts tagged “${tag}”, ordered from newest to oldest.`, posts: 'Posts', updated: 'Latest update',
+    entries: (count: number) => `${String(count).padStart(2, '0')} ${count === 1 ? 'post' : 'posts'}`, back: '← Back to all tags',
   },
 } as const;
 const c = copy[lang];
 ---
 
-<BaseLayout lang={lang} title={tag} bodyClass="concept-a">
-  <div class="a-directory">
-    <header class="a-directory__hero">
-      <p class="prototype-kicker">{c.kicker}</p>
-      <div class="a-directory__title"><h1>{tag}</h1><p>{c.intro}</p></div>
-      <dl class="a-directory__stats">
-        <div><dt>{c.posts}</dt><dd>{c.entries(posts.length)}</dd></div>
-        <div><dt>{c.updated}</dt><dd><time datetime={latest.data.publishedAt.toISOString()}>{formatDate(latest.data.publishedAt, ui.locale)}</time></dd></div>
-      </dl>
-    </header>
+<BaseLayout lang={lang} title={tag}>
+  <section class="measure measure--media page-head">
+    <p class="page-head__eyebrow">{c.mark}</p>
+    <h1># {tag}</h1>
+    <p class="page-head__lede">{c.intro}</p>
+    <dl class="page-head__facts">
+      <div><dt>{c.posts}</dt><dd>{c.entries(posts.length)}</dd></div>
+      <div>
+        <dt>{c.updated}</dt>
+        <dd><time datetime={latest.data.publishedAt.toISOString()}>{formatDate(latest.data.publishedAt, ui.locale)}</time></dd>
+      </div>
+    </dl>
+  </section>
 
-    <TaxonomyPostList posts={posts} lang={lang} heading={`# ${tag}`} countLabel={c.entries(posts.length)} tagsLabel={c.tags} />
-
-    <p class="a-directory__crosslink"><a href={`/${lang}/tags/`}>{c.back}</a></p>
-  </div>
+  <section class="measure measure--media band" aria-labelledby="tag-posts-title">
+    <SectionMark label={`# ${tag}`} aside={c.entries(posts.length)} lead />
+    <h2 class="visually-hidden" id="tag-posts-title"># {tag}</h2>
+    <div class="band__body">
+      <PostLedger posts={posts} lang={lang} showTags labelledBy="tag-posts-title" />
+    </div>
+    <p class="crosslink"><a href={`/${lang}/tags/`}>{c.back}</a></p>
+  </section>
 </BaseLayout>

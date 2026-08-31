@@ -1,8 +1,14 @@
 ---
+/*
+ * The archive is allowed to be denser than the rest of the site (DESIGN.md 8.4),
+ * so it drops the summaries and keeps only what scanning needs: a year, a day,
+ * a title, a category. The year sits in the left column of a two-column band, so
+ * the whole page reads as one continuous column of titles with the years marking
+ * it off — closer to an index at the back of a book than to a list of cards.
+ */
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import { SITE, UI, type Language } from '../../../data/site';
 import { getListedPosts, postPath } from '../../../utils/content';
-import '../../../styles/prototypes.css';
 
 export function getStaticPaths() {
   return SITE.languages.map((lang) => ({ params: { lang }, props: { lang } }));
@@ -17,57 +23,62 @@ const newestYear = posts[0]?.data.publishedAt.getFullYear();
 const oldestYear = posts.at(-1)?.data.publishedAt.getFullYear();
 let yearSpan = '—';
 if (newestYear && oldestYear) yearSpan = newestYear === oldestYear ? String(newestYear) : `${oldestYear}—${newestYear}`;
+const monthDay = new Intl.DateTimeFormat(ui.locale, { month: '2-digit', day: '2-digit' });
 
 const copy = {
   zh: {
-    title: '归档', intro: '所有文章按年份排列，新写的在前面。', span: '跨度', posts: '文章',
+    title: '归档', intro: '所有文章按年份排列，新写的在前面。', span: '跨度', posts: '篇数',
     entries: (count: number) => `${String(count).padStart(2, '0')} 篇`,
-    emptyTitle: '还没有文章', emptyCount: '00 篇', empty: '这个语言版本暂时没有可以公开列出的文章。',
+    emptyTitle: '还没有文章', empty: '这个语言版本暂时没有可以公开列出的文章。',
   },
   ja: {
-    title: 'アーカイブ', intro: '公開中の記事を年ごとに、新しい順で並べています。', span: '期間', posts: '記事',
+    title: 'アーカイブ', intro: '公開中の記事を年ごとに、新しい順で並べています。', span: '期間', posts: '件数',
     entries: (count: number) => `${String(count).padStart(2, '0')} 件`,
-    emptyTitle: '記事はまだありません', emptyCount: '00 件', empty: 'この言語で公開中の記事はまだありません。',
+    emptyTitle: '記事はまだありません', empty: 'この言語で公開中の記事はまだありません。',
   },
   en: {
     title: 'Archive', intro: 'Every public post, grouped by year and ordered newest first.', span: 'Span', posts: 'Posts',
     entries: (count: number) => `${String(count).padStart(2, '0')} ${count === 1 ? 'entry' : 'entries'}`,
-    emptyTitle: 'No posts yet', emptyCount: '00 entries', empty: 'There are no listed posts in this language yet.',
+    emptyTitle: 'No posts yet', empty: 'There are no listed posts in this language yet.',
   },
 } as const;
 const c = copy[lang];
-const monthDay = (date: Date) => new Intl.DateTimeFormat(ui.locale, { month: '2-digit', day: '2-digit' }).format(date);
 ---
 
-<BaseLayout lang={lang} title={c.title} bodyClass="concept-a">
-  <div class="a-directory">
-    <header class="a-directory__hero">
-      <p class="prototype-kicker">02 / Archive</p>
-      <div class="a-directory__title"><h1>{c.title}</h1><p>{c.intro}</p></div>
-      <dl class="a-directory__stats">
-        <div><dt>{c.span}</dt><dd>{yearSpan}</dd></div>
-        <div><dt>{c.posts}</dt><dd>{String(posts.length).padStart(2, '0')}</dd></div>
-      </dl>
-    </header>
+<BaseLayout lang={lang} title={c.title}>
+  <section class="measure measure--media page-head">
+    <h1>{c.title}</h1>
+    <p class="page-head__lede">{c.intro}</p>
+    <dl class="page-head__facts">
+      <div><dt>{c.span}</dt><dd>{yearSpan}</dd></div>
+      <div><dt>{c.posts}</dt><dd>{String(posts.length).padStart(2, '0')}</dd></div>
+    </dl>
+  </section>
 
-    {yearGroups.length > 0 ? yearGroups.map(([year, entries]) => (
-      <section class="a-archive" aria-labelledby={`archive-${year}`}>
-        <header class="a-archive__year"><h2 id={`archive-${year}`}>{year}</h2><p>{c.entries(entries.length)}</p></header>
-        <ol>
+  {yearGroups.length > 0 ? (
+    yearGroups.map(([year, entries]) => (
+      <section class="measure measure--media archive-year" aria-labelledby={`archive-${year}`}>
+        <div class="archive-year__header">
+          <h2 class="archive-year__label" id={`archive-${year}`}>{year}</h2>
+          <p class="archive-year__count">{c.entries(entries.length)}</p>
+        </div>
+        <ol class="archive-list">
           {entries.map((post) => (
             <li>
-              <time datetime={post.data.publishedAt.toISOString()}>{monthDay(post.data.publishedAt)}</time>
-              <a href={postPath(post)}>{post.data.title}</a>
-              <span>{post.data.category}</span>
+              <a href={postPath(post)}>
+                <time datetime={post.data.publishedAt.toISOString()}>{monthDay.format(post.data.publishedAt)}</time>
+                <span class="archive-list__title">{post.data.title}</span>
+                <span class="archive-list__category">{post.data.category}</span>
+              </a>
             </li>
           ))}
         </ol>
       </section>
-    )) : (
-      <section class="a-archive a-archive--quiet" aria-labelledby="archive-empty-title">
-        <header class="a-archive__year"><h2 id="archive-empty-title">{c.emptyTitle}</h2><p>{c.emptyCount}</p></header>
-        <p class="a-archive__empty">{c.empty}</p>
-      </section>
-    )}
-  </div>
+    ))
+  ) : (
+    <section class="measure measure--media band empty-state" aria-labelledby="archive-empty-title">
+      <h2 id="archive-empty-title">{c.emptyTitle}</h2>
+      <p>{c.empty}</p>
+    </section>
+  )}
 </BaseLayout>

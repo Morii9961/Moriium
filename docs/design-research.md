@@ -23,6 +23,42 @@ Research is limited to principles. No reference layout, code, copy, photograph, 
 | Moriium Gallery accepted local build | Its home-to-chapter routing, persistent global entry points, active navigation state, and responsive menu hierarchy | A visually expressive home remains usable when every primary destination has a stable URL and the home is not forced to contain every view | A now routes Writing, Archive, Categories, Tags, and About to independent pages. The Gallery's full-screen carousel, photography-first shell, side dialog, palette, and motion were not reused |
 | Morii-supplied utility references and annotated A screenshot | The red-box removal notes plus author identity, site-statistics, and activity-calendar examples | A practical personal home should expose author, scale, recency, search, and appearance without becoming a generic dashboard | Prototype-only bars and the three-cell ledger were removed. A adds a ruled author/statistics/activity section, restores search and theme controls, and changes the photograph-only feature into a manual multi-topic switcher. The references' rounded cards, cyan palette, icon set, avatar, exact metrics, and dense dark dashboard were not copied |
 
+## 2026-08-31 reconstruction
+
+Morii asked for a full reconstruction of the public frontend, referencing open-source blog projects on GitHub, and for a result that balances reader experience against a restrained Japanese-minimal character. The design question taken into the references was narrow: **how should a personal, trilingual, content-first blog compose its home and its article page without becoming either a dashboard or a typography exercise?**
+
+### Sources actually inspected
+
+| Source | What was actually inspected | Extracted principle | Moriium decision |
+| --- | --- | --- | --- |
+| [RRTiamo/spring_blogs](https://github.com/RRTiamo/spring_blogs) | The repository page and README in full: feature list, three-repository split, stack, directory layout, and licence status. Its screenshots are placeholders and it publishes no demo, so **no interface of it was seen and none could be copied.** | A personal site can express a person by exposing several kinds of accumulated material — writing, photographs, footprints, a "now" — rather than one reverse-chronological feed | The home page keeps a lead story, recent writing, a dated "now" section, and rediscovery routes. Everything else in that project's model is out of scope by `AGENTS.md`: comments, likes, replies, friend links, visitor feedback, maps, wish lists, and love records. Its stack was rejected outright — Next.js, Tailwind, GSAP, Lenis, and Framer Motion all conflict with the static, minimal-JavaScript reader path. The repository also carries **no licence**, so its code is all-rights-reserved and nothing from it may be reused even if it were wanted |
+| [moeyua/astro-theme-typography](https://github.com/moeyua/astro-theme-typography) | The repository page and README, plus an attempt to read `src/styles/global.css`. Its typographic values live behind an UnoCSS theme indirection and were **not** legible, and the live demo could not be reached from this environment | A Chinese-language blog theme can take typography itself as the organising idea rather than as a delivery vehicle for a layout | Moriium's reading voice moves from sans to serif and the whole hierarchy is rebuilt on size and space. No value was taken from this project, because none was visible |
+| Local `ui-ux-pro-max` index (`--domain ux`, `--stack astro`) | The typography and Astro-stack rows it returned | 65–75 Latin characters per line; a consistent modular scale; tokens in `:root`; `.astro` for static markup | The reading measure follows the document language for exactly this reason: 42em is a comfortable Chinese line and an uncomfortable English one. The stack advice matched what the repository already does |
+
+Only two external projects were opened, per `DESIGN.md` section 14. Neither produced a layout, a component, a palette, a font list, or a line of code. The `/design/` study tree was left untouched.
+
+### What the previous implementation got wrong
+
+The reconstruction was not a matter of taste. The production site contradicted `DESIGN.md` in four measurable ways, and each is now fixed:
+
+1. **The palette was not Moriium's.** `--accent: #365F6B` with neutral grey surfaces. Neither locked palette from section 4.1 appeared anywhere in `src/styles/base.css`.
+2. **The typographic roles were inverted.** Section 5.1 assigns the article body to a serif; the site set it in Noto Sans SC and reserved the serif for a fallback slot it never reached.
+3. **There was no width hierarchy.** Section 6 specifies five widths and says photography must not be forced into the text measure. The site had two, and photographs were forced into the text measure.
+4. **Production shipped the design study.** Every public page imported `src/styles/prototypes.css` — 3,191 lines carrying concepts A, B, and C — so readers downloaded two rejected concepts on every request.
+
+### Decisions taken
+
+- **The measure rule** as the site's one structural gesture: a hairline exactly as wide as the unit it opens, so the width ladder becomes the page's visible structure and no section needs a card, a panel, or a shadow to show where it begins. Moriium Blue marks only the current or lead rule.
+- **One serif across three languages.** LXGW WenKai Screen covers Chinese, kana, and Latin from one drawing, so the site reads in a single voice instead of three. Sora was dropped from the public shell.
+- **A language-aware reading measure**, because a measure is counted in characters and the three languages disagree about how wide a character is.
+- **The dashboard was removed.** The site-statistics panel and the update calendar were re-expressed as a typographic colophon: the author, the counts, and the recent dates are all still there, in one ruled block instead of three boxes and a grid of day cells. Section 3 rules out the form, not the information — but this does change an element Morii previously asked for, so it is flagged rather than assumed.
+- **The section numbering was dropped.** `01 / 02 / 03 / 04` across home sections implied a sequence that does not exist. It survives in exactly two places where the order is real: the article outline, and the three site principles on the About page.
+- **No motion was added.** The one new indicator, article reading progress, is a scroll-driven CSS animation with no JavaScript and no time-based movement.
+
+### The gap the references could not fill
+
+Neither reference, and no skill, could resolve the accessibility problem in `DESIGN.md` section 4: both palettes are surface colours, and on the dark canvas every one of them falls below 3:1, which makes a hairline drawn in brand blue invisible. The measured evidence, the proposed `--color-accent-ink` and `--color-accent-mark`, and the request for Morii's decision are recorded in [`design-system.md`](design-system.md). They are proposals, not a change to the constitution.
+
 ## Rejected automated recommendations
 
 The local UI knowledge base suggested scroll storytelling, an accent-pink Swiss palette, Bodoni headings, GSAP scroll reveals, and a marketing-style conversion sequence. Those recommendations conflict with the personal-blog brief and the clean-room rules, so they were rejected. The implementation keeps only its twelve-column discipline, moderate information density, visible focus, 44-pixel touch-target, reduced-motion, readable-measure, and breakpoint guidance.

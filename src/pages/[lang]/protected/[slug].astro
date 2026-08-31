@@ -29,20 +29,26 @@ const envelope = JSON.stringify(post.data.encryption).replaceAll('<', '\\u003c')
       <link rel="alternate" hreflang={UI[entry.data.lang].locale} href={new URL(postPath(entry), Astro.site ?? 'https://morii9961.top')} />
     ))}
   </Fragment>
-  <article data-protected-article>
-    <header class="article-header">
-      <p class="post-meta">{post.data.category} · {formatDate(post.data.publishedAt, ui.locale)} · {copy.badge}</p>
-      <h1>{post.data.title}</h1>
-      <p class="article-header__summary">{post.data.summary}</p>
+  <article class="article" data-protected-article>
+    <header class="article__head measure measure--prose">
+      <p class="meta-line">
+        <span>{post.data.category}</span>
+        <span class="meta-line__sep" aria-hidden="true">/</span>
+        <time datetime={post.data.publishedAt.toISOString()}>{formatDate(post.data.publishedAt, ui.locale)}</time>
+        <span class="meta-line__sep" aria-hidden="true">/</span>
+        <span>{copy.badge}</span>
+      </p>
+      <h1 class="article__title">{post.data.title}</h1>
+      <p class="article__lede">{post.data.summary}</p>
     </header>
-    <section class="article-body protected-post" aria-labelledby="unlock-heading" data-protected-copy={JSON.stringify(copy)}>
-      <div class="protected-post__gate" data-protected-gate>
+    <section class="article__body measure measure--prose" aria-labelledby="unlock-heading" data-protected-copy={JSON.stringify(copy)}>
+      <div class="protected-gate" data-protected-gate>
         <h2 id="unlock-heading">{copy.title}</h2>
         <p>{copy.intro}</p>
-        <p class="post-meta">{copy.warning}</p>
+        <p class="protected-gate__warning">{copy.warning}</p>
         <form data-decrypt-form>
           <label for="article-password">{copy.password}</label>
-          <div class="protected-post__password-row">
+          <div class="protected-gate__row">
             <input id="article-password" name="password" type="password" autocomplete="current-password" required minlength="1" />
             <button type="button" data-password-toggle aria-pressed="false">{copy.show}</button>
           </div>
@@ -50,7 +56,7 @@ const envelope = JSON.stringify(post.data.encryption).replaceAll('<', '\\u003c')
           <p data-decrypt-status role="status" aria-live="polite"></p>
         </form>
       </div>
-      <div data-decrypted-content hidden tabindex="-1"></div>
+      <div class="article-body" data-decrypted-content hidden tabindex="-1"></div>
     </section>
   </article>
   <template id="encrypted-envelope" set:html={envelope}></template>

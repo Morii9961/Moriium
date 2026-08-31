@@ -1,8 +1,13 @@
 ---
+/*
+ * Categories are the stable, small set of subjects the writing keeps returning
+ * to, so they are shown as a ruled index with the latest post under each name.
+ * Tags are the large, fluid set and live on their own page; the crosslink at the
+ * bottom is how a reader moves between the two.
+ */
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import { SITE, UI, type Language } from '../../../data/site';
 import { getListedPosts, uniqueTaxonomy } from '../../../utils/content';
-import '../../../styles/prototypes.css';
 
 export function getStaticPaths() {
   return SITE.languages.map((lang) => ({ params: { lang }, props: { lang } }));
@@ -11,29 +16,35 @@ export function getStaticPaths() {
 const { lang } = Astro.props as { lang: Language };
 const ui = UI[lang];
 const posts = await getListedPosts(lang);
-const categories = uniqueTaxonomy(posts, 'category');
-const categoryEntries = categories.map((name) => {
+const categoryEntries = uniqueTaxonomy(posts, 'category').map((name) => {
   const entries = posts.filter((post) => post.data.category === name);
   const latest = entries[0];
   if (!latest) throw new Error(`Category "${name}" has no listed posts.`);
-  return { name, entries, latestTitle: latest.data.title };
+  return { name, count: entries.length, latestTitle: latest.data.title };
 });
+
 const copy = {
   zh: {
-    title: '分类', intro: '每篇文章只放进一个主要分类。想找得更细，可以再看看标签。', categories: '分类', posts: '文章',
-    entries: (count: number) => `${String(count).padStart(2, '0')} 篇`, latest: (title: string) => `最近更新：${title}`,
+    title: '分类', intro: '每篇文章只放进一个主要分类。想找得更细，可以再看看标签。',
+    categories: '分类数', posts: '篇数',
+    entries: (count: number) => `${String(count).padStart(2, '0')} 篇`,
+    latest: (title: string) => `最近更新：${title}`,
     emptyTitle: '还没有分类', empty: '这个语言版本暂时没有可以公开列出的分类。',
     crosslink: '想找得更细？', tags: '去标签索引 →',
   },
   ja: {
-    title: 'カテゴリー', intro: '各記事は一つの主なカテゴリーにまとめています。もう少し細かく探すなら、タグも使えます。', categories: 'カテゴリー', posts: '記事',
-    entries: (count: number) => `${String(count).padStart(2, '0')} 件`, latest: (title: string) => `最新：${title}`,
+    title: 'カテゴリー', intro: '各記事は一つの主なカテゴリーにまとめています。もう少し細かく探すなら、タグも使えます。',
+    categories: 'カテゴリー数', posts: '件数',
+    entries: (count: number) => `${String(count).padStart(2, '0')} 件`,
+    latest: (title: string) => `最新：${title}`,
     emptyTitle: 'カテゴリーはまだありません', empty: 'この言語で公開中のカテゴリーはまだありません。',
     crosslink: 'もう少し細かく探すなら', tags: 'タグ索引へ →',
   },
   en: {
-    title: 'Categories', intro: 'Each post belongs to one main category. Use tags to narrow things down.', categories: 'Categories', posts: 'Posts',
-    entries: (count: number) => `${String(count).padStart(2, '0')} ${count === 1 ? 'post' : 'posts'}`, latest: (title: string) => `Latest: ${title}`,
+    title: 'Categories', intro: 'Each post belongs to one main category. Use tags to narrow things down.',
+    categories: 'Categories', posts: 'Posts',
+    entries: (count: number) => `${String(count).padStart(2, '0')} ${count === 1 ? 'post' : 'posts'}`,
+    latest: (title: string) => `Latest: ${title}`,
     emptyTitle: 'No categories yet', empty: 'There are no public categories in this language yet.',
     crosslink: 'Looking for something more specific?', tags: 'Browse tags →',
   },
@@ -41,35 +52,36 @@ const copy = {
 const c = copy[lang];
 ---
 
-<BaseLayout lang={lang} title={c.title} bodyClass="concept-a">
-  <div class="a-directory">
-    <header class="a-directory__hero">
-      <p class="prototype-kicker">03 / Categories</p>
-      <div class="a-directory__title"><h1>{c.title}</h1><p>{c.intro}</p></div>
-      <dl class="a-directory__stats">
-        <div><dt>{c.categories}</dt><dd>{String(categoryEntries.length).padStart(2, '0')}</dd></div>
-        <div><dt>{c.posts}</dt><dd>{String(posts.length).padStart(2, '0')}</dd></div>
-      </dl>
-    </header>
+<BaseLayout lang={lang} title={c.title}>
+  <section class="measure measure--media page-head">
+    <h1>{c.title}</h1>
+    <p class="page-head__lede">{c.intro}</p>
+    <dl class="page-head__facts">
+      <div><dt>{c.categories}</dt><dd>{String(categoryEntries.length).padStart(2, '0')}</dd></div>
+      <div><dt>{c.posts}</dt><dd>{String(posts.length).padStart(2, '0')}</dd></div>
+    </dl>
+  </section>
 
-    {categoryEntries.length > 0 ? (
-      <nav class="a-category-directory" aria-label={ui.nav.categories}>
-        {categoryEntries.map(({ name, entries, latestTitle }, index) => (
-          <a href={`/${lang}/categories/${encodeURIComponent(name)}/`}>
-            <span class="a-category-directory__number">{String(index + 1).padStart(2, '0')}</span>
-            <div><h2>{name}</h2><p>{c.latest(latestTitle)}</p></div>
-            <strong>{c.entries(entries.length)}</strong>
-            <span class="a-category-directory__arrow" aria-hidden="true">↗</span>
-          </a>
+  {categoryEntries.length > 0 ? (
+    <nav class="measure measure--media band" aria-label={ui.nav.categories}>
+      <ol class="category-index">
+        {categoryEntries.map(({ name, count, latestTitle }) => (
+          <li>
+            <a href={`/${lang}/categories/${encodeURIComponent(name)}/`}>
+              <span class="category-index__name">{name}</span>
+              <span class="category-index__count">{c.entries(count)}</span>
+              <span class="category-index__latest">{c.latest(latestTitle)}</span>
+            </a>
+          </li>
         ))}
-      </nav>
-    ) : (
-      <section class="a-category-directory a-category-directory--quiet" aria-labelledby="categories-empty-title">
-        <h2 id="categories-empty-title">{c.emptyTitle}</h2>
-        <p>{c.empty}</p>
-      </section>
-    )}
-
-    <p class="a-directory__crosslink">{c.crosslink} <a href={`/${lang}/tags/`}>{c.tags}</a></p>
-  </div>
+      </ol>
+      <p class="crosslink">{c.crosslink} <a href={`/${lang}/tags/`}>{c.tags}</a></p>
+    </nav>
+  ) : (
+    <section class="measure measure--media band empty-state" aria-labelledby="categories-empty-title">
+      <h2 id="categories-empty-title">{c.emptyTitle}</h2>
+      <p>{c.empty}</p>
+      <p class="crosslink">{c.crosslink} <a href={`/${lang}/tags/`}>{c.tags}</a></p>
+    </section>
+  )}
 </BaseLayout>

@@ -1,0 +1,153 @@
+/*
+ * Moriium design tokens.
+ *
+ * DESIGN.md is the authority for every value here. Sections 4, 5, 6, 7 and 10
+ * are transcribed rather than reinterpreted, so a token that disagrees with the
+ * constitution is a bug in this file, not a new decision.
+ *
+ * Two tokens are NOT in DESIGN.md and are proposed here as explicit decisions,
+ * because section 18.2 leaves them open and forbids inventing them silently:
+ *
+ *   --color-text-*   the neutral reading inks, chosen against measured contrast.
+ *   --color-accent-ink
+ *                    an accessible blue for text, focus, and small marks.
+ *                    Section 4's palettes are surface/field blues. On the light
+ *                    canvas #5A7DAA reaches only 3.88:1, and on the dark canvas
+ *                    every brand blue is below 3:1. Both are unusable as ink.
+ *                    #3D5F8C (5.98:1) and #8FA0E0 (7.68:1) are steps of the same
+ *                    hue family that clear AA, so brand blue still reads as blue
+ *                    where it has to be legible.
+ *
+ * docs/design-system.md records both as proposals awaiting Morii's approval.
+ */
+
+@layer tokens {
+  :root {
+    color-scheme: light;
+
+    /* Type roles — DESIGN.md 5.1.
+     *
+     * One serif carries both reading and display, so the site speaks in a
+     * single voice; LXGW WenKai Screen covers Chinese, kana, and Latin from
+     * the same drawing, which is what makes a trilingual serif possible at all.
+     * It ships one weight, so hierarchy comes from size and space rather than
+     * boldness, and synthesis stays off outside emphasis. */
+    --font-serif: 'LXGW WenKai Screen', 'Songti SC', 'Yu Mincho', 'Georgia', 'Times New Roman', serif;
+    --font-sans: 'Noto Sans SC Variable', 'Hiragino Sans', 'Microsoft YaHei', system-ui, sans-serif;
+    --font-mono: 'IBM Plex Mono', 'Noto Sans SC Variable', ui-monospace, monospace;
+
+    /* Reading rhythm — DESIGN.md 5.2. */
+    --leading-body: 1.78;
+    --leading-tight: 1.24;
+    --leading-display: 1.08;
+    --tracking-label: 0.11em;
+    --tracking-display: -0.015em;
+
+    /* Layout widths — DESIGN.md 6, verbatim. */
+    --layout-text: 48rem;
+    --layout-media: 62rem;
+    --layout-gallery: 76rem;
+    --layout-header: 64rem;
+    --layout-wide: 90rem;
+    /* The gutter also has to clear a notch. On a device without safe-area
+     * insets both terms resolve to 0 and this is the plain clamp. */
+    --layout-gutter: max(
+      clamp(1rem, 4vw, 4.5rem),
+      env(safe-area-inset-left, 0px),
+      env(safe-area-inset-right, 0px)
+    );
+
+    /* Spacing — DESIGN.md 7.1: 4 / 8 / 12 / 16 / 24 / 32 / 48 / 64 / 96. */
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-5: 1.5rem;
+    --space-6: 2rem;
+    --space-7: 3rem;
+    --space-8: 4rem;
+    --space-9: 6rem;
+    --space-section: clamp(3rem, 7vw, 6rem);
+    --space-page-top: clamp(2.5rem, 7vw, 5.5rem);
+
+    /* Borders, radius, depth — DESIGN.md 7.2 to 7.4. */
+    --hairline: 1px;
+    --radius-sm: 2px;
+    --radius-md: 4px;
+    --radius-pill: 999px;
+    --shadow-soft: 0 1rem 3.5rem rgb(11 12 20 / 12%);
+
+    /* Motion — DESIGN.md 10. */
+    --motion-fast: 260ms;
+    --motion-medium: 560ms;
+    --motion-ease: cubic-bezier(0.16, 1, 0.3, 1);
+
+    /* Colour — DESIGN.md 4.1 light mode, 雾霾蓝. */
+    --color-bg-primary: #f2f5f9;
+    --color-bg-secondary: #b8c4d1;
+    --color-bg-elevated: #e6eaf0;
+
+    --color-text-primary: #12161c;   /* 16.59:1 */
+    --color-text-secondary: #4a535f; /*  7.13:1 */
+    --color-text-tertiary: #656e7a;  /*  4.72:1 */
+
+    --color-border-subtle: #e6eaf0;
+    --color-border-default: #d3e0ee;
+
+    --color-accent-primary: #5a7daa;
+    --color-accent-secondary: #85a1c2;
+    --color-accent-highlight: #aec3da;
+    --color-accent-ink: #3d5f8c;     /*  5.98:1 — proposed, see header */
+    --color-interactive-hover: #e5e7eb;
+    --color-interactive-selected: #e3ecf8;
+    --color-progress: #5a7daa;
+
+    /*
+     * Brand blue that has to stay visible against the canvas: the measure rules,
+     * the wordmark's full stop, the active navigation underline, prose
+     * underlines. On light this is the primary blue, which reaches 3.88:1 and
+     * reads clearly as a line. On dark it cannot be: every blue in the 深渊蓝
+     * palette is a surface colour, and the lightest of them sits at 1.9:1
+     * against #0B0C14 — a hairline drawn in it is invisible. So dark mode draws
+     * the same marks in the accessible tint instead. One alias, so no component
+     * has to know which theme it is in.
+     */
+    --color-accent-mark: var(--color-accent-primary);
+
+    /* Photographs sit on their own ground so the page tint never grades them. */
+    --color-plate: #e9edf3;
+
+    --color-danger: #96322f;
+  }
+
+  :root[data-theme='dark'] {
+    color-scheme: dark;
+
+    /* DESIGN.md 4.1 dark mode, 深渊蓝. */
+    --color-bg-primary: #0b0c14;
+    --color-bg-secondary: #0d1220;
+    --color-bg-elevated: #151a27;
+
+    --color-text-primary: #e9ecf3;   /* 16.49:1 */
+    --color-text-secondary: #a6aebe; /*  8.75:1 */
+    --color-text-tertiary: #7b8395;  /*  5.13:1 */
+
+    --color-border-subtle: #151a27;
+    --color-border-default: #1c2760;
+
+    --color-accent-primary: #162043;
+    --color-accent-secondary: #1f2c6a;
+    --color-accent-highlight: #2a3a8c;
+    --color-accent-ink: #8fa0e0;     /*  7.68:1 — proposed, see header */
+    --color-interactive-hover: #1c2760;
+    --color-interactive-selected: #1f2c6a;
+    --color-progress: #2a3a8c;
+
+    --color-accent-mark: var(--color-accent-ink);
+
+    --color-plate: #0d1220;
+
+    --color-danger: #f0a19c;
+    --shadow-soft: 0 1rem 3.5rem rgb(0 0 0 / 55%);
+  }
+}

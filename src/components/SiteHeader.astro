@@ -1,0 +1,81 @@
+---
+/*
+ * The masthead.
+ *
+ * DESIGN.md 8.1 asks for publication navigation rather than dashboard tabs, and
+ * for a frame wider than the article column. So it is a two-row masthead: the
+ * name and the tools on one line, the sections on the next, divided by the same
+ * hairline the rest of the site uses. It does not stick — nothing here is worth
+ * taking a strip of every screen while somebody reads.
+ */
+import { SITE, UI, type Language } from '../data/site';
+
+interface Props {
+  lang: Language;
+  pathname: string;
+}
+
+const { lang, pathname } = Astro.props;
+const ui = UI[lang];
+const languageLabels = { zh: '中', ja: '日', en: 'EN' } as const;
+
+const sections = [
+  { href: `/${lang}/`, label: ui.nav.home, match: (path: string) => path === `/${lang}/` },
+  {
+    href: `/${lang}/writing/`,
+    label: ui.nav.writing,
+    match: (path: string) =>
+      path.includes('/writing/') || path.includes('/posts/') || path.includes('/protected/'),
+  },
+  { href: `/${lang}/archive/`, label: ui.nav.archive, match: (path: string) => path.includes('/archive/') },
+  { href: `/${lang}/categories/`, label: ui.nav.categories, match: (path: string) => path.includes('/categories/') },
+  { href: `/${lang}/tags/`, label: ui.nav.tags, match: (path: string) => path.includes('/tags/') },
+  { href: `/${lang}/about/`, label: ui.nav.about, match: (path: string) => path.includes('/about/') },
+];
+---
+
+<header class="masthead">
+  <div class="measure measure--wide masthead__top">
+    <a class="masthead__mark" href={`/${lang}/`} translate="no">{SITE.name}</a>
+    <div class="masthead__tools">
+      <button
+        class="icon-button"
+        type="button"
+        aria-label={ui.search.open}
+        title={`${ui.search.open} (Ctrl/⌘ K)`}
+        data-search-open
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.6"></circle><path d="m16 16 4.2 4.2"></path></svg>
+      </button>
+      <nav class="language-nav" aria-label={ui.languageNav}>
+        {SITE.languages.map((code, index) => (
+          <>
+            {index > 0 && <span aria-hidden="true">/</span>}
+            <a href={`/${code}/`} lang={UI[code].locale} aria-current={code === lang ? 'page' : undefined}>
+              {languageLabels[code]}
+            </a>
+          </>
+        ))}
+      </nav>
+      <button
+        class="icon-button"
+        type="button"
+        aria-label={ui.theme}
+        title={ui.theme}
+        data-theme-toggle
+        data-label-light={ui.themeLight}
+        data-label-dark={ui.themeDark}
+      >
+        <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.5"></circle><path d="M12 2.5v2M12 19.5v2M4.6 4.6 6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"></path></svg>
+        <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.2 15.1A8.4 8.4 0 0 1 8.9 3.8 8.5 8.5 0 1 0 20.2 15Z"></path></svg>
+      </button>
+    </div>
+  </div>
+  <div class="measure measure--wide masthead__bottom">
+    <nav class="site-nav" aria-label={ui.primaryNav}>
+      {sections.map((section) => (
+        <a href={section.href} aria-current={section.match(pathname) ? 'page' : undefined}>{section.label}</a>
+      ))}
+    </nav>
+  </div>
+</header>

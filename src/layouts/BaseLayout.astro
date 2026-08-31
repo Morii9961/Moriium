@@ -1,9 +1,22 @@
 ---
+/*
+ * The document shell for every public page.
+ *
+ * Three font families, matching the three roles DESIGN.md 5.1 defines: one
+ * serif that draws Chinese, kana, and Latin from the same hand and therefore
+ * carries reading and display in all three languages; one sans for navigation
+ * and metadata; one monospace for code and figures. Nothing else is loaded.
+ */
 import '@fontsource-variable/noto-sans-sc/wght.css';
-import '@fontsource-variable/sora/wght.css';
 import '@fontsource/ibm-plex-mono/latin-400.css';
 import 'lxgw-wenkai-screen-webfont/lxgwwenkaigbscreen.css';
+import '../styles/tokens.css';
 import '../styles/base.css';
+import '../styles/layout.css';
+import '../styles/content.css';
+import SiteHeader from '../components/SiteHeader.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import SearchDialog from '../components/SearchDialog.astro';
 import { SITE, UI, type Language } from '../data/site';
 
 interface Props {
@@ -15,15 +28,25 @@ interface Props {
   ogType?: 'website' | 'article';
   image?: string;
   bodyClass?: string;
+  readingProgress?: boolean;
 }
 
-const { lang, title, description = UI[lang].description, canonical, noindex = false, ogType = 'website', image, bodyClass } = Astro.props;
+const {
+  lang,
+  title,
+  description = UI[lang].description,
+  canonical,
+  noindex = false,
+  ogType = 'website',
+  image,
+  bodyClass,
+  readingProgress = false,
+} = Astro.props;
 const ui = UI[lang];
 const pageTitle = title ? `${title} · ${SITE.name}` : SITE.name;
 const pathname = Astro.url.pathname;
 const canonicalUrl = canonical ?? new URL(pathname, SITE.url).href;
 const imageUrl = image ? new URL(image, SITE.url).href : undefined;
-const languageLabels = { zh: '中', ja: '日', en: 'EN' } as const;
 ---
 
 <!doctype html>
@@ -37,6 +60,8 @@ const languageLabels = { zh: '中', ja: '日', en: 'EN' } as const;
     <link rel="canonical" href={canonicalUrl} />
     <link rel="sitemap" href="/sitemap-index.xml" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#f2f5f9" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0b0c14" media="(prefers-color-scheme: dark)" />
     <link rel="alternate" type="application/rss+xml" title={`${SITE.name} RSS`} href={`/${lang}/rss.xml`} />
     <meta property="og:type" content={ogType} />
     <meta property="og:title" content={pageTitle} />
@@ -52,100 +77,26 @@ const languageLabels = { zh: '中', ja: '日', en: 'EN' } as const;
   </head>
   <body class={bodyClass}>
     <a class="skip-link" href="#main">{ui.skip}</a>
-    <header class="site-header">
-      <div class="site-shell site-header__inner">
-        <a class="site-mark" href={`/${lang}/`}>{SITE.name}</a>
-        <nav class="site-nav" aria-label={ui.primaryNav}>
-          <a href={`/${lang}/`} aria-current={pathname === `/${lang}/` ? 'page' : undefined}>{ui.nav.home}</a>
-          <a href={`/${lang}/writing/`} aria-current={pathname.includes('/writing/') || pathname.includes('/posts/') || pathname.includes('/protected/') ? 'page' : undefined}>{ui.nav.writing}</a>
-          <a href={`/${lang}/archive/`} aria-current={pathname.includes('/archive/') ? 'page' : undefined}>{ui.nav.archive}</a>
-          <a href={`/${lang}/categories/`} aria-current={pathname.includes('/categories/') ? 'page' : undefined}>{ui.nav.categories}</a>
-          <a href={`/${lang}/tags/`} aria-current={pathname.includes('/tags/') ? 'page' : undefined}>{ui.nav.tags}</a>
-          <a href={`/${lang}/about/`} aria-current={pathname.includes('/about/') ? 'page' : undefined}>{ui.nav.about}</a>
-        </nav>
-        <div class="site-actions">
-          <button class="site-tool" type="button" aria-label={ui.search.open} title={`${ui.search.open} (Ctrl/⌘ K)`} data-search-open>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.6"></circle><path d="m16 16 4.2 4.2"></path></svg>
-          </button>
-          <nav class="language-nav" aria-label={ui.languageNav}>
-            {SITE.languages.map((code, index) => (
-              <>
-                {index > 0 && <span aria-hidden="true">/</span>}
-                <a href={`/${code}/`} lang={UI[code].locale} aria-current={code === lang ? 'page' : undefined}>{languageLabels[code]}</a>
-              </>
-            ))}
-          </nav>
-          <button class="theme-toggle" type="button" aria-label={ui.theme} title={ui.theme} data-label-light={ui.themeLight} data-label-dark={ui.themeDark}>
-            <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.5"></circle><path d="M12 2.5v2M12 19.5v2M4.6 4.6 6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"></path></svg>
-            <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.2 15.1A8.4 8.4 0 0 1 8.9 3.8 8.5 8.5 0 1 0 20.2 15Z"></path></svg>
-          </button>
-        </div>
-      </div>
-    </header>
-    <dialog
-      class="site-search"
-      aria-labelledby="site-search-title"
-      data-search-dialog
-      data-search-index={`/search/${lang}.json`}
-      data-search-locale={ui.locale}
-      data-search-idle={ui.search.idle}
-      data-search-loading={ui.search.loading}
-      data-search-error={ui.search.error}
-      data-search-result-prefix={ui.search.resultPrefix}
-      data-search-result-suffix={ui.search.resultSuffix}
-    >
-      <div class="site-search__panel">
-        <header>
-          <div>
-            <p class="site-search__kicker">Search / Moriium</p>
-            <h2 id="site-search-title">{ui.search.title}</h2>
-          </div>
-          <button class="site-search__close" type="button" aria-label={ui.search.close} data-search-close>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 5 14 14M19 5 5 19"></path></svg>
-          </button>
-        </header>
-        <label for="site-search-input">{ui.search.label}</label>
-        <div class="site-search__field">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.6"></circle><path d="m16 16 4.2 4.2"></path></svg>
-          <input id="site-search-input" type="search" inputmode="search" autocomplete="off" placeholder={ui.search.placeholder} data-search-input />
-        </div>
-        <p class="site-search__summary" aria-live="polite" data-search-summary>{ui.search.idle}</p>
-        <ol class="site-search__results" data-search-results></ol>
-        <p class="site-search__empty" data-search-empty hidden>{ui.search.empty}</p>
-      </div>
-    </dialog>
+    {readingProgress && <div class="reading-progress" aria-hidden="true"></div>}
+    <SiteHeader lang={lang} pathname={pathname} />
+    <SearchDialog lang={lang} />
     <main id="main" tabindex="-1">
       <slot />
     </main>
-    <footer class="site-footer">
-      <div class="site-shell site-footer__inner">
-        <div class="site-footer__identity">
-          <p class="site-footer__name">{SITE.name}</p>
-          <p>{ui.footer.description}</p>
-        </div>
-        <nav aria-label={ui.footerNav}>
-          <a href={`/${lang}/writing/`}>{ui.nav.writing}</a>
-          <a href={`/${lang}/archive/`}>{ui.nav.archive}</a>
-          <a href={`/${lang}/categories/`}>{ui.nav.categories}</a>
-          <a href={`/${lang}/about/`}>{ui.nav.about}</a>
-          <a href={`/${lang}/rss.xml`}>RSS</a>
-        </nav>
-        <p class="site-footer__rights">© {new Date().getFullYear()} Morii<br />{ui.footer.rights}</p>
-      </div>
-    </footer>
+    <SiteFooter lang={lang} />
     <script>
-      const button = document.querySelector<HTMLButtonElement>('.theme-toggle');
-      const updateThemeButton = () => {
-        if (!button) return;
+      const toggle = document.querySelector<HTMLButtonElement>('[data-theme-toggle]');
+      const describeTheme = () => {
+        if (!toggle) return;
         const dark = document.documentElement.dataset.theme === 'dark';
-        button.setAttribute('aria-label', dark ? button.dataset.labelLight ?? '' : button.dataset.labelDark ?? '');
+        toggle.setAttribute('aria-label', dark ? toggle.dataset.labelLight ?? '' : toggle.dataset.labelDark ?? '');
       };
-      updateThemeButton();
-      button?.addEventListener('click', () => {
+      describeTheme();
+      toggle?.addEventListener('click', () => {
         const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
         document.documentElement.dataset.theme = next;
         localStorage.setItem('moriium-theme', next);
-        updateThemeButton();
+        describeTheme();
         window.dispatchEvent(new CustomEvent('moriium:theme', { detail: next }));
       });
 
@@ -159,8 +110,19 @@ const languageLabels = { zh: '中', ja: '日', en: 'EN' } as const;
       searchOpen?.addEventListener('click', showSearch);
       document.addEventListener('keydown', (event) => {
         const target = event.target;
-        const editing = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || (target instanceof HTMLElement && target.isContentEditable);
-        if (editing || event.altKey || event.shiftKey || event.key.toLocaleLowerCase() !== 'k' || (!event.ctrlKey && !event.metaKey)) return;
+        const editing =
+          target instanceof HTMLInputElement ||
+          target instanceof HTMLTextAreaElement ||
+          (target instanceof HTMLElement && target.isContentEditable);
+        if (
+          editing ||
+          event.altKey ||
+          event.shiftKey ||
+          event.key.toLocaleLowerCase() !== 'k' ||
+          (!event.ctrlKey && !event.metaKey)
+        ) {
+          return;
+        }
         event.preventDefault();
         void showSearch();
       });

@@ -1,0 +1,1095 @@
+/*
+ * Reading surfaces: the article page, long-form prose, the rich content blocks
+ * the Markdown pipeline emits, the search dialog, and the protected-post gate.
+ *
+ * DESIGN.md 6.1 asks a page to alternate widths rather than run one column all
+ * the way down, so prose sits on the prose measure and media steps out to the
+ * media measure from inside it. That step is the article's whole composition.
+ */
+
+@layer components {
+  /* ------------------------------------------------------- reading measure */
+
+  /*
+   * A measure is set in characters, not pixels, and the three languages do not
+   * agree on how many pixels a character is. 42em holds roughly 42 Chinese or
+   * Japanese characters; the same width in English runs past 90 Latin
+   * characters, well beyond a comfortable line. So the token follows the
+   * document language instead of being fixed once for all three.
+   */
+  :root {
+    --layout-prose: 42em;
+  }
+
+  :root:lang(en) {
+    --layout-prose: 37em;
+  }
+
+  .measure--prose {
+    --measure-width: var(--layout-prose);
+  }
+
+  /* --------------------------------------------------------- article shell */
+
+  .article {
+    position: relative;
+  }
+
+  .article__head {
+    padding-block: var(--space-page-top) var(--space-6);
+  }
+
+  .breadcrumb {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    color: var(--color-text-tertiary);
+  }
+
+  .breadcrumb a {
+    text-decoration-color: var(--color-border-default);
+  }
+
+  .breadcrumb a:hover {
+    color: var(--color-accent-ink);
+    text-decoration-color: currentColor;
+  }
+
+  .breadcrumb__sep {
+    color: var(--color-border-default);
+  }
+
+  .article__title {
+    margin-top: var(--space-5);
+    font-size: clamp(2rem, 1.3rem + 3vw, 3.25rem);
+    line-height: var(--leading-display);
+  }
+
+  .article__lede {
+    margin-top: var(--space-5);
+    font-size: clamp(1.0625rem, 1rem + 0.35vw, 1.25rem);
+    color: var(--color-text-secondary);
+  }
+
+  .article__facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3) var(--space-6);
+    margin-top: var(--space-6);
+    padding-top: var(--space-3);
+    border-top: var(--hairline) solid var(--color-accent-mark);
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+  }
+
+  .article__facts dt {
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+  }
+
+  .article__facts dd {
+    margin-top: 0.3rem;
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .article__facts a {
+    text-decoration-color: var(--color-border-default);
+  }
+
+  .article__facts a:hover {
+    color: var(--color-accent-ink);
+  }
+
+  /* The cover photograph is the first width break: it leaves the prose measure
+   * for the media measure. DESIGN.md 9.4 keeps the site's colour off it. */
+  .article__cover {
+    padding-block: var(--space-6) 0;
+  }
+
+  /* -------------------------------------------------------------- outline */
+
+  .article__outline {
+    padding-block: var(--space-6) var(--space-5);
+  }
+
+  .article__outline h2 {
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    font-weight: 400;
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+  }
+
+  .article__outline ol {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem var(--space-4);
+    margin-top: var(--space-3);
+    padding: var(--space-3) 0 0;
+    border-top: var(--hairline) solid var(--color-border-subtle);
+    counter-reset: outline;
+    list-style: none;
+  }
+
+  .article__outline li {
+    counter-increment: outline;
+  }
+
+  /* Sections are read in order, so the outline is numbered — but the number is
+   * set in the metadata face and stays subordinate to the section's name. */
+  .article__outline a::before {
+    content: counter(outline, decimal-leading-zero);
+    margin-right: 0.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    color: var(--color-text-tertiary);
+  }
+
+  .article__outline a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.25rem;
+    font-family: var(--font-sans);
+    font-size: 0.8125rem;
+    color: var(--color-text-secondary);
+    text-decoration-color: transparent;
+  }
+
+  .article__outline a:hover {
+    color: var(--color-accent-ink);
+    text-decoration-color: currentColor;
+  }
+
+  /* Sub-sections are noise in the narrow jump strip and useful in the desktop
+   * margin, so they appear only where there is room for them. */
+  .article__outline li[data-depth='3'] {
+    display: none;
+  }
+
+  .article__body {
+    padding-bottom: var(--space-8);
+  }
+
+  /* ---------------------------------------------------------- long-form */
+
+  .article-body {
+    overflow-wrap: break-word;
+  }
+
+  .article-body > * + * {
+    margin-top: 1rem;
+  }
+
+  .article-body :is(h2, h3, h4) {
+    margin-top: 2.4em;
+    margin-bottom: 0.55em;
+  }
+
+  .article-body h2 {
+    font-size: clamp(1.375rem, 1.2rem + 0.85vw, 1.75rem);
+  }
+
+  /* The measure rule again, in miniature: each section of an article opens with
+   * the same hairline the page's sections do. */
+  .article-body h2::before {
+    content: '';
+    display: block;
+    width: 2rem;
+    margin-bottom: 0.75em;
+    border-top: var(--hairline) solid var(--color-border-default);
+  }
+
+  .article-body h3 {
+    font-size: 1.1875rem;
+  }
+
+  .article-body h4 {
+    font-size: 1.0625rem;
+    color: var(--color-text-secondary);
+  }
+
+  /* DESIGN.md 5.4: prose links stay ink so they never fail contrast, and carry
+   * a blue underline so they are identifiable without relying on colour. */
+  .article-body a {
+    text-decoration-color: var(--color-accent-mark);
+    text-decoration-thickness: 1px;
+  }
+
+  .article-body a:hover {
+    color: var(--color-accent-ink);
+    text-decoration-color: currentColor;
+  }
+
+  .article-body :is(ul, ol) {
+    padding-left: 1.4em;
+  }
+
+  .article-body li + li {
+    margin-top: 0.4rem;
+  }
+
+  .article-body blockquote {
+    padding-left: var(--space-5);
+    border-left: 2px solid var(--color-accent-mark);
+    color: var(--color-text-secondary);
+  }
+
+  .article-body :not(pre) > code {
+    padding: 0.1em 0.35em;
+    border-radius: var(--radius-sm);
+    background: var(--color-bg-elevated);
+    font-family: var(--font-mono);
+    font-size: 0.875em;
+  }
+
+  .article-body hr {
+    margin-block: var(--space-7);
+    border-top-color: var(--color-border-subtle);
+  }
+
+  .article-body :is(table) {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    font-family: var(--font-sans);
+    font-size: 0.9375rem;
+  }
+
+  .article-body :is(th, td) {
+    padding: var(--space-3) var(--space-4) var(--space-3) 0;
+    border-bottom: var(--hairline) solid var(--color-border-subtle);
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .article-body th {
+    font-weight: 400;
+    color: var(--color-text-tertiary);
+    letter-spacing: 0.02em;
+  }
+
+  /* --------------------------------------------------- media inside prose */
+
+  /*
+   * The width break, done from inside the prose column. The element keeps its
+   * place in the flow and grows sideways, so a photograph reaches the media
+   * measure without the article being cut into separate sections.
+   *
+   * Only pictures and video step out. Code, diagrams, music, repository cards,
+   * and admonitions stay on the reading measure, because they are read in
+   * sequence with the prose and a column that keeps changing width is harder to
+   * read, not richer. Expressive Code's own <figure class="frame"> is excluded
+   * for the same reason.
+   */
+  .article-body > figure:not(.frame):not(.music-card),
+  .article-body > .article-image-link,
+  .article-body > p > .article-image-link,
+  .article-body > img,
+  .article-body > .video-card {
+    --breakout: min(var(--layout-media), calc(100vw - 2 * var(--layout-gutter)));
+    width: var(--breakout);
+    max-width: none;
+    margin-inline: calc(50% - var(--breakout) / 2);
+  }
+
+  .article-body figure img,
+  .article-body .article-image-link img {
+    width: 100%;
+  }
+
+  .article-body .article-image-link {
+    display: block;
+    background: var(--color-plate);
+    cursor: zoom-in;
+  }
+
+  .article-body figcaption {
+    margin-top: var(--space-3);
+    font-family: var(--font-sans);
+    font-size: 0.8125rem;
+    color: var(--color-text-tertiary);
+  }
+
+  /* ---------------------------------------------------- rich content blocks */
+
+  .admonition {
+    padding: var(--space-4) 0 var(--space-4) var(--space-5);
+    border-left: 2px solid var(--color-accent-mark);
+  }
+
+  .admonition__title {
+    margin-bottom: 0.35rem;
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--color-accent-ink);
+  }
+
+  .admonition > * + * {
+    margin-top: 0.6rem;
+  }
+
+  .admonition--warning,
+  .admonition--caution,
+  .admonition--danger {
+    border-left-color: var(--color-danger);
+  }
+
+  .admonition--warning .admonition__title,
+  .admonition--caution .admonition__title,
+  .admonition--danger .admonition__title {
+    color: var(--color-danger);
+  }
+
+  .spoiler {
+    border-radius: var(--radius-sm);
+    background: var(--color-text-primary);
+    color: transparent;
+    cursor: pointer;
+    transition: background-color var(--motion-fast) var(--motion-ease),
+      color var(--motion-fast) var(--motion-ease);
+  }
+
+  .spoiler:hover,
+  .spoiler:focus-visible,
+  .spoiler[data-revealed='true'] {
+    background: var(--color-bg-elevated);
+    color: inherit;
+  }
+
+  .github-card,
+  .music-card,
+  .video-card,
+  .mermaid-shell {
+    padding: var(--space-4) 0;
+    border-block: var(--hairline) solid var(--color-border-default);
+  }
+
+  .github-card {
+    display: block;
+    text-decoration: none;
+  }
+
+  .github-card__eyebrow,
+  .music-card__artist,
+  .music-card__status,
+  .video-consent__note {
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    color: var(--color-text-tertiary);
+  }
+
+  .github-card__eyebrow {
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+  }
+
+  .github-card__name {
+    display: block;
+    margin-top: 0.35rem;
+    font-size: 1.1875rem;
+    transition: color var(--motion-fast) var(--motion-ease);
+  }
+
+  .github-card:hover .github-card__name {
+    color: var(--color-accent-ink);
+  }
+
+  .github-card__description {
+    margin-top: 0.35rem;
+    color: var(--color-text-secondary);
+  }
+
+  .github-card__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+    margin-top: var(--space-3);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-text-tertiary);
+  }
+
+  .music-card {
+    display: grid;
+    grid-template-columns: 5rem minmax(0, 1fr);
+    gap: var(--space-4);
+    align-items: center;
+  }
+
+  .music-card--no-cover {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .music-card__cover {
+    width: 5rem;
+    aspect-ratio: 1;
+    border-radius: var(--radius-sm);
+    object-fit: cover;
+    background: var(--color-plate);
+  }
+
+  .music-card__title {
+    display: block;
+    font-size: 1.0625rem;
+  }
+
+  .music-card__artist,
+  .music-card__status {
+    display: block;
+  }
+
+  .music-card__play {
+    min-width: 5rem;
+    min-height: 2.75rem;
+    margin-top: var(--space-3);
+    padding-inline: var(--space-4);
+    border: var(--hairline) solid var(--color-border-default);
+    border-radius: var(--radius-md);
+    background: transparent;
+    font-family: var(--font-sans);
+    font-size: 0.8125rem;
+    transition: border-color var(--motion-fast) var(--motion-ease),
+      color var(--motion-fast) var(--motion-ease);
+  }
+
+  .music-card__play:hover {
+    border-color: var(--color-accent-mark);
+    color: var(--color-accent-ink);
+  }
+
+  .video-card iframe,
+  .video-card video {
+    width: 100%;
+    height: auto;
+    aspect-ratio: var(--video-ratio, 16 / 9);
+    border: 0;
+    background: var(--color-plate);
+  }
+
+  /* No third-party frame is contacted until the reader asks for it. */
+  .video-consent {
+    display: grid;
+    place-content: center;
+    gap: var(--space-2);
+    width: 100%;
+    min-height: 0;
+    aspect-ratio: var(--video-ratio, 16 / 9);
+    padding: var(--space-4);
+    border: var(--hairline) dashed var(--color-border-default);
+    border-radius: var(--radius-md);
+    background: var(--color-plate);
+    color: inherit;
+    text-align: center;
+    transition: border-color var(--motion-fast) var(--motion-ease);
+  }
+
+  .video-consent:hover {
+    border-color: var(--color-accent-mark);
+  }
+
+  .video-consent span {
+    display: block;
+  }
+
+  .video-consent__title {
+    font-size: 1.125rem;
+  }
+
+  .mermaid-shell {
+    overflow-x: auto;
+  }
+
+  /* The reader renders diagrams inside Expressive Code's frame, which already
+   * draws a border. A second one around the same diagram reads as a double box. */
+  .frame > .mermaid-shell {
+    padding: 0;
+    border: 0;
+  }
+
+  .embed-error {
+    font-family: var(--font-sans);
+    font-size: 0.8125rem;
+    color: var(--color-danger);
+  }
+
+  .reader-notice {
+    position: fixed;
+    right: var(--space-4);
+    bottom: var(--space-4);
+    z-index: 60;
+    max-width: min(24rem, calc(100vw - 2rem));
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-md);
+    background: var(--color-text-primary);
+    color: var(--color-bg-primary);
+    font-family: var(--font-sans);
+    font-size: 0.8125rem;
+    box-shadow: var(--shadow-soft);
+  }
+
+  /* Expressive Code keeps its own theming; only the frame is aligned. */
+  .article-body .expressive-code {
+    font-size: 0.875rem;
+  }
+
+  .article-body .katex-display {
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-block: var(--space-2);
+  }
+
+  /* ------------------------------------------------------ article colophon */
+
+  .article__colophon {
+    padding-block: var(--space-7);
+  }
+
+  .colophon-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    gap: var(--space-5) var(--space-6);
+    margin-top: var(--space-5);
+  }
+
+  .colophon-grid h2 {
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    font-weight: 400;
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+  }
+
+  .colophon-grid > section > *:not(h2) {
+    margin-top: var(--space-3);
+  }
+
+  .colophon-grid p {
+    font-size: 0.9375rem;
+    color: var(--color-text-secondary);
+  }
+
+  .tag-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem var(--space-3);
+    font-family: var(--font-sans);
+    font-size: 0.8125rem;
+  }
+
+  .tag-row a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.25rem;
+    color: var(--color-text-secondary);
+    text-decoration-color: var(--color-border-default);
+  }
+
+  .tag-row a:hover {
+    color: var(--color-accent-ink);
+    text-decoration-color: currentColor;
+  }
+
+  .tag-row span {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.25rem;
+    color: var(--color-text-tertiary);
+  }
+
+  /* A translation that does not exist is shown as unavailable, never invented
+   * and never quietly pointed at another language. */
+  .translation-list li {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding-block: 0.35rem;
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+  }
+
+  .translation-list small {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    letter-spacing: 0.04em;
+    color: var(--color-text-tertiary);
+  }
+
+  .translation-list a {
+    color: var(--color-accent-ink);
+    text-decoration-color: var(--color-accent-mark);
+  }
+
+  .translation-list > li > span {
+    color: var(--color-text-tertiary);
+  }
+
+  /* ------------------------------------------------------------- adjacent */
+
+  .adjacent {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-5);
+    padding-block: var(--space-6) var(--space-8);
+    border-top: var(--hairline) solid var(--color-border-default);
+  }
+
+  .adjacent a {
+    display: block;
+    padding-block: var(--space-3);
+    text-decoration: none;
+  }
+
+  .adjacent a:last-child:nth-child(2),
+  .adjacent__next {
+    text-align: right;
+  }
+
+  .adjacent span {
+    display: block;
+    font-family: var(--font-sans);
+    font-size: 0.6875rem;
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+  }
+
+  .adjacent strong {
+    display: block;
+    margin-top: 0.4rem;
+    font-weight: 400;
+    font-size: 1.0625rem;
+    transition: color var(--motion-fast) var(--motion-ease);
+  }
+
+  .adjacent a:hover strong,
+  .adjacent a:focus-visible strong {
+    color: var(--color-accent-ink);
+  }
+
+  /* ------------------------------------------------------ reading progress */
+
+  /*
+   * Scroll position, drawn with a scroll-driven animation so it costs no
+   * JavaScript at all. Browsers without the timeline simply do not show it.
+   */
+  .reading-progress {
+    position: fixed;
+    inset: 0 auto auto 0;
+    z-index: 70;
+    width: 100%;
+    height: 2px;
+    background: var(--color-accent-ink);
+    transform: scaleX(0);
+    transform-origin: 0 50%;
+    animation: reading-progress linear both;
+    animation-timeline: scroll(root block);
+  }
+
+  @keyframes reading-progress {
+    to {
+      transform: scaleX(1);
+    }
+  }
+
+  @supports not (animation-timeline: scroll(root block)) {
+    .reading-progress {
+      display: none;
+    }
+  }
+
+  /* ------------------------------------------------------------- protected */
+
+  .protected-gate {
+    padding-block: var(--space-6);
+    border-block: var(--hairline) solid var(--color-border-default);
+  }
+
+  .protected-gate > * + * {
+    margin-top: var(--space-4);
+  }
+
+  .protected-gate h2 {
+    font-size: 1.5rem;
+  }
+
+  .protected-gate p {
+    max-width: 34rem;
+    color: var(--color-text-secondary);
+  }
+
+  .protected-gate__warning {
+    font-family: var(--font-sans);
+    font-size: 0.8125rem;
+    color: var(--color-danger);
+  }
+
+  .protected-gate form {
+    display: grid;
+    gap: var(--space-3);
+    max-width: 26rem;
+  }
+
+  .protected-gate label {
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+  }
+
+  .protected-gate__row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--space-2);
+  }
+
+  .protected-gate :is(input, button) {
+    min-height: 2.75rem;
+    border: var(--hairline) solid var(--color-border-default);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-primary);
+    font-family: var(--font-sans);
+    font-size: 0.9375rem;
+  }
+
+  .protected-gate input {
+    min-width: 0;
+    padding-inline: var(--space-3);
+  }
+
+  .protected-gate button {
+    padding-inline: var(--space-4);
+  }
+
+  .protected-gate button[type='submit'] {
+    justify-self: start;
+    border-color: var(--color-text-primary);
+    background: var(--color-text-primary);
+    color: var(--color-bg-primary);
+  }
+
+  .protected-gate button[type='submit'][disabled] {
+    opacity: 0.6;
+  }
+
+  .protected-gate [data-decrypt-status] {
+    min-height: 1.5rem;
+    font-family: var(--font-sans);
+    font-size: 0.8125rem;
+    color: var(--color-danger);
+  }
+
+  /* ---------------------------------------------------------------- search */
+
+  .search-panel {
+    width: min(46rem, calc(100% - 2rem));
+    max-height: min(42rem, calc(100dvh - 3rem));
+    padding: 0;
+    border: var(--hairline) solid var(--color-border-default);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    box-shadow: var(--shadow-soft);
+  }
+
+  .search-panel {
+    overscroll-behavior: contain;
+  }
+
+  .search-panel::backdrop {
+    background: rgb(11 12 20 / 46%);
+  }
+
+  .search-panel__inner {
+    padding: clamp(1.25rem, 3.5vw, 2.25rem);
+  }
+
+  .search-panel__head {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding-bottom: var(--space-4);
+    border-bottom: var(--hairline) solid var(--color-accent-mark);
+  }
+
+  .search-panel__kicker {
+    font-family: var(--font-sans);
+    font-size: 0.6875rem;
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+  }
+
+  .search-panel__head h2 {
+    margin-top: 0.35rem;
+    font-size: clamp(1.5rem, 1.2rem + 1.4vw, 2.125rem);
+  }
+
+  .search-panel > * label,
+  .search-panel__inner > label {
+    display: block;
+    margin-top: var(--space-5);
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    color: var(--color-text-tertiary);
+  }
+
+  .search-panel__field {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin-top: var(--space-2);
+    border-bottom: var(--hairline) solid var(--color-text-secondary);
+  }
+
+  .search-panel__field svg {
+    position: absolute;
+    left: 0;
+    width: 1.0625rem;
+    height: 1.0625rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    color: var(--color-text-tertiary);
+  }
+
+  .search-panel__field input {
+    width: 100%;
+    min-height: 3.25rem;
+    padding: 0 0 0 1.9rem;
+    border: 0;
+    border-radius: 0;
+    outline: 0;
+    background: transparent;
+    font-family: var(--font-sans);
+    font-size: 1.0625rem;
+  }
+
+  /* The input clears its own outline, so the whole field carries the focus
+   * state instead — a compound control focused as one thing. */
+  .search-panel__field:focus-within {
+    border-bottom-color: var(--color-accent-ink);
+    box-shadow: 0 2px 0 var(--color-accent-ink);
+  }
+
+  .search-panel__summary,
+  .search-panel__empty {
+    padding-block: var(--space-3);
+    font-family: var(--font-sans);
+    font-size: 0.75rem;
+    color: var(--color-text-tertiary);
+  }
+
+  .search-panel__results {
+    max-height: 22rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .search-panel__results li {
+    border-top: var(--hairline) solid var(--color-border-subtle);
+  }
+
+  .search-panel__results a {
+    display: grid;
+    grid-template-columns: 6.5rem minmax(0, 1fr) auto;
+    gap: var(--space-2) var(--space-4);
+    align-items: center;
+    min-height: 4rem;
+    padding-block: var(--space-3);
+    text-decoration: none;
+  }
+
+  .search-panel__results span {
+    font-family: var(--font-sans);
+    font-size: 0.6875rem;
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+  }
+
+  .search-panel__results strong {
+    font-weight: 400;
+    font-size: 1.0625rem;
+    transition: color var(--motion-fast) var(--motion-ease);
+  }
+
+  .search-panel__results time {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-text-tertiary);
+  }
+
+  .search-panel__results a:hover strong,
+  .search-panel__results a:focus-visible strong {
+    color: var(--color-accent-ink);
+  }
+
+  /* ------------------------------------------------------------------ 404 */
+
+  .not-found {
+    padding-block: clamp(4rem, 14vw, 9rem);
+  }
+
+  .not-found__code {
+    font-family: var(--font-mono);
+    font-size: clamp(3.5rem, 2rem + 7vw, 7rem);
+    line-height: 1;
+    color: var(--color-accent-highlight);
+  }
+
+  .not-found h1 {
+    margin-top: var(--space-5);
+    font-size: clamp(1.75rem, 1.3rem + 2vw, 2.75rem);
+  }
+
+  .not-found p {
+    max-width: 34rem;
+    margin-top: var(--space-4);
+    color: var(--color-text-secondary);
+  }
+
+  .not-found nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-5);
+    margin-top: var(--space-6);
+    padding-top: var(--space-4);
+    border-top: var(--hairline) solid var(--color-accent-mark);
+    font-family: var(--font-sans);
+    font-size: 0.875rem;
+  }
+
+  .not-found nav a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+    color: var(--color-accent-ink);
+    text-decoration-color: var(--color-accent-mark);
+  }
+}
+
+/* ------------------------------------------------------------- responsive */
+
+/*
+ * Above this width the page can carry an outline beside the prose without
+ * narrowing it. Below it, the outline is a jump strip above the article.
+ */
+@media (min-width: 84rem) {
+  .article__reading {
+    position: relative;
+  }
+
+  .article__outline {
+    position: absolute;
+    top: 0;
+    left: calc(50% + var(--layout-prose) / 2 + var(--space-7));
+    width: 13rem;
+    max-width: none;
+    margin-inline: 0;
+    padding: 0;
+  }
+
+  .article__outline-inner {
+    position: sticky;
+    top: var(--space-6);
+  }
+
+  .article__outline ol {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .article__outline a {
+    min-height: 2rem;
+    align-items: start;
+    line-height: 1.45;
+  }
+
+  .article__outline li[data-depth='3'] {
+    display: block;
+    padding-left: var(--space-3);
+  }
+
+  .article__outline li[data-depth='3'] a {
+    font-size: 0.75rem;
+    color: var(--color-text-tertiary);
+  }
+}
+
+@media (max-width: 46rem) {
+  .article-body > figure:not(.frame):not(.music-card),
+  .article-body > .article-image-link,
+  .article-body > p > .article-image-link,
+  .article-body > img,
+  .article-body > .video-card {
+    --breakout: calc(100vw - 2 * var(--layout-gutter));
+  }
+
+  .music-card {
+    grid-template-columns: 3.75rem minmax(0, 1fr);
+    gap: var(--space-3);
+  }
+
+  .music-card__cover {
+    width: 3.75rem;
+  }
+
+  .adjacent {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .adjacent a {
+    text-align: left;
+    padding-block: var(--space-4);
+  }
+
+  .adjacent a + a {
+    border-top: var(--hairline) solid var(--color-border-subtle);
+  }
+
+  .adjacent__next {
+    text-align: left;
+  }
+
+  .search-panel__inner {
+    padding: var(--space-4);
+  }
+
+  .search-panel__results a {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.3rem var(--space-3);
+  }
+
+  .search-panel__results span {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /*
+   * The progress bar is scroll-linked, not time-based: it reports position
+   * rather than moving on its own. Neutralising its duration would make it read
+   * as full at the top of every article, so it keeps the timeline's own length.
+   */
+  .reading-progress {
+    animation-duration: auto !important;
+  }
+}

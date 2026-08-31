@@ -1,0 +1,55 @@
+---
+/*
+ * The search dialog's markup and copy. The index and the module that reads it
+ * are fetched only when the dialog is first opened (AGENTS.md engineering
+ * constraints), so this file ships nothing but a closed <dialog>.
+ */
+import { UI, type Language } from '../data/site';
+
+interface Props {
+  lang: Language;
+}
+
+const { lang } = Astro.props;
+const ui = UI[lang];
+---
+
+<dialog
+  class="search-panel"
+  aria-labelledby="site-search-title"
+  data-search-dialog
+  data-search-index={`/search/${lang}.json`}
+  data-search-locale={ui.locale}
+  data-search-idle={ui.search.idle}
+  data-search-loading={ui.search.loading}
+  data-search-error={ui.search.error}
+  data-search-result-prefix={ui.search.resultPrefix}
+  data-search-result-suffix={ui.search.resultSuffix}
+>
+  <div class="search-panel__inner">
+    <div class="search-panel__head">
+      <div>
+        <p class="search-panel__kicker">Search</p>
+        <h2 id="site-search-title">{ui.search.title}</h2>
+      </div>
+      <button class="icon-button" type="button" aria-label={ui.search.close} data-search-close>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 5 14 14M19 5 5 19"></path></svg>
+      </button>
+    </div>
+    <label for="site-search-input">{ui.search.label}</label>
+    <div class="search-panel__field">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.6"></circle><path d="m16 16 4.2 4.2"></path></svg>
+      <input
+        id="site-search-input"
+        type="search"
+        inputmode="search"
+        autocomplete="off"
+        placeholder={ui.search.placeholder}
+        data-search-input
+      />
+    </div>
+    <p class="search-panel__summary" aria-live="polite" data-search-summary>{ui.search.idle}</p>
+    <ol class="search-panel__results" data-search-results></ol>
+    <p class="search-panel__empty" data-search-empty hidden>{ui.search.empty}</p>
+  </div>
+</dialog>

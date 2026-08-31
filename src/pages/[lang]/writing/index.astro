@@ -1,8 +1,14 @@
 ---
+/*
+ * Every public post, newest first, in the same ledger the home page uses. The
+ * only difference is that this one is complete and shows tags, because this is
+ * the page a reader lands on when they want to scan the whole body of work.
+ */
 import BaseLayout from '../../../layouts/BaseLayout.astro';
+import PostLedger from '../../../components/PostLedger.astro';
+import SectionMark from '../../../components/SectionMark.astro';
 import { SITE, UI, type Language } from '../../../data/site';
-import { formatDate, getListedPosts, postPath } from '../../../utils/content';
-import '../../../styles/prototypes.css';
+import { getListedPosts } from '../../../utils/content';
 
 export function getStaticPaths() {
   return SITE.languages.map((lang) => ({ params: { lang }, props: { lang } }));
@@ -12,37 +18,50 @@ const { lang } = Astro.props as { lang: Language };
 const ui = UI[lang];
 const posts = await getListedPosts(lang);
 const latest = posts[0]?.data.publishedAt;
+const monthFormat = new Intl.DateTimeFormat(ui.locale, { year: 'numeric', month: '2-digit' });
+
 const copy = {
-  zh: { title: '文章', intro: '这里收着所有公开文章，新的排在前面。', count: '文章', updated: '最近更新', list: '全部文章', order: '新 → 旧' },
-  ja: { title: '記事', intro: '公開中の記事を新しい順に並べています。', count: '記事', updated: '最近の更新', list: 'すべての記事', order: '新 → 旧' },
-  en: { title: 'Writing', intro: 'All public posts, newest first.', count: 'Posts', updated: 'Latest update', list: 'All posts', order: 'New → old' },
+  zh: {
+    title: '文章', intro: '这里收着所有公开文章，新的排在前面。',
+    count: '篇数', updated: '最近更新', order: '新 → 旧',
+    emptyTitle: '还没有文章', empty: '这个语言版本暂时没有可以公开列出的文章。',
+  },
+  ja: {
+    title: '記事', intro: '公開中の記事を新しい順に並べています。',
+    count: '件数', updated: '最近の更新', order: '新 → 旧',
+    emptyTitle: '記事はまだありません', empty: 'この言語で公開中の記事はまだありません。',
+  },
+  en: {
+    title: 'Writing', intro: 'All public posts, newest first.',
+    count: 'Posts', updated: 'Latest update', order: 'New → old',
+    emptyTitle: 'No posts yet', empty: 'There are no listed posts in this language yet.',
+  },
 } as const;
 const c = copy[lang];
 ---
 
-<BaseLayout lang={lang} title={c.title} bodyClass="concept-a">
-  <div class="a-directory">
-    <header class="a-directory__hero">
-      <p class="prototype-kicker">01 / Writing</p>
-      <div class="a-directory__title"><h1>{c.title}</h1><p>{c.intro}</p></div>
-      <dl class="a-directory__stats">
-        <div><dt>{c.count}</dt><dd>{String(posts.length).padStart(2, '0')}</dd></div>
-        <div><dt>{c.updated}</dt><dd>{latest ? new Intl.DateTimeFormat(ui.locale, { year: 'numeric', month: '2-digit' }).format(latest) : '—'}</dd></div>
-      </dl>
-    </header>
-    <section class="a-directory__section" aria-labelledby="writing-list-title">
-      <header class="a-directory__section-head"><h2 id="writing-list-title">{c.list}</h2><p>{c.order}</p></header>
-      <ol class="prototype-posts a-post-index">
-        {posts.map((post, index) => (
-          <li class="prototype-post"><a href={postPath(post)}>
-            <span>{String(index + 1).padStart(2, '0')}</span>
-            <div><h3>{post.data.title}</h3><p>{post.data.summary}</p></div>
-            <span>{post.data.category}</span>
-            <time datetime={post.data.publishedAt.toISOString()}>{formatDate(post.data.publishedAt, ui.locale)}</time>
-            <span class="a-post-index__arrow" aria-hidden="true">↗</span>
-          </a></li>
-        ))}
-      </ol>
+<BaseLayout lang={lang} title={c.title}>
+  <section class="measure measure--media page-head">
+    <h1>{c.title}</h1>
+    <p class="page-head__lede">{c.intro}</p>
+    <dl class="page-head__facts">
+      <div><dt>{c.count}</dt><dd>{String(posts.length).padStart(2, '0')}</dd></div>
+      <div><dt>{c.updated}</dt><dd>{latest ? monthFormat.format(latest) : '—'}</dd></div>
+    </dl>
+  </section>
+
+  {posts.length > 0 ? (
+    <section class="measure measure--media band" aria-labelledby="writing-list-title">
+      <SectionMark label={c.title} aside={c.order} />
+      <h2 class="visually-hidden" id="writing-list-title">{c.title}</h2>
+      <div class="band__body">
+        <PostLedger posts={posts} lang={lang} showTags labelledBy="writing-list-title" />
+      </div>
     </section>
-  </div>
+  ) : (
+    <section class="measure measure--media band empty-state" aria-labelledby="writing-empty-title">
+      <h2 id="writing-empty-title">{c.emptyTitle}</h2>
+      <p>{c.empty}</p>
+    </section>
+  )}
 </BaseLayout>
