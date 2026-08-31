@@ -46,7 +46,7 @@
     "@tiptap/pm": "3.30.5",
     "@tiptap/starter-kit": "3.30.5",
     "@tiptap/vue-3": "3.30.5",
-    "astro": "7.2.4",
+    "astro": "7.2.9",
     "astro-expressive-code": "0.44.1",
     "katex": "0.18.4",
     "lxgw-wenkai-screen-webfont": "1.7.0",
