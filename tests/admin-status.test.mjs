@@ -206,7 +206,7 @@ describe('admin status panel', () => {
   for (const file of ['App.ts', 'ArticleEditor.ts', 'MediaLibrary.ts']) {
     it(`keeps the runtime template in ${file} compilable`, () => {
       const source = readFileSync(resolve(import.meta.dirname, '..', 'src/admin', file), 'utf8');
-      const match = /template:\s*`([\s\S]*?)`,\n\}\);/.exec(source);
+      const match = /template:\s*`([\s\S]*?)`,\r?\n\}\);/.exec(source);
       assert.ok(match, `${file} must carry a runtime template`);
       const result = compileTemplate({ source: match[1], filename: file, id: file });
       assert.deepEqual(result.errors.map((error) => String(error)), []);
@@ -218,7 +218,10 @@ describe('admin status panel', () => {
     const client = readFileSync(resolve(import.meta.dirname, '..', 'src/admin/api.ts'), 'utf8');
 
     assert.match(app, /v-for="item in status\.items"/);
-    assert.match(app, /item\.verdict === 'unknown'/);
+    assert.match(
+      app,
+      /item\.verdict === 'ok' \? '正常' : item\.verdict === 'attention' \? '需要注意' : '未观测'/,
+    );
     assert.match(client, /'\/api\/status\/'/);
   });
 });
