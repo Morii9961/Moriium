@@ -260,6 +260,16 @@ describe('author article HTTP API', () => {
     const autosaved = await json(autosavedResponse);
     assert.equal(store.getArticle(articleId).publishedVersionId, null);
 
+    const deniedDetail = await handleArticleResource(
+      request(`/api/articles/${articleId}`, { method: 'GET', origin: false }),
+      anonymous,
+      store,
+      db,
+      articleId,
+    );
+    assert.equal(deniedDetail.status, 401);
+    assert.doesNotMatch(JSON.stringify(await json(deniedDetail)), /自动保存/);
+
     const published = await handleArticleResource(
       request(`/api/articles/${articleId}/publish`, {
         body: { versionId: autosaved.version.id, note: 'integration publish' },

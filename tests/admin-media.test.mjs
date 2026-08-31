@@ -338,6 +338,19 @@ describe('media API', () => {
     assert.deepEqual(bytes, readFileSync(fileForPublicPath(asset.publicPath)));
     await assertStripped(bytes);
 
+    rmSync(fileForPublicPath(asset.publicPath));
+    const missingFile = await handleMediaFile(
+      read(`/api/media/${asset.id}/file`),
+      session,
+      db,
+      asset.id,
+    );
+    assert.equal(missingFile.status, 400);
+    assert.deepEqual(await missingFile.json(), {
+      error: 'That media file is missing from storage.',
+      code: 'validation-failed',
+    });
+
     const anonymous = await handleMediaFile(
       read(`/api/media/${asset.id}/file`),
       new FakeSession(),
@@ -348,6 +361,53 @@ describe('media API', () => {
 
     const missing = await handleMediaFile(read('/api/media/9999/file'), session, db, 9999);
     assert.equal(missing.status, 400);
+  });
+
+  it('returns a retryable 503 and removes the sanitized file when the media row is write-locked', async () => {
+    counter += 1;
+    let tick = 0;
+    const now = () => new Date(Date.UTC(2026, 7, 30, 2, 0, tick++)).toISOString();
+    const path = join(directory, `media-locked-${counter}.db`);
+    const writer = openDatabase(path, { now });
+    const contender = openDatabase(path, { now });
+    opened.push(writer, contender);
+    const author = await createAccount(
+      writer,
+      { name: 'Enouia', password: 'e'.repeat(30) },
+      now,
+    );
+    const session = new FakeSession(
+      { id: author.id, name: author.name },
+      'csrf-test-token',
+    );
+    const group = `locked-${counter}`;
+    const groupRoot = join(mediaRoot, 'posts', group);
+    contender.exec('PRAGMA busy_timeout = 0');
+    writer.exec('BEGIN IMMEDIATE');
+
+    try {
+      const response = await handleMediaCollection(
+        await upload({
+          file: new File([await photographWithExif()], 'locked.jpg', {
+            type: 'image/jpeg',
+          }),
+          alt: '不会落库的图片',
+          group,
+        }),
+        session,
+        contender,
+      );
+
+      assert.equal(response.status, 503);
+      assert.deepEqual(await response.json(), {
+        error: 'The database is busy. Try again.',
+        code: 'db-locked',
+      });
+      assert.equal(writer.prepare('SELECT COUNT(*) AS count FROM media_assets').get().count, 0);
+      assert.deepEqual(await filesUnder(groupRoot), []);
+    } finally {
+      writer.exec('ROLLBACK');
+    }
   });
 });
 

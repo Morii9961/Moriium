@@ -1314,3 +1314,45 @@ pnpm split
   → 全部 exit 0
   → 192 个公开文件不依赖 Node；190 个公开可达 HTML/CSS/JS 文件不含 Admin 代码
 ```
+
+### 21.17 故障矩阵第四项：草稿越权（2026-08-31）
+
+这一项复核的是已有权限边界，不是再造一套所有权模型。Morii 与 Enouia 在 ADR 0002 中是权限相同的两个作者账户，系统按操作者记审计，但没有“每篇文章只归一个作者”的隔离要求；这里要阻止的是匿名读者越过 Admin 边界拿到草稿。
+
+现有用例已经证明匿名请求不能列出文章，也不能调用未保存预览；本轮补上匿名直接读取单篇文章的缺口。用例先创建文章并写入新的自动保存，再以无会话请求同一文章资源，结果是 401，响应体不含自动保存正文。公开导出继续只读 `published_version_id`：未发布文章不出现在导出目录，已发布文章即使有更新的自动保存，导出的仍是已发布版本。
+
+```text
+node --test --test-isolation=none \
+  tests/admin-articles-api.test.mjs \
+  tests/admin-export.test.mjs \
+  tests/admin-media.test.mjs
+  → tests 34 / suites 10 / pass 34 / fail 0
+```
+
+### 21.18 故障矩阵第五项：媒体写入与存储故障（2026-08-31）
+
+媒体链路原本已经在数据库登记失败时删除刚写出的净化文件，也已经把 SQLite 锁归类成 `db-locked`，但两件事没有在同一个生产路径里被证明。本轮用两个真实连接锁住 `media_assets` 所在数据库，再从媒体 HTTP 接口上传一张带 EXIF/GPS 的 JPEG。图片完成强制重编码和落盘后，数据库写入遇锁；接口返回 503 与 `db-locked`，表中保持 0 行，对应目录也没有残留文件。
+
+另一个断言覆盖相反的不一致：数据库行仍在、磁盘文件被移走。作者请求该资源时得到 400、`validation-failed` 和明确的 `That media file is missing from storage.`，而不是空响应或通用 500。匿名请求仍先停在 401，不会借故障状态探测媒体是否存在。
+
+这一步没有加入后台重试或自动修复。锁竞争可以由作者重试；缺文件通常表示恢复遗漏了媒体目录，必须按部署手册核对数据库与媒体副本，不能由应用凭空重建。
+
+### 21.19 故障矩阵第六项：静态回退（2026-08-31）
+
+仓库侧验证分两层。部署与渲染分裂契约确认 Nginx 默认服务静态公开目录，只有 `/admin/` 和 `/api/` 交给回环 Node 服务；所有 Admin/API 页面都显式退出预渲染。随后在不启动 Astro Admin 服务的情况下，用 Python 静态文件服务器直接托管最近一次通过构建得到的 `dist/client`，逐个请求代表性公开入口。
+
+```text
+node --test --test-isolation=none \
+  tests/deployment-contract.test.mjs \
+  tests/render-split.test.mjs
+  → tests 7 / suites 1 / pass 7 / fail 0
+
+纯静态 HTTP 探测（dist/client）
+  /zh/               → 200
+  /ja/               → 200
+  /en/               → 200
+  /sitemap-index.xml → 200
+  /admin/            → 404
+```
+
+`/admin/` 在纯静态树中返回 404 是预期结果：它证明公开构建没有偷偷带入 Admin，而不是 Admin 本身失效。至此六项故障矩阵在仓库和本机范围内完成。真实 VPS 上停掉 `moriium-admin.service`、由 Nginx 继续服务三语公开页的验收仍属于第 12 块部署接受条件；配置尚未安装，因此这里没有把本机 Python 探测写成生产记录。
