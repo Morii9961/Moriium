@@ -518,13 +518,16 @@ export class ArticleStore {
   }
 
   #transaction<T>(work: () => T): T {
-    this.#db.exec('BEGIN IMMEDIATE');
+    let active = false;
     try {
+      this.#db.exec('BEGIN IMMEDIATE');
+      active = true;
       const result = work();
       this.#db.exec('COMMIT');
+      active = false;
       return result;
     } catch (error) {
-      this.#db.exec('ROLLBACK');
+      if (active) this.#db.exec('ROLLBACK');
       throw asStoreError(error);
     }
   }

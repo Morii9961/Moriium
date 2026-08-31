@@ -338,6 +338,46 @@ describe('author article HTTP API', () => {
     assert.equal(store.listArticles().length, 0);
   });
 
+  it('returns a retryable 503 without a partial article when another connection holds the write lock', async () => {
+    counter += 1;
+    let tick = 0;
+    const now = () => new Date(Date.UTC(2026, 7, 30, 1, 0, tick++)).toISOString();
+    const path = join(directory, `locked-${counter}.db`);
+    const writer = openDatabase(path, { now });
+    const contender = openDatabase(path, { now });
+    opened.push(writer, contender);
+    const author = await createAccount(
+      writer,
+      { name: 'Enouia', password: 'e'.repeat(30) },
+      now,
+    );
+    const session = new FakeSession(
+      { id: author.id, name: author.name },
+      'csrf-test-token',
+    );
+    contender.exec('PRAGMA busy_timeout = 0');
+    writer.exec('BEGIN IMMEDIATE');
+
+    try {
+      const response = await handleArticlesCollection(
+        request('/api/articles', { body: createInput({ slug: 'zh/locked' }) }),
+        session,
+        new ArticleStore(contender, now),
+        contender,
+      );
+
+      assert.equal(response.status, 503);
+      assert.deepEqual(await json(response), {
+        error: 'The database is busy. Try again.',
+        code: 'db-locked',
+      });
+      assert.equal(contender.prepare('SELECT COUNT(*) AS count FROM articles').get().count, 0);
+      assert.equal(contender.prepare('SELECT COUNT(*) AS count FROM versions').get().count, 0);
+    } finally {
+      writer.exec('ROLLBACK');
+    }
+  });
+
   it('renders an unsaved author preview through the production pipeline without storing it', async () => {
     const { db, store, author, session } = await freshContext();
     const article = store.createArticle({

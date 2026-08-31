@@ -1254,3 +1254,63 @@ pnpm -C prototypes check
 pnpm -C prototypes fixtures:check
   → 4 篇公开 fixture、1 篇受保护 fixture、2 个媒体文件、11 种内容块、4 份 baseline 全部通过
 ```
+
+### 21.14 故障矩阵第一项：Admin API 断开（2026-08-31）
+
+生产 Admin 原本没有统一处理浏览器的网络错误。文章编辑器和媒体面板各自写了断网提示，顶层登录、会话恢复与文章列表却直接显示 `String(error)`。让 `fetch` 固定拒绝后，作者实际看到的是 `TypeError: Failed to fetch`；这既没有说明该怎么做，也把浏览器异常原样漏到了界面上。
+
+根因是错误消息边界散落在三个组件里。`src/admin/api.ts` 现在提供 `messageForApiFailure()`：服务端已经返回的 `ApiError` 保留原文，浏览器 `TypeError` 换成调用场景给出的断网提示，其他意外错误仍保留原始信息，避免把程序缺陷伪装成网络问题。顶层 App、文章编辑器和媒体面板都改用这一处；编辑器明确说明本次没有保存、改动仍在页面里，媒体面板则说明本次没有导入。
+
+新用例先以缺少共享边界失败，再在实现后通过。它真的让 `fetch` 抛出 `TypeError('Failed to fetch')`，并断言呈现给作者的文字不含 `TypeError` 或 `Failed to fetch`；另一个用例确认数据库繁忙等可读服务端拒绝不会被断网文案覆盖。
+
+```text
+node --test --test-isolation=none tests/admin-client-failures.test.mjs tests/admin-client-routes.test.mjs
+  → tests 5 / suites 2 / pass 5 / fail 0
+
+pnpm check
+  → Astro 144 个文件，0 条诊断
+```
+
+这一项只收口“请求根本没有到达 API”的反馈，不增加自动重试。自动保存失败后的退避与停手重试仍是单独的交互决定。故障矩阵下一项是生产 SQLite 锁；现有代码虽然会把锁竞争映射成 `db-locked` 和 HTTP 503，但还没有生产用例真的制造两个连接之间的写锁。
+
+### 21.15 故障矩阵第二项：生产 SQLite 写锁（2026-08-31）
+
+这一项没有用伪造的错误字符串代替数据库竞争。测试在同一个临时数据库上打开两个真实 `DatabaseSync` 连接，由第一个连接执行 `BEGIN IMMEDIATE` 持有写锁，再让第二个连接从生产文章 HTTP 接口创建文章。第二个连接的 `busy_timeout` 在测试中调成 0，只缩短失败等待，不改变错误类型。
+
+修复前，用例得到未解释的 500，控制台打印 `Error: database is locked`。`ArticleStore` 虽然已有 `asStoreError()`，HTTP 边界也会把 `db-locked` 转成 503，但 `#transaction()` 在 `try` 外执行 `BEGIN IMMEDIATE`，真正抢锁失败时根本进不到分类代码。
+
+现在事务起点与后续写入共用同一个异常边界。只有 `BEGIN IMMEDIATE` 成功后才把事务标记为 active；后续失败会回滚，开始事务本身失败则不会误跑一个没有事务可回滚的 `ROLLBACK`。最后统一经过 `asStoreError()`，锁竞争稳定返回 503 与 `db-locked`。
+
+```text
+node --test --test-isolation=none tests/admin-articles-api.test.mjs
+  → tests 6 / suites 2 / pass 6 / fail 0
+```
+
+用例同时读取 `articles` 与 `versions`，两张表都保持 0 行，证明失败没有留下只有身份没有版本的半篇文章。这个结果覆盖生产文章写入路径；媒体表自己的锁分类仍要在“媒体故障”一项里用真实竞争验证，不能从这里外推。
+
+### 21.16 故障矩阵第三项：复用本机备份恢复证据（2026-08-31）
+
+第 11 块已经实现并验证了这一项，不再另写一套“故障矩阵专用”恢复代码。现有用例会让新备份主动失败并确认旧副本不动；恢复演练先拒绝损坏对照，再从干净副本完成迁移、读取、持久写入、关闭与只读重开。命令面也不提供替换生产数据库的参数。
+
+```text
+node --test --test-isolation=none tests/admin-backup.test.mjs
+  → tests 7 / suites 2 / pass 7 / fail 0
+```
+
+这只能关闭故障矩阵里的本机备份恢复项。异地下载、媒体同步、停服务、替换生产库、重启 Admin、重建静态站与完整计时都需要真实基础设施；RTO 小于等于 30 分钟仍是目标，不是这 7 个用例证明的结果。
+
+本轮整体复核没有把沙箱失败写成绿灯。`pnpm verify` 的 `astro check` 通过后，Node 默认测试隔离因 `spawn EPERM` 无法启动 23 个测试文件；改用 `--test-isolation=none` 后，唯一剩下的失败也是 release-host 用例启动子进程时的 `spawnSync EPERM`。该文件获准在沙箱外重跑后是 21 通过、0 失败、1 个 Windows 符号链接跳过。合并两次证据，当前 153 个测试中 152 个通过、0 个断言失败、1 个平台跳过。
+
+```text
+pnpm check
+  → Astro 144 个文件，0 条诊断
+
+pnpm build（沙箱外）
+  → exit 0
+
+pnpm links
+pnpm run audit
+pnpm split
+  → 全部 exit 0
+  → 192 个公开文件不依赖 Node；190 个公开可达 HTML/CSS/JS 文件不含 Admin 代码
+```

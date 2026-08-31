@@ -13,7 +13,7 @@
 // broken image and calling it a preview would not be.
 
 import { computed, defineComponent, onMounted, ref } from 'vue';
-import { api, ApiError, type MediaAsset } from './api.ts';
+import { api, messageForApiFailure, type MediaAsset } from './api.ts';
 
 export default defineComponent({
   name: 'MediaLibrary',
@@ -37,10 +37,10 @@ export default defineComponent({
     const ready = computed(() => file.value !== null && alt.value.trim().length > 0);
 
     function report(error: unknown): void {
-      failure.value =
-        error instanceof ApiError
-          ? error.message
-          : `连接不上后台，这次没有导入。（${String(error)}）`;
+      failure.value = messageForApiFailure(
+        error,
+        '连接不上后台，这次没有导入。请检查网络后重试。',
+      );
     }
 
     async function refresh(): Promise<void> {

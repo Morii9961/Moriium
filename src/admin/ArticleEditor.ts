@@ -3,7 +3,7 @@ import { EditorContent, useEditor } from '@tiptap/vue-3';
 import MediaLibrary from './MediaLibrary.ts';
 import {
   api,
-  ApiError,
+  messageForApiFailure,
   type ArticleDetail,
   type MediaAsset,
   type Version,
@@ -63,8 +63,10 @@ export default defineComponent({
     const live = computed(() => detail.value?.live ?? null);
 
     function report(error: unknown): void {
-      if (error instanceof ApiError) failure.value = error.message;
-      else failure.value = `连接不上后台，这次没有保存。改动仍在编辑器里。（${String(error)}）`;
+      failure.value = messageForApiFailure(
+        error,
+        '连接不上后台，这次没有保存。改动仍在编辑器里。',
+      );
     }
 
     function syncImageSelection(): void {

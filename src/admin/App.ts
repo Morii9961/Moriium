@@ -1,6 +1,12 @@
 import { computed, defineComponent, onMounted, ref } from 'vue';
 import ArticleEditor from './ArticleEditor.ts';
-import { api, ApiError, type ArticleRow, type Author, type NewArticleInput } from './api.ts';
+import {
+  api,
+  messageForApiFailure,
+  type ArticleRow,
+  type Author,
+  type NewArticleInput,
+} from './api.ts';
 
 function newArticle(): NewArticleInput {
   return {
@@ -41,7 +47,7 @@ export default defineComponent({
     const signedIn = computed(() => author.value !== null);
 
     function report(error: unknown): void {
-      failure.value = error instanceof ApiError ? error.message : String(error);
+      failure.value = messageForApiFailure(error, '连接不上后台，请检查网络后重试。');
     }
 
     async function refresh(): Promise<void> {

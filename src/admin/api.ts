@@ -108,6 +108,12 @@ export class ApiError extends Error {
   }
 }
 
+export function messageForApiFailure(error: unknown, networkMessage: string): string {
+  if (error instanceof ApiError) return error.message;
+  if (error instanceof TypeError) return networkMessage;
+  return String(error);
+}
+
 let csrfToken = '';
 
 async function send<T>(method: string, path: string, body?: unknown): Promise<T> {
