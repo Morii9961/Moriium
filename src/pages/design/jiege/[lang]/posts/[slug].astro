@@ -1,0 +1,224 @@
+---
+/**
+ * Article reader for the 「界格」 study.
+ *
+ * The frame lives in the page rather than in a layout so the direction stays
+ * inside its own route tree: /design/jiege/** plus one stylesheet and one base
+ * layout is the whole of it.
+ *
+ * Reading happens at a measure, but the measure sits inside the field rather
+ * than alone on the page. The header band spans the full width, the body
+ * indents to the measure, and anything wider than a sentence steps back out to
+ * the media tier. The outline stands in the margin beside the text and shares
+ * its grid row, so it stays sticky for the length of the article instead of the
+ * length of its own box.
+ */
+import type { GetStaticPaths } from 'astro';
+import { render, type CollectionEntry } from 'astro:content';
+import JiegeBase from '../../../../../layouts/JiegeBase.astro';
+import ReaderEnhancements from '../../../../../components/ReaderEnhancements.astro';
+import { SITE, UI, type Language } from '../../../../../data/site';
+import { COPY, jgDay, jgPath, jgReadingMinutes } from '../../../../../data/jiege';
+import { getListedPosts, getPublishedPosts, getTranslations, postPath, routeSlug } from '../../../../../utils/content';
+import { detectReaderFeatures, type ReaderFeatures } from '../../../../../utils/features';
+import { jgEntryHref } from '../../../../../utils/jiege';
+
+type Entry = CollectionEntry<'posts'> | CollectionEntry<'protected'>;
+
+export const getStaticPaths: GetStaticPaths = async () => {
+  const posts = await getPublishedPosts();
+  return posts.map((post) => ({
+    params: { lang: post.data.lang, slug: routeSlug(post) },
+    props: { post },
+  }));
+};
+
+const { post } = Astro.props as { post: CollectionEntry<'posts'> };
+const lang = post.data.lang;
+const c = COPY[lang];
+const { Content, headings } = await render(post);
+const translations = await getTranslations(post.data.translationKey);
+const features = detectReaderFeatures(post.body ?? '', post.data.copyProtection);
+const outline = headings.filter((heading) => heading.depth === 2 || heading.depth === 3);
+const minutes = jgReadingMinutes(post.body ?? '');
+
+/* Adjacent posts and taxonomy links follow the listed set, so an unlisted post
+   never advertises a route its own listing page does not contain. */
+const listedPosts = await getListedPosts(lang);
+const listedIndex = listedPosts.findIndex((entry) => postPath(entry) === postPath(post));
+const previous = listedIndex >= 0 ? listedPosts[listedIndex + 1] : undefined;
+const next = listedIndex > 0 ? listedPosts[listedIndex - 1] : undefined;
+const linkCategory = new Set(listedPosts.map((entry) => entry.data.category)).has(post.data.category);
+const listedTags = new Set(listedPosts.flatMap((entry) => entry.data.tags));
+
+const enabled = (Object.keys(features) as Array<keyof ReaderFeatures>)
+  .filter((key) => features[key])
+  .map((key) => c.feature[key]);
+
+/* Every language is stated, including the ones that do not exist. A missing
+   version is shown as missing; it is never substituted. */
+const translationStates = SITE.languages.map((code) => ({
+  code,
+  entry: translations.find((entry) => entry.data.lang === code) as Entry | undefined,
+  current: code === lang,
+}));
+
+const langHrefs = Object.fromEntries(
+  translationStates
+    .filter((state) => state.entry)
+    .map((state) => [state.code, jgEntryHref(state.entry as Entry)]),
+) as Partial<Record<Language, string>>;
+---
+
+<JiegeBase
+  lang={lang}
+  title={post.data.title}
+  description={post.data.summary}
+  ogType="article"
+  langHrefs={langHrefs}
+  {...(post.data.cover ? { image: post.data.cover } : {})}
+>
+  <div class="jg-field">
+    <article class="jg-article" data-copy-protection={String(features.copyProtection)}>
+      <header class="jg-band">
+        <p class="jg-note jg-article__crumb">
+          <a href={jgPath(lang, 'writing')}>{c.nav.writing}</a>
+          <span> / </span>
+          {linkCategory ? (
+            <a href={jgPath(lang, 'categories', post.data.category)}>{post.data.category}</a>
+          ) : (
+            <span>{post.data.category}</span>
+          )}
+        </p>
+        <h1 class="jg-article__title">{post.data.title}</h1>
+        <p class="jg-article__summary">{post.data.summary}</p>
+
+        <dl class="jg-facts jg-note">
+          <div>
+            <dt>{c.published}</dt>
+            <dd><time datetime={post.data.publishedAt.toISOString()}>{jgDay(post.data.publishedAt)}</time></dd>
+          </div>
+          {post.data.updatedAt && (
+            <div>
+              <dt>{c.updated}</dt>
+              <dd><time datetime={post.data.updatedAt.toISOString()}>{jgDay(post.data.updatedAt)}</time></dd>
+            </div>
+          )}
+          <div>
+            <dt>{c.reading}</dt>
+            <dd>{c.minutes(minutes)}</dd>
+          </div>
+          <div>
+            <dt>{c.translations}</dt>
+            <dd>
+              {translationStates
+                .filter((state) => state.entry || state.current)
+                .map((state) => UI[state.code].label)
+                .join(' · ')}
+            </dd>
+          </div>
+        </dl>
+      </header>
+
+      {post.data.cover && (
+        <figure class="jg-cover">
+          <img src={post.data.cover} alt={post.data.coverAlt ?? ''} />
+          <figcaption class="jg-note">
+            <span class="jg-note--latin">{c.cover}</span>
+            <span>{post.data.coverAlt}</span>
+          </figcaption>
+        </figure>
+      )}
+
+      {outline.length > 0 && (
+        <details class="jg-inline-toc jg-note">
+          <summary>{c.outline}</summary>
+          <ol>
+            {outline.map((heading, index) => (
+              <li>
+                <a href={`#${heading.slug}`} data-depth={heading.depth}>
+                  <span class="jg-num">{String(index + 1).padStart(2, '0')}</span> {heading.text}
+                </a>
+              </li>
+            ))}
+          </ol>
+        </details>
+      )}
+
+      <div class="jg-reading">
+        {outline.length > 0 && (
+          <aside class="jg-toc jg-note" aria-label={c.outline}>
+            <p class="jg-note--loud">{c.outline}</p>
+            <ol>
+              {outline.map((heading) => (
+                <li><a href={`#${heading.slug}`} data-depth={heading.depth}>{heading.text}</a></li>
+              ))}
+            </ol>
+          </aside>
+        )}
+
+        <div class="jg-body article-body" id="article-body">
+          <Content />
+        </div>
+      </div>
+
+      <footer class="jg-end">
+        {post.data.tags.length > 0 && (
+          <div class="jg-end__block">
+            <p class="jg-note jg-note--loud">{c.tags}</p>
+            <div class="jg-tagfield jg-note">
+              {post.data.tags.map((tag) => (
+                listedTags.has(tag)
+                  ? <a href={jgPath(lang, 'tags', tag)}>#{tag}</a>
+                  : <span>#{tag}</span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div class="jg-end__block">
+          <p class="jg-note jg-note--loud">{c.translations}</p>
+          <ul class="jg-avail jg-note">
+            {translationStates.map((state) => (
+              <li lang={UI[state.code].locale}>
+                {state.current ? (
+                  <span data-state="current">{UI[state.code].label}</span>
+                ) : state.entry ? (
+                  <a href={jgEntryHref(state.entry)}>{UI[state.code].label} →</a>
+                ) : (
+                  <span data-state="missing">{UI[state.code].label}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div class="jg-end__block">
+          <p class="jg-note jg-note--loud">{c.readerFeatures}</p>
+          <p class="jg-note">{enabled.length > 0 ? enabled.join(' · ') : c.readerBasic}</p>
+        </div>
+
+        {(previous || next) && (
+          <nav class="jg-adjacent" aria-label={`${c.previous} / ${c.next}`}>
+            {previous && (
+              <a href={jgEntryHref(previous)}>
+                <span class="jg-note">← {c.previous}</span>
+                <strong>{previous.data.title}</strong>
+              </a>
+            )}
+            {next && (
+              <a href={jgEntryHref(next)}>
+                <span class="jg-note">{c.next} →</span>
+                <strong>{next.data.title}</strong>
+              </a>
+            )}
+          </nav>
+        )}
+
+        <p class="jg-note"><a href={jgPath(lang, 'writing')}>{c.backToWriting}</a></p>
+      </footer>
+    </article>
+  </div>
+
+  <ReaderEnhancements features={features} lang={lang} />
+</JiegeBase>

@@ -1,0 +1,29 @@
+---
+import type { GetStaticPaths } from 'astro';
+import HanshinBase from '../../../../../layouts/HanshinBase.astro';
+import { SITE, type Language } from '../../../../../data/site';
+import { HANSHIN, hsHome, hsPath } from '../../../../../data/hanshin';
+
+/* A preview of the 404 state. The real 404 belongs to the site root and stays
+   with the production design until this direction is chosen. */
+export const getStaticPaths: GetStaticPaths = () =>
+  SITE.languages.map((lang) => ({ params: { lang }, props: { lang } }));
+
+const { lang } = Astro.props as { lang: Language };
+const c = HANSHIN[lang];
+---
+
+<HanshinBase lang={lang} title={c.notFound} section="not-found">
+  <div class="hs-flow hs-plate">
+    <section class="hs-opening">
+      <p class="hs-note hs-note--latin hs-opening__label">404</p>
+      <h1>{c.notFound}</h1>
+      <p class="hs-opening__lead">{c.notFoundLead}</p>
+      <nav class="hs-field u-space-4" aria-label={c.discover}>
+        <a class="hs-note" href={hsHome(lang)}>{c.nav.home} →</a>
+        <a class="hs-note" href={hsPath(lang, 'writing')}>{c.nav.writing} →</a>
+        <a class="hs-note" href={hsPath(lang, 'archive')}>{c.nav.archive} →</a>
+      </nav>
+    </section>
+  </div>
+</HanshinBase>

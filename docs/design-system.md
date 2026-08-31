@@ -1,41 +1,24 @@
-# Moriium design system
+# Moriium design-system implementation status
 
-> Status: **A structure selected and migrated to the primary production routes; final tokens still under review**. The global frame, home, Writing, archive, categories, tags, about, and article reader use A. This does not freeze the pending typography, color, spacing, media-width, or photography decisions below.
+> Canonical authority: [`DESIGN.md`](../DESIGN.md). This document is a derived implementation and status record for the public site. It must not redefine Moriium's visual identity, tokens, accessibility floor, photography rules, motion philosophy, or design-Skills routing.
 
-## Frozen product invariants
+## Current production snapshot
 
-- Reading comes before decoration.
-- Use editorial hierarchy, whitespace, and restrained lines.
-- Do not introduce Twilight's visual system, giant centered heroes, gradient glow, glass cards, Bento blocks, rounded-card stacks, particle backgrounds, icon scatter, or routine scroll reveals.
-- Do not shorthand Japanese minimalism as beige plus serif plus red dot plus vertical Japanese type.
-- Maintain a readable line length, visible focus, semantic headings, sufficient contrast, keyboard operation, 24 CSS-pixel minimum web targets, and reduced-motion behavior.
-- Design desktop and mobile together at 375, 390, 768, 1024, and 1440 CSS pixels.
+The public routes currently implement the A structure: a modern sans-serif wordmark, a twelve-column editorial index, horizontal rules, restrained content framing, independent Writing/Archive/Categories/Tags/About routes, and a long-form article frame with outline, readable body, and compact context.
 
-## Selected direction under review
+The current implementation also includes:
 
-- Use A's modern sans-serif wordmark, twelve-column editorial index, horizontal rules, and restrained content framing.
-- Treat the home as an editorial cover and site index, not as a literal welcome or giant centered slogan. Its expressive gesture is the oversized typographic masthead paired with a manually selected feature stage; all other motion stays quiet. The page order is: identity and purpose, featured content, recent writing, author/site activity, category and archive discovery, current work, RSS, and an about-page lead-in.
-- Give Writing, Archive, Categories, Tags, and About stable independent routes. Primary navigation must never point to substitute home-page anchors in the selected direction.
-- Keep search and light/dark appearance controls in the global header. Search opens a keyboard-safe native dialog; production search remains a lazily loaded static index with no server requests.
-- Remove prototype-only explanation bars, decorative issue/location rails, and the compact three-cell site ledger from the public design.
-- Use the home for practical orientation: a manual featured-content switcher spanning photography, travel, and technology; a compact author entry; truthful current-index counts; and an update calendar linked to the full archive. Do not auto-rotate featured content.
-- Keep the interface content-rich through hierarchy and direct links. Do not imitate a dashboard: no rounded widget field, decorative statistics, icon cloud, or service status panel.
-- Give long-form articles a quiet three-part desktop frame: outline, readable body, and compact context. Collapse it into normal document order on mobile.
-- Show translation availability, active reading features, tags, and adjacent posts explicitly. Missing translations remain unavailable rather than duplicated.
-- Test Noto Sans SC for Chinese body and list copy, Sora for Latin display text, LXGW WenKai Screen for Chinese article titles, second-level headings, and quotations, and IBM Plex Mono for dates, tags, and reading time.
-- Keep mixed-script display text ordered as Sora, LXGW WenKai Screen, then Noto Sans SC so Latin remains geometric while Chinese gains a handwritten editorial accent.
-- Serve exact-version, locally bundled WOFF2 subsets with `font-display: swap`; do not request third-party font services at runtime.
+- a curated home with recent writing, selected photography/travel/technology features, author/site activity, discovery routes, RSS, and an about lead-in;
+- global search and persistent light/dark appearance controls, with the production search index loaded only after search opens;
+- explicit translation availability, active reading features, tags, and adjacent-post navigation;
+- locally bundled font candidates and native CSS/feature-scoped browser modules, subject to the unresolved decisions in [`DESIGN.md`](../DESIGN.md#18-open-items-to-resolve-during-implementation).
 
-## Still pending acceptance
+This snapshot describes what the current code does. It does not approve a new visual direction, freeze the candidate fonts, or override the canonical design constitution.
 
-The following are intentionally undecided:
+## Isolated design studies
 
-- final type scale and approval of the candidate font families;
-- light and dark color tokens;
-- content frame and reading measure;
-- grid, side rail, and article-index pattern;
-- spacing scale and rule hierarchy;
-- photography cadence and caption alignment.
-- exact homepage copy and which personal status details Morii wants public.
+The `/design/` routes are clean-room research and comparison surfaces. They are not production approval and must not be treated as an alternative default design language. Their research evidence belongs in [`design-research.md`](design-research.md); future visual decisions must follow [`DESIGN.md`](../DESIGN.md) and Morii's explicit approval.
 
-After acceptance, replace this section with exact tokens, component states, responsive behavior, and examples. Remove design-study routes before production launch unless Morii asks to preserve them privately.
+## Implementation rule
+
+When this status record and [`DESIGN.md`](../DESIGN.md) differ, follow `DESIGN.md`, then update this file to describe the resulting implementation. Do not silently promote a prototype, generic Skill recommendation, or reference-site pattern into the public system.

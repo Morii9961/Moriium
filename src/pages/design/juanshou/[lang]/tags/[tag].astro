@@ -1,0 +1,55 @@
+---
+import type { GetStaticPaths } from 'astro';
+import JuanshouBase from '../../../../../layouts/JuanshouBase.astro';
+import { SITE, type Language } from '../../../../../data/site';
+import { COPY, jsDay, jsPath } from '../../../../../data/juanshou';
+import { getListedPosts, type Post, type ProtectedPost } from '../../../../../utils/content';
+import { jsEntryHref } from '../../../../../utils/juanshou';
+
+export const getStaticPaths: GetStaticPaths = async () => {
+  const paths = [];
+  for (const lang of SITE.languages) {
+    const posts = await getListedPosts(lang);
+    for (const tag of new Set(posts.flatMap((post) => post.data.tags))) {
+      paths.push({
+        params: { lang, tag },
+        props: { lang, tag, posts: posts.filter((post) => post.data.tags.includes(tag)) },
+      });
+    }
+  }
+  return paths;
+};
+
+const { lang, tag, posts } = Astro.props as {
+  lang: Language;
+  tag: string;
+  posts: Array<Post | ProtectedPost>;
+};
+const c = COPY[lang];
+---
+
+<JuanshouBase lang={lang} title={`#${tag} · ${c.nav.tags}`} section="tags">
+  <div class="js-page">
+    <section class="js-section" aria-labelledby="js-tag">
+      <div class="js-opener">
+        <h2 id="js-tag">#{tag}</h2>
+        <p class="js-note"><a href={jsPath(lang, 'tags')}>{c.nav.tags} →</a></p>
+        <p class="js-opener__say">{posts.length} {c.count}</p>
+      </div>
+
+      <ol class="js-index">
+        {posts.map((post) => (
+          <li>
+            <p class="js-index__meta js-note">
+              <time datetime={post.data.publishedAt.toISOString()}>{jsDay(post.data.publishedAt)}</time>
+              <a href={jsPath(lang, 'categories', post.data.category)}>{post.data.category}</a>
+            </p>
+            <h3 class="js-index__title"><a href={jsEntryHref(post)}>{post.data.title}</a></h3>
+            <p class="js-index__summary">{post.data.summary}</p>
+          </li>
+        ))}
+      </ol>
+      <p class="js-note js-back"><a href={jsPath(lang, 'writing')}>{c.backToWriting}</a></p>
+    </section>
+  </div>
+</JuanshouBase>

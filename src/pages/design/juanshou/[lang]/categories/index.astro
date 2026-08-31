@@ -1,0 +1,48 @@
+---
+import type { GetStaticPaths } from 'astro';
+import JuanshouBase from '../../../../../layouts/JuanshouBase.astro';
+import { SITE, type Language } from '../../../../../data/site';
+import { COPY, jsCount, jsDay, jsPath } from '../../../../../data/juanshou';
+import { getListedPosts } from '../../../../../utils/content';
+import { jsEntryHref } from '../../../../../utils/juanshou';
+
+export const getStaticPaths: GetStaticPaths = () =>
+  SITE.languages.map((lang) => ({ params: { lang }, props: { lang } }));
+
+const { lang } = Astro.props as { lang: Language };
+const c = COPY[lang];
+const posts = await getListedPosts(lang);
+const categories = jsCount(posts, (post) => [post.data.category]);
+---
+
+<JuanshouBase lang={lang} title={c.nav.categories} section="categories">
+  <div class="js-page">
+    <section class="js-section" aria-labelledby="js-categories">
+      <div class="js-opener">
+        <h2 id="js-categories">{c.nav.categories}</h2>
+        <p class="js-note">{categories.length}</p>
+        <p class="js-opener__say">{c.categoriesSay}</p>
+      </div>
+
+      {categories.map((category) => (
+        <section class="js-group" aria-label={category.value}>
+          <p class="js-note js-note--loud js-group__head">
+            <a href={jsPath(lang, 'categories', category.value)}>{category.value}</a>
+            <span> · {category.count} {c.count}</span>
+          </p>
+          <ul class="js-rows">
+            {posts
+              .filter((post) => post.data.category === category.value)
+              .map((post) => (
+                <li>
+                  <time class="js-note" datetime={post.data.publishedAt.toISOString()}>{jsDay(post.data.publishedAt)}</time>
+                  <a href={jsEntryHref(post)}>{post.data.title}</a>
+                  <span class="js-note">{post.data.tags.map((tag) => `#${tag}`).join(' ')}</span>
+                </li>
+              ))}
+          </ul>
+        </section>
+      ))}
+    </section>
+  </div>
+</JuanshouBase>

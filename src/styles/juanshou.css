@@ -1,0 +1,1289 @@
+/*
+ * Moriium — direction 「卷首」 (juanshou: the front matter of a book — the
+ * foreword, the signature, the table of contents).
+ *
+ * Clean-room. Nothing is taken from a reference project, from the A direction,
+ * or from the 版心 / 界格 studies. Those three remain untouched.
+ *
+ * The idea: a personal site introduces itself the way front matter does. The
+ * page opens with something the author actually wrote and signed, and only then
+ * lists what the book contains.
+ *
+ * This exists because the first two studies were correct and impersonal. They
+ * had systems; they had no voice. Front matter is a structure that cannot be
+ * filled in without one — you cannot write a foreword without saying something.
+ *
+ * Two devices carry the identity:
+ *   - the foreword, set at display size, dated and signed;
+ *   - dot leaders in the contents, the one print device the web mostly forgot.
+ *
+ * The reading typography and spacing rhythm are kept close to 界格, which is
+ * the part Morii found comfortable. What changes is presentation: a much wider
+ * scale range, sections that differ in shape, and copy written in the author's
+ * voice rather than as field labels.
+ *
+ * Loaded only by JuanshouBase.astro.
+ */
+
+@layer js-reset, js-tokens, js-base, js-layout, js-components;
+
+@layer js-reset {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  body,
+  h1,
+  h2,
+  h3,
+  h4,
+  p,
+  figure,
+  blockquote,
+  dl,
+  dd,
+  ol,
+  ul {
+    margin: 0;
+  }
+
+  ol,
+  ul {
+    padding: 0;
+    list-style: none;
+  }
+
+  img,
+  picture,
+  video,
+  iframe {
+    display: block;
+    max-width: 100%;
+  }
+
+  button,
+  input {
+    font: inherit;
+    color: inherit;
+  }
+
+  :where(button) {
+    background: none;
+    border: 0;
+    cursor: pointer;
+  }
+}
+
+@layer js-tokens {
+  :root {
+    color-scheme: light;
+
+    /* Chinese and Japanese take different faces: shared han characters carry
+       different regional glyph forms. Latin comes from the same Noto Serif
+       design in both, so a mixed line keeps one colour. */
+    --js-serif: "Noto Serif SC Variable", "Songti SC", serif;
+    --js-serif-jp: "Noto Serif JP Variable", "Hiragino Mincho ProN", serif;
+    /* Plex Mono has no han glyphs, so CJK labels fall through to the serif on
+       purpose: figures in mono, words in type. */
+    --js-mono: "IBM Plex Mono", ui-monospace, var(--js-serif);
+
+    --js-page: 78rem;
+    --js-read: 42rem;
+    --js-wide: 56rem;
+    --js-gutter: clamp(1.25rem, 5vw, 5rem);
+
+    /*
+     * A much wider scale range than the earlier studies. Those sat between
+     * 17px and 48px and read evenly grey; nothing on the page was allowed to
+     * be loud. The foreword and the article title are allowed to be loud.
+     */
+    --js-note: 0.6875rem;
+    --js-small: 0.8125rem;
+    --js-body: clamp(1rem, 0.96rem + 0.18vw, 1.0625rem);
+    --js-lift: clamp(1.125rem, 1.05rem + 0.32vw, 1.3125rem);
+    --js-entry: clamp(1.1875rem, 1.05rem + 0.6vw, 1.5rem);
+    --js-head: clamp(1.5rem, 1.2rem + 1.3vw, 2.125rem);
+    --js-display: clamp(1.6875rem, 1.1rem + 2.7vw, 3.125rem);
+    --js-title: clamp(1.875rem, 1.2rem + 3.1vw, 3.5rem);
+
+    --js-lead-body: 1.85;
+    --js-lead-display: 1.5;
+    --js-lead-tight: 1.22;
+
+    --js-1: 0.3rem;
+    --js-2: 0.6rem;
+    --js-3: 1rem;
+    --js-4: 1.75rem;
+    --js-5: 2.75rem;
+    --js-6: 4.5rem;
+    --js-7: clamp(3.25rem, 5.5vw, 5rem);
+
+    --js-paper: light-dark(#f8f8f7, #121316);
+    --js-ink: light-dark(#14161a, #e9eaee);
+    --js-muted: light-dark(#585d67, #9ba1ac);
+    --js-faint: light-dark(#6c717a, #7c838d);
+    --js-rule: light-dark(#c6c9cf, #31363f);
+    --js-rule-soft: light-dark(#dcdde1, #23272e);
+    --js-accent: light-dark(#2c4f7c, #9dbde8);
+    --js-accent-quiet: light-dark(#2c4f7c3d, #9dbde84d);
+    --js-focus: light-dark(#0b4fd0, #9cc6ff);
+    --js-select: light-dark(#2c4f7c1f, #9dbde82e);
+  }
+
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+  }
+}
+
+@layer js-base {
+  body {
+    min-width: 20rem;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    background: var(--js-paper);
+    color: var(--js-ink);
+    font-family: var(--js-serif);
+    font-size: var(--js-body);
+    line-height: var(--js-lead-body);
+    font-optical-sizing: auto;
+    -webkit-text-size-adjust: 100%;
+    text-spacing-trim: space-first;
+  }
+
+  :lang(ja) {
+    font-family: var(--js-serif-jp);
+  }
+
+  /* CJK already wraps between characters; only an unbroken Latin run needs
+     help. `anywhere` would break 日本語 across two lines. */
+  :where(:lang(zh), :lang(ja)) :is(p, li, dd, blockquote) {
+    line-break: strict;
+    word-break: normal;
+    overflow-wrap: break-word;
+  }
+
+  ::selection {
+    background: var(--js-select);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-weight: 600;
+    line-height: var(--js-lead-tight);
+    text-wrap: balance;
+  }
+
+  a {
+    color: inherit;
+    text-decoration-color: var(--js-accent-quiet);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+    transition: color 120ms linear, text-decoration-color 120ms linear;
+  }
+
+  a:hover {
+    color: var(--js-accent);
+    text-decoration-color: currentColor;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--js-focus);
+    outline-offset: 2px;
+  }
+
+  time,
+  .js-num {
+    font-variant-numeric: tabular-nums;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+}
+
+@layer js-layout {
+  .js-page {
+    width: 100%;
+    max-width: var(--js-page);
+    margin-inline: auto;
+    padding-inline: var(--js-gutter);
+  }
+
+  /* Sections differ in shape on purpose. An even grid of identical blocks is
+     what made the previous study read flat. */
+  .js-section {
+    padding-block: var(--js-7);
+    border-block-start: 1px solid var(--js-rule);
+  }
+
+  .js-section:first-child {
+    border-block-start: 0;
+  }
+
+  .js-measure {
+    max-width: var(--js-read);
+  }
+
+  .js-wide {
+    max-width: var(--js-wide);
+  }
+
+  /* Section opener: a heading with the author's own line under it, and a mark
+     aligned to the far edge. The mark is a fact, never decoration. */
+  .js-opener {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: baseline;
+    gap: var(--js-3) var(--js-4);
+    margin-block-end: var(--js-5);
+  }
+
+  .js-opener h2 {
+    font-size: var(--js-head);
+  }
+
+  .js-opener__say {
+    grid-column: 1 / -1;
+    color: var(--js-muted);
+    max-width: var(--js-read);
+    text-wrap: pretty;
+  }
+}
+
+@layer js-components {
+  .js-skip {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    z-index: 20;
+    background: var(--js-paper);
+    padding: var(--js-2) var(--js-3);
+    border: 1px solid var(--js-rule);
+  }
+
+  .js-skip:focus {
+    left: var(--js-gutter);
+    top: var(--js-2);
+  }
+
+  /* ------------------------------------------------------------- annotation */
+
+  .js-note {
+    font-family: var(--js-mono);
+    font-size: var(--js-note);
+    line-height: 1.55;
+    letter-spacing: 0.1em;
+    color: var(--js-muted);
+  }
+
+  .js-note--loud {
+    color: var(--js-ink);
+  }
+
+  .js-note--latin {
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+  }
+
+  /* ---------------------------------------------------------------- masthead */
+
+  .js-masthead {
+    border-block-end: 1px solid var(--js-rule);
+  }
+
+  .js-masthead__inner {
+    max-width: var(--js-page);
+    margin-inline: auto;
+    padding: var(--js-3) var(--js-gutter);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--js-2) var(--js-4);
+  }
+
+  .js-wordmark {
+    font-size: var(--js-lift);
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    text-decoration: none;
+    margin-inline-end: auto;
+  }
+
+  .js-wordmark:hover {
+    color: var(--js-accent);
+  }
+
+  .js-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--js-1) var(--js-4);
+  }
+
+  .js-nav a {
+    text-decoration: none;
+    padding-block: 0.4rem;
+    display: inline-block;
+  }
+
+  .js-nav a[aria-current="page"] {
+    box-shadow: inset 0 -1px 0 0 var(--js-accent);
+    color: var(--js-ink);
+  }
+
+  .js-tools {
+    display: flex;
+    align-items: center;
+    gap: var(--js-2);
+  }
+
+  .js-tool {
+    width: 2rem;
+    height: 2rem;
+    display: grid;
+    place-items: center;
+    border: 1px solid transparent;
+    color: var(--js-muted);
+  }
+
+  .js-tool:hover {
+    color: var(--js-accent);
+    border-color: var(--js-rule);
+  }
+
+  .js-tool svg {
+    width: 1rem;
+    height: 1rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .js-langs {
+    display: flex;
+    align-items: baseline;
+    gap: 0.35rem;
+  }
+
+  .js-langs a {
+    text-decoration: none;
+    display: inline-block;
+    min-width: 1.5rem;
+    text-align: center;
+    padding-block: 0.35rem;
+  }
+
+  .js-langs a[aria-current="page"] {
+    color: var(--js-ink);
+    box-shadow: inset 0 -1px 0 0 var(--js-accent);
+  }
+
+  .js-langs span {
+    color: var(--js-faint);
+  }
+
+  :root[data-theme="dark"] .js-sun,
+  :root:not([data-theme="dark"]) .js-moon {
+    display: none;
+  }
+
+  /* ------------------------------------------------------------- 卷首 foreword */
+
+  /*
+   * The page opens with something the author wrote, at display size, dated and
+   * signed. Not a slogan and not a logo: a short piece of writing that happens
+   * to be the first thing on the site.
+   */
+  .js-foreword {
+    padding-block: var(--js-7) var(--js-6);
+  }
+
+  .js-foreword__kicker {
+    margin-block-end: var(--js-5);
+  }
+
+  .js-foreword > p:not(.js-sign):not(.js-note) {
+    font-size: var(--js-display);
+    line-height: var(--js-lead-display);
+    max-width: 26em;
+    text-wrap: pretty;
+  }
+
+  .js-foreword > p + p {
+    margin-block-start: var(--js-3);
+  }
+
+  /* The signature is the gesture that makes the opening personal rather than
+     promotional. It sits on its own rule, right where a letter would end. */
+  .js-sign {
+    margin-block-start: var(--js-5);
+    padding-block-start: var(--js-3);
+    border-block-start: 1px solid var(--js-rule);
+    max-width: 26em;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--js-2) var(--js-4);
+    font-size: var(--js-small);
+    letter-spacing: 0.04em;
+  }
+
+  /* The name is set in the reading serif: it is a signature, not a label. */
+  .js-sign strong {
+    font-family: var(--js-serif);
+    font-size: var(--js-lift);
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: var(--js-ink);
+  }
+
+  /* ------------------------------------------------------------- 目次 contents */
+
+  /*
+   * Dot leaders. The one piece of print apparatus the web mostly dropped, and
+   * the reason this page reads as front matter rather than as a nav list. The
+   * leader is a repeating radial gradient so it stays crisp at any zoom and
+   * costs no markup.
+   */
+  .js-contents {
+    display: grid;
+  }
+
+  .js-contents li {
+    border-block-start: 1px solid var(--js-rule-soft);
+  }
+
+  .js-contents li:first-child {
+    border-block-start: 0;
+  }
+
+  .js-contents a,
+  .js-contents .js-contents__row {
+    display: flex;
+    align-items: baseline;
+    gap: var(--js-3);
+    padding-block: var(--js-3);
+    text-decoration: none;
+  }
+
+  .js-contents__name {
+    font-size: var(--js-entry);
+    flex: none;
+  }
+
+  .js-contents__leader {
+    flex: 1 1 auto;
+    min-width: 2rem;
+    height: 1px;
+    align-self: end;
+    margin-block-end: 0.34em;
+    background-image: radial-gradient(circle, var(--js-rule) 1px, transparent 1px);
+    background-size: 0.5rem 1px;
+    background-repeat: repeat-x;
+    background-position: 0 50%;
+  }
+
+  .js-contents__mark {
+    flex: none;
+    font-size: var(--js-small);
+    color: var(--js-muted);
+  }
+
+  .js-contents a:hover .js-contents__mark {
+    color: var(--js-accent);
+  }
+
+  .js-contents__say {
+    display: block;
+    color: var(--js-muted);
+    font-size: var(--js-small);
+    padding-block-end: var(--js-3);
+    max-width: var(--js-read);
+  }
+
+  /* ------------------------------------------------------------------- lead */
+
+  .js-lead {
+    display: grid;
+    gap: var(--js-3);
+  }
+
+  .js-lead__title {
+    font-size: var(--js-title);
+    letter-spacing: -0.01em;
+    max-width: 18em;
+  }
+
+  .js-lead__title a {
+    text-decoration: none;
+  }
+
+  .js-lead__summary {
+    font-size: var(--js-lift);
+    color: var(--js-muted);
+    max-width: var(--js-read);
+    text-wrap: pretty;
+  }
+
+  .js-lead__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--js-2) var(--js-5);
+    align-items: baseline;
+    margin-block-start: var(--js-2);
+    padding-block-start: var(--js-3);
+    border-block-start: 1px solid var(--js-rule-soft);
+    font-size: var(--js-small);
+  }
+
+  /* --------------------------------------------------------------- 近况 note */
+
+  /*
+   * Derived facts, said as a person would say them. The numbers come from the
+   * content collection; the sentence around them is written. A bare count is
+   * true and says nothing about whose site this is.
+   */
+  .js-now {
+    display: grid;
+    gap: var(--js-4);
+    max-width: var(--js-wide);
+  }
+
+  .js-now li {
+    display: grid;
+    grid-template-columns: 6rem minmax(0, 1fr);
+    gap: var(--js-3);
+    align-items: baseline;
+    padding-block: var(--js-3);
+    border-block-start: 1px solid var(--js-rule-soft);
+  }
+
+  .js-now li:first-child {
+    border-block-start: 0;
+  }
+
+  .js-now p {
+    font-size: var(--js-lift);
+    text-wrap: pretty;
+  }
+
+  @media (width < 34rem) {
+    .js-now li {
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--js-1);
+    }
+  }
+
+  /* ------------------------------------------------------------------ index */
+
+  .js-index {
+    display: grid;
+  }
+
+  .js-index li {
+    padding-block: var(--js-5);
+    border-block-start: 1px solid var(--js-rule-soft);
+  }
+
+  .js-index li:first-child {
+    border-block-start: 0;
+    padding-block-start: 0;
+  }
+
+  .js-index__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--js-2) var(--js-3);
+    align-items: baseline;
+    margin-block-end: var(--js-2);
+  }
+
+  .js-index__title {
+    font-size: var(--js-entry);
+  }
+
+  .js-index__title a {
+    text-decoration: none;
+  }
+
+  .js-index__summary {
+    margin-block-start: var(--js-2);
+    color: var(--js-muted);
+    max-width: var(--js-read);
+    text-wrap: pretty;
+  }
+
+  /* Compact rows for archive and taxonomy listings. */
+  .js-rows > li {
+    display: grid;
+    grid-template-columns: 7rem minmax(0, 1fr) auto;
+    gap: var(--js-3);
+    align-items: baseline;
+    padding-block: var(--js-3);
+    border-block-start: 1px solid var(--js-rule-soft);
+  }
+
+  .js-rows > li:first-child {
+    border-block-start: 0;
+  }
+
+  .js-rows a {
+    text-decoration: none;
+    font-size: var(--js-lift);
+  }
+
+  @media (width < 40rem) {
+    .js-rows > li {
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--js-1);
+    }
+  }
+
+  .js-field {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--js-2) var(--js-4);
+    align-items: baseline;
+  }
+
+  .js-field a,
+  .js-field > span {
+    text-decoration: none;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    padding-block: 0.35rem;
+  }
+
+  .js-field sup {
+    font-family: var(--js-mono);
+    font-size: var(--js-note);
+    color: var(--js-faint);
+    vertical-align: baseline;
+    top: 0;
+  }
+
+  .js-field--large a {
+    font-size: var(--js-entry);
+  }
+
+  /* ------------------------------------------------------------- 版权页 colophon */
+
+  .js-colophon {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+    gap: var(--js-5) var(--js-4);
+  }
+
+  .js-colophon dt {
+    margin-block-end: var(--js-2);
+  }
+
+  .js-colophon dd {
+    font-size: var(--js-lift);
+  }
+
+  .js-colophon dd a {
+    text-decoration: none;
+  }
+
+
+  .js-group + .js-group {
+    margin-block-start: var(--js-5);
+  }
+
+  .js-group__head {
+    padding-block-end: var(--js-2);
+  }
+
+  .js-back {
+    margin-block-start: var(--js-5);
+  }
+
+  /* The overview's route lists reuse the contents rows inside colophon cells. */
+  .js-colophon .js-contents {
+    margin-block-start: var(--js-2);
+  }
+
+  .js-colophon .js-contents__name {
+    font-size: var(--js-lift);
+  }
+
+  /* ---------------------------------------------------------------- article */
+
+  /*
+   * The article keeps one reading measure and lets media step outside it, which
+   * is the part of the earlier studies that worked. What is new is the rail:
+   * dates, translations and tags stay visible while reading instead of waiting
+   * at the end, where a reader who stops halfway never sees them.
+   */
+  .js-article {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0 var(--js-6);
+    align-items: start;
+  }
+
+  .js-article__head {
+    grid-column: 1 / -1;
+    padding-block-end: var(--js-5);
+    margin-block-end: var(--js-6);
+    border-block-end: 1px solid var(--js-rule);
+  }
+
+  .js-article__kicker {
+    margin-block-end: var(--js-4);
+  }
+
+  .js-article__title {
+    font-size: var(--js-title);
+    letter-spacing: -0.015em;
+    max-width: 16em;
+  }
+
+  .js-article__summary {
+    margin-block-start: var(--js-4);
+    font-size: var(--js-lift);
+    color: var(--js-muted);
+    max-width: var(--js-read);
+    text-wrap: pretty;
+  }
+
+  .js-rail {
+    display: grid;
+    gap: var(--js-5);
+    align-content: start;
+    padding-block-end: var(--js-6);
+  }
+
+  .js-rail section {
+    display: grid;
+    gap: var(--js-2);
+  }
+
+  .js-rail dl {
+    display: grid;
+    gap: var(--js-2);
+  }
+
+  .js-rail dl div {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--js-3);
+    padding-block-end: var(--js-2);
+    border-block-end: 1px solid var(--js-rule-soft);
+  }
+
+  .js-rail dd {
+    color: var(--js-ink);
+  }
+
+  .js-rail ol {
+    display: grid;
+    gap: var(--js-1);
+  }
+
+  .js-rail a {
+    text-decoration: none;
+  }
+
+  .js-rail__toc a[data-depth="3"] {
+    padding-inline-start: var(--js-3);
+    color: var(--js-faint);
+  }
+
+  /* Translation availability, one row each, so a missing language is as
+     visible as a present one. */
+  .js-trans li {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--js-3);
+    padding-block: var(--js-2);
+    border-block-end: 1px solid var(--js-rule-soft);
+  }
+
+  .js-trans [data-state="missing"] {
+    color: var(--js-faint);
+  }
+
+  .js-trans [data-state="current"] {
+    font-weight: 600;
+  }
+
+  @media (width >= 64rem) {
+    .js-article {
+      grid-template-columns: minmax(0, var(--js-read)) minmax(12rem, 1fr);
+    }
+
+    .js-rail {
+      position: sticky;
+      top: var(--js-4);
+      max-height: calc(100dvh - var(--js-6));
+      overflow-y: auto;
+    }
+  }
+
+  /* Below the rail width the outline would be a long list in the way, so it
+     collapses; the rest of the rail simply follows the article. */
+  @media (width < 64rem) {
+    .js-rail__toc {
+      display: none;
+    }
+
+    .js-rail {
+      border-block-start: 1px solid var(--js-rule);
+      padding-block-start: var(--js-5);
+      margin-block-start: var(--js-6);
+    }
+  }
+
+  .js-inline-toc {
+    border-block: 1px solid var(--js-rule-soft);
+    padding-block: var(--js-2);
+    margin-block-end: var(--js-5);
+  }
+
+  .js-inline-toc summary {
+    cursor: pointer;
+    padding-block: 0.35rem;
+  }
+
+  .js-inline-toc ol {
+    display: grid;
+    gap: var(--js-1);
+    margin-block-start: var(--js-2);
+  }
+
+  .js-inline-toc a {
+    text-decoration: none;
+  }
+
+  @media (width >= 64rem) {
+    .js-inline-toc {
+      display: none;
+    }
+  }
+
+  /* ------------------------------------------------------------------- prose */
+
+  .js-prose > * + * {
+    margin-block-start: var(--js-4);
+  }
+
+  .js-prose > h2 {
+    font-size: var(--js-head);
+    margin-block-start: var(--js-6);
+    padding-block-end: var(--js-2);
+    border-block-end: 1px solid var(--js-rule-soft);
+  }
+
+  .js-prose > h3 {
+    font-size: var(--js-entry);
+    margin-block-start: var(--js-5);
+  }
+
+  .js-prose > h4 {
+    font-size: var(--js-lift);
+    margin-block-start: var(--js-5);
+  }
+
+  .js-prose :is(h2, h3, h4) > a {
+    text-decoration: none;
+  }
+
+  .js-prose p {
+    text-wrap: pretty;
+  }
+
+  .js-prose > :is(ul, ol) {
+    display: grid;
+    gap: var(--js-1);
+    padding-inline-start: 1.4em;
+  }
+
+  .js-prose > ul {
+    list-style: disc;
+  }
+
+  .js-prose > ol {
+    list-style: decimal;
+  }
+
+  .js-prose li::marker {
+    color: var(--js-faint);
+  }
+
+  .js-prose > blockquote {
+    padding-inline-start: var(--js-4);
+    border-inline-start: 2px solid var(--js-rule);
+    color: var(--js-muted);
+  }
+
+  .js-prose :not(pre) > code {
+    font-family: var(--js-mono);
+    font-size: 0.875em;
+    padding: 0.1em 0.35em;
+    border: 1px solid var(--js-rule-soft);
+  }
+
+  /*
+   * Media steps outside the measure. The rail occupies the space on the right,
+   * so the breakout runs to the left, which is where the room is.
+   */
+  .js-prose > figure,
+  .js-prose > .expressive-code,
+  .js-prose > pre,
+  .js-prose > table,
+  .js-prose > .mermaid,
+  .js-prose > .music-card,
+  .js-prose > .video-card,
+  .js-prose > .github-card {
+    margin-block: var(--js-6);
+  }
+
+  @media (width >= 64rem) {
+    .js-prose > figure,
+    .js-prose > .expressive-code,
+    .js-prose > pre,
+    .js-prose > table,
+    .js-prose > .mermaid {
+      width: calc(100% + var(--js-5));
+      margin-inline-start: calc(var(--js-5) * -1);
+    }
+  }
+
+  .js-prose > figure img {
+    width: 100%;
+    height: auto;
+  }
+
+  .js-prose figcaption {
+    margin-block-start: var(--js-2);
+    font-family: var(--js-mono);
+    font-size: var(--js-note);
+    letter-spacing: 0.08em;
+    color: var(--js-muted);
+  }
+
+  .js-prose > hr {
+    border: 0;
+    height: 1px;
+    background: var(--js-rule);
+    margin-block: var(--js-6);
+  }
+
+  .js-prose table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--js-small);
+  }
+
+  .js-prose :is(th, td) {
+    text-align: start;
+    padding: var(--js-2);
+    border-block-end: 1px solid var(--js-rule-soft);
+  }
+
+  .js-prose th {
+    font-family: var(--js-mono);
+    font-size: var(--js-note);
+    letter-spacing: 0.08em;
+    color: var(--js-muted);
+    font-weight: 400;
+  }
+
+  .js-prose .admonition {
+    border-inline-start: 2px solid var(--js-rule);
+    padding: var(--js-2) 0 var(--js-2) var(--js-4);
+  }
+
+  .js-prose .admonition__title {
+    font-family: var(--js-mono);
+    font-size: var(--js-note);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--js-muted);
+    margin-block-end: var(--js-1);
+  }
+
+  .js-prose :is(.admonition--important, .admonition--warning, .admonition--caution) {
+    border-inline-start-color: var(--js-accent);
+  }
+
+  .js-prose .spoiler {
+    border-block: 1px solid var(--js-rule-soft);
+    padding-block: var(--js-2);
+  }
+
+  .js-prose .spoiler > summary {
+    cursor: pointer;
+    font-family: var(--js-mono);
+    font-size: var(--js-note);
+    letter-spacing: 0.08em;
+    color: var(--js-muted);
+  }
+
+  .js-prose :is(.github-card, .music-card, .video-card, .video-consent, .embed-error) {
+    border: 1px solid var(--js-rule);
+    padding: var(--js-4);
+    display: grid;
+    gap: var(--js-2);
+  }
+
+  .js-prose :is(.github-card__eyebrow, .music-card__artist, .music-card__status, .video-consent__note) {
+    font-family: var(--js-mono);
+    font-size: var(--js-note);
+    letter-spacing: 0.08em;
+    color: var(--js-muted);
+  }
+
+  .js-prose :is(.github-card__name, .music-card__title, .video-consent__title) {
+    font-size: var(--js-lift);
+    font-weight: 600;
+  }
+
+  .js-prose .music-card {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .js-prose .music-card__cover {
+    width: 5rem;
+    height: auto;
+  }
+
+  .js-prose .music-card__lyrics {
+    font-size: var(--js-small);
+    color: var(--js-muted);
+    max-height: 14rem;
+    overflow-y: auto;
+  }
+
+  .js-prose :is(.music-card__play, .video-consent button) {
+    justify-self: start;
+    border: 1px solid var(--js-rule);
+    padding: 0.4rem var(--js-4);
+    font-family: var(--js-mono);
+    font-size: var(--js-note);
+    letter-spacing: 0.08em;
+    min-height: 2.25rem;
+  }
+
+  .js-prose .video-card iframe {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    height: auto;
+    border: 0;
+  }
+
+  .js-prose .katex-display {
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .js-prose .mermaid svg {
+    max-width: 100%;
+    height: auto;
+    margin-inline: auto;
+  }
+
+  /* ------------------------------------------------------------- article end */
+
+  .js-end {
+    margin-block-start: var(--js-7);
+    padding-block-start: var(--js-4);
+    border-block-start: 1px solid var(--js-rule);
+    display: grid;
+    gap: var(--js-5);
+  }
+
+  /* An article should be ended, not merely stopped. */
+  .js-end__mark {
+    display: flex;
+    align-items: baseline;
+    gap: var(--js-3);
+  }
+
+  .js-adjacent {
+    display: grid;
+    gap: var(--js-3);
+  }
+
+  .js-adjacent a {
+    display: grid;
+    gap: var(--js-1);
+    text-decoration: none;
+    padding-block: var(--js-3);
+    border-block-start: 1px solid var(--js-rule-soft);
+  }
+
+  .js-adjacent strong {
+    font-size: var(--js-lift);
+    font-weight: 600;
+  }
+
+  /* ------------------------------------------------------------------ footer */
+
+  .js-footer {
+    margin-block-start: auto;
+    border-block-start: 1px solid var(--js-rule);
+  }
+
+  .js-footer__inner {
+    max-width: var(--js-page);
+    margin-inline: auto;
+    padding: var(--js-5) var(--js-gutter);
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    gap: var(--js-4);
+    align-items: start;
+  }
+
+  .js-footer nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--js-1) var(--js-4);
+  }
+
+  .js-footer a {
+    text-decoration: none;
+    padding-block: 0.35rem;
+  }
+
+  /* ------------------------------------------------------------------ search */
+
+  .js-search {
+    border: 1px solid var(--js-rule);
+    background: var(--js-paper);
+    color: var(--js-ink);
+    padding: 0;
+    width: min(38rem, calc(100vw - 2rem));
+    margin: auto;
+  }
+
+  .js-search::backdrop {
+    background: light-dark(#16181c2e, #04060990);
+  }
+
+  .js-search__panel {
+    padding: var(--js-5);
+    display: grid;
+    gap: var(--js-4);
+  }
+
+  .js-search__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--js-3);
+  }
+
+  .js-search__head h2 {
+    font-size: var(--js-head);
+  }
+
+  .js-search__field {
+    display: flex;
+    align-items: center;
+    gap: var(--js-2);
+    border-block-end: 1px solid var(--js-rule);
+    padding-block-end: var(--js-2);
+  }
+
+  .js-search__field:focus-within {
+    border-color: var(--js-accent);
+  }
+
+  .js-search__field svg {
+    width: 1rem;
+    height: 1rem;
+    flex: none;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.4;
+    color: var(--js-faint);
+  }
+
+  .js-search input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    background: none;
+    padding: 0.35rem 0;
+    font-size: var(--js-lift);
+  }
+
+  .js-search input:focus {
+    outline: none;
+  }
+
+  .js-search__results {
+    display: grid;
+    max-height: 50dvh;
+    overflow-y: auto;
+  }
+
+  .js-search__results a {
+    display: grid;
+    gap: 0.2rem;
+    padding: var(--js-3) 0;
+    border-block-start: 1px solid var(--js-rule-soft);
+    text-decoration: none;
+  }
+
+  .js-search__results span,
+  .js-search__results time {
+    font-family: var(--js-mono);
+    font-size: var(--js-note);
+    letter-spacing: 0.08em;
+    color: var(--js-muted);
+  }
+
+  .js-search__results strong {
+    font-size: var(--js-lift);
+  }
+
+  /* ------------------------------------------------------------------- study */
+
+  .js-studybar {
+    border-block-end: 1px solid var(--js-rule);
+  }
+
+  .js-studybar__inner {
+    max-width: var(--js-page);
+    margin-inline: auto;
+    padding: var(--js-2) var(--js-gutter);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--js-2) var(--js-3);
+    align-items: baseline;
+  }
+
+  .js-studybar a {
+    text-decoration: none;
+    padding-block: 0.3rem;
+  }
+
+  @media print {
+    .js-masthead,
+    .js-footer,
+    .js-studybar,
+    .js-rail,
+    .js-search {
+      display: none;
+    }
+  }
+}

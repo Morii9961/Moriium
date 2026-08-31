@@ -1,0 +1,40 @@
+---
+import type { GetStaticPaths } from 'astro';
+import JuanshouBase from '../../../../../layouts/JuanshouBase.astro';
+import { SITE, type Language } from '../../../../../data/site';
+import { COPY, jsCount, jsPath } from '../../../../../data/juanshou';
+import { getListedPosts } from '../../../../../utils/content';
+
+export const getStaticPaths: GetStaticPaths = () =>
+  SITE.languages.map((lang) => ({ params: { lang }, props: { lang } }));
+
+const { lang } = Astro.props as { lang: Language };
+const c = COPY[lang];
+const posts = await getListedPosts(lang);
+const tags = jsCount(posts, (post) => [...post.data.tags]);
+---
+
+<JuanshouBase lang={lang} title={c.nav.tags} section="tags">
+  <div class="js-page">
+    <section class="js-section" aria-labelledby="js-tags">
+      <div class="js-opener">
+        <h2 id="js-tags">{c.nav.tags}</h2>
+        <p class="js-note">{tags.length}</p>
+        <p class="js-opener__say">{c.tagsSay}</p>
+      </div>
+
+      {tags.length > 0 ? (
+        <div class="js-field js-field--large">
+          {tags.map((tag) => (
+            <a href={jsPath(lang, 'tags', tag.value)}>
+              <span>#{tag.value}</span>
+              <sup class="js-num">{tag.count}</sup>
+            </a>
+          ))}
+        </div>
+      ) : (
+        <p class="js-note">{c.empty}</p>
+      )}
+    </section>
+  </div>
+</JuanshouBase>

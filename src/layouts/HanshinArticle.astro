@@ -32,7 +32,6 @@ interface Props {
 
 const { post, translations, features, headings, linkCategory, linkedTags, previous, next } = Astro.props;
 const lang = post.data.lang;
-const ui = UI[lang];
 const c = HANSHIN[lang];
 const outline = headings.filter((heading) => heading.depth === 2 || heading.depth === 3);
 const minutes = hsReadingMinutes(post.body ?? '');
@@ -204,7 +203,6 @@ const langHrefs = Object.fromEntries(
       )}
 
       <p class="hs-note"><a href={hsPath(lang, 'writing')}>{c.backToWriting}</a></p>
-      <p class="hs-note" hidden>{ui.published}</p>
     </footer>
   </article>
 

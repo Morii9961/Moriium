@@ -1,0 +1,221 @@
+---
+/**
+ * Global frame for the 「卷首」 design study.
+ *
+ * Separate from BaseLayout.astro and from the 版心 / 界格 layouts: this
+ * direction owns its own stylesheet and header, and must not alter the
+ * production frame or either earlier study. It reuses two settled behaviours
+ * rather than reimplementing them — the theme-toggle contract and the lazily
+ * loaded search module.
+ *
+ * The masthead sets the site name in the reading serif rather than in the
+ * annotation mono. On a personal site the name is the author's, not a label.
+ */
+import '@fontsource-variable/noto-serif-sc/wght.css';
+import '@fontsource-variable/noto-serif-jp/wght.css';
+import '@fontsource/ibm-plex-mono/latin-400.css';
+import '../styles/juanshou.css';
+import { SITE, UI, type Language } from '../data/site';
+import { COPY, jsHome, jsPath } from '../data/juanshou';
+
+interface Props {
+  lang: Language;
+  title?: string;
+  description?: string;
+  section?: string;
+  langHrefs?: Partial<Record<Language, string>>;
+  ogType?: 'website' | 'article';
+  image?: string;
+}
+
+const {
+  lang,
+  title,
+  description = UI[lang].description,
+  section,
+  langHrefs,
+  ogType = 'website',
+  image,
+} = Astro.props;
+
+const ui = UI[lang];
+const c = COPY[lang];
+const pageTitle = title ? `${title} · ${SITE.name}` : SITE.name;
+const pathname = Astro.url.pathname;
+const imageUrl = image ? new URL(image, SITE.url).href : undefined;
+const languageLabels = { zh: '中文', ja: '日本語', en: 'EN' } as const;
+
+const navItems = [
+  { href: jsHome(lang), label: c.nav.home, match: (path: string) => path === jsHome(lang) },
+  { href: jsPath(lang, 'writing'), label: c.nav.writing, match: (path: string) => path.includes('/writing/') || path.includes('/posts/') },
+  { href: jsPath(lang, 'archive'), label: c.nav.archive, match: (path: string) => path.includes('/archive/') },
+  { href: jsPath(lang, 'categories'), label: c.nav.categories, match: (path: string) => path.includes('/categories/') },
+  { href: jsPath(lang, 'tags'), label: c.nav.tags, match: (path: string) => path.includes('/tags/') },
+  { href: jsPath(lang, 'about'), label: c.nav.about, match: (path: string) => path.includes('/about/') },
+];
+
+function languageHref(code: Language) {
+  if (langHrefs?.[code]) return langHrefs[code] as string;
+  return section ? jsPath(code, section) : jsHome(code);
+}
+---
+
+<!doctype html>
+<html lang={ui.locale} data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="description" content={description} />
+    <meta name="robots" content="noindex,nofollow" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta property="og:type" content={ogType} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:site_name" content={SITE.name} />
+    {imageUrl && <meta property="og:image" content={imageUrl} />}
+    <title>{pageTitle}</title>
+    <script is:inline src="/theme-init.js"></script>
+    <slot name="head" />
+  </head>
+  <body>
+    <a class="js-skip js-note" href="#main">{ui.skip}</a>
+
+    <div class="js-studybar">
+      <div class="js-studybar__inner js-note">
+        <span class="js-note--latin js-note--loud">Design study · 卷首</span>
+        <a href="/design/juanshou/">说明 / Overview</a>
+        <span>·</span>
+        <a href={`/${lang}/`}>生产站点 →</a>
+      </div>
+    </div>
+
+    <header class="js-masthead">
+      <div class="js-masthead__inner">
+        <a class="js-wordmark" href={jsHome(lang)}>{SITE.name}</a>
+
+        <nav class="js-nav js-note" aria-label={ui.primaryNav}>
+          {navItems.map((item) => (
+            <a href={item.href} aria-current={item.match(pathname) ? 'page' : undefined}>{item.label}</a>
+          ))}
+        </nav>
+
+        <div class="js-tools">
+          <button class="js-tool" type="button" aria-label={ui.search.open} title={`${ui.search.open} (Ctrl/⌘ K)`} data-search-open>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.6"></circle><path d="m16 16 4.2 4.2"></path></svg>
+          </button>
+
+          <nav class="js-langs js-note" aria-label={ui.languageNav}>
+            {SITE.languages.map((code: Language, index: number) => (
+              <>
+                {index > 0 && <span aria-hidden="true">/</span>}
+                <a href={languageHref(code)} lang={UI[code].locale} aria-current={code === lang ? 'page' : undefined}>
+                  {languageLabels[code]}
+                </a>
+              </>
+            ))}
+          </nav>
+
+          <button
+            class="js-tool"
+            type="button"
+            aria-label={ui.theme}
+            title={ui.theme}
+            data-label-light={ui.themeLight}
+            data-label-dark={ui.themeDark}
+            data-theme-toggle
+          >
+            <svg class="js-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.5"></circle><path d="M12 2.5v2M12 19.5v2M4.6 4.6 6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"></path></svg>
+            <svg class="js-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.2 15.1A8.4 8.4 0 0 1 8.9 3.8 8.5 8.5 0 1 0 20.2 15Z"></path></svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <dialog
+      class="js-search"
+      aria-labelledby="js-search-title"
+      data-search-dialog
+      data-search-index={`/design/juanshou/search/${lang}.json`}
+      data-search-locale={ui.locale}
+      data-search-idle={ui.search.idle}
+      data-search-loading={ui.search.loading}
+      data-search-error={ui.search.error}
+      data-search-result-prefix={ui.search.resultPrefix}
+      data-search-result-suffix={ui.search.resultSuffix}
+    >
+      <div class="js-search__panel">
+        <div class="js-search__head">
+          <h2 id="js-search-title">{ui.search.title}</h2>
+          <button class="js-tool" type="button" aria-label={ui.search.close} data-search-close>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 5 14 14M19 5 5 19"></path></svg>
+          </button>
+        </div>
+        <label class="js-note" for="js-search-input">{ui.search.label}</label>
+        <div class="js-search__field">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.6"></circle><path d="m16 16 4.2 4.2"></path></svg>
+          <input id="js-search-input" type="search" inputmode="search" autocomplete="off" placeholder={ui.search.placeholder} data-search-input />
+        </div>
+        <p class="js-note" aria-live="polite" data-search-summary>{ui.search.idle}</p>
+        <ol class="js-search__results" data-search-results></ol>
+        <p class="js-note" data-search-empty hidden>{ui.search.empty}</p>
+      </div>
+    </dialog>
+
+    <main id="main" tabindex="-1">
+      <slot />
+    </main>
+
+    <footer class="js-footer">
+      <div class="js-footer__inner">
+        <div>
+          <p class="js-wordmark">{SITE.name}</p>
+          <p class="js-note">{ui.footer.description}</p>
+        </div>
+        <nav class="js-note" aria-label={ui.footerNav}>
+          {(['writing', 'archive', 'categories', 'tags', 'about'] as const).map((segment) => (
+            <a href={jsPath(lang, segment)}>{c.nav[segment]}</a>
+          ))}
+          <a href={`/${lang}/rss.xml`}>RSS</a>
+        </nav>
+        <p class="js-note">© {new Date().getFullYear()} Morii<br />{ui.footer.rights}</p>
+      </div>
+    </footer>
+
+    <script>
+      const toggle = document.querySelector<HTMLButtonElement>('[data-theme-toggle]');
+      const updateToggle = () => {
+        if (!toggle) return;
+        const dark = document.documentElement.dataset.theme === 'dark';
+        toggle.setAttribute('aria-label', dark ? toggle.dataset.labelLight ?? '' : toggle.dataset.labelDark ?? '');
+      };
+      updateToggle();
+      toggle?.addEventListener('click', () => {
+        const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+        document.documentElement.dataset.theme = next;
+        localStorage.setItem('moriium-theme', next);
+        updateToggle();
+        window.dispatchEvent(new CustomEvent('moriium:theme', { detail: next }));
+      });
+
+      const searchOpen = document.querySelector<HTMLButtonElement>('[data-search-open]');
+      const searchDialog = document.querySelector<HTMLDialogElement>('[data-search-dialog]');
+      const showSearch = async () => {
+        if (!searchDialog) return;
+        const { openSearch } = await import('../scripts/search');
+        await openSearch(searchDialog, searchOpen);
+      };
+      searchOpen?.addEventListener('click', showSearch);
+      document.addEventListener('keydown', (event) => {
+        const target = event.target;
+        const editing =
+          target instanceof HTMLInputElement ||
+          target instanceof HTMLTextAreaElement ||
+          (target instanceof HTMLElement && target.isContentEditable);
+        if (editing || event.altKey || event.shiftKey || event.key.toLocaleLowerCase() !== 'k' || (!event.ctrlKey && !event.metaKey)) return;
+        event.preventDefault();
+        void showSearch();
+      });
+    </script>
+  </body>
+</html>

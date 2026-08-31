@@ -1,0 +1,218 @@
+---
+/**
+ * Global frame for the 「界格」 design study.
+ *
+ * Separate from BaseLayout.astro and from HanshinBase.astro: this direction
+ * owns its own stylesheet and header composition and must not alter either the
+ * production frame or the study it replaces. It reuses two settled behaviours
+ * rather than reimplementing them — the theme-toggle contract and the lazily
+ * loaded search module.
+ */
+import '@fontsource-variable/noto-serif-sc/wght.css';
+import '@fontsource-variable/noto-serif-jp/wght.css';
+import '@fontsource/ibm-plex-mono/latin-400.css';
+import '../styles/jiege.css';
+import { SITE, UI, type Language } from '../data/site';
+import { COPY, jgHome, jgPath } from '../data/jiege';
+
+interface Props {
+  lang: Language;
+  title?: string;
+  description?: string;
+  section?: string;
+  langHrefs?: Partial<Record<Language, string>>;
+  ogType?: 'website' | 'article';
+  image?: string;
+}
+
+const {
+  lang,
+  title,
+  description = UI[lang].description,
+  section,
+  langHrefs,
+  ogType = 'website',
+  image,
+} = Astro.props;
+
+const ui = UI[lang];
+const c = COPY[lang];
+const pageTitle = title ? `${title} · ${SITE.name}` : SITE.name;
+const pathname = Astro.url.pathname;
+const imageUrl = image ? new URL(image, SITE.url).href : undefined;
+const languageLabels = { zh: '中文', ja: '日本語', en: 'EN' } as const;
+
+const navItems = [
+  { href: jgHome(lang), label: c.nav.home, match: (path: string) => path === jgHome(lang) },
+  { href: jgPath(lang, 'writing'), label: c.nav.writing, match: (path: string) => path.includes('/writing/') || path.includes('/posts/') },
+  { href: jgPath(lang, 'archive'), label: c.nav.archive, match: (path: string) => path.includes('/archive/') },
+  { href: jgPath(lang, 'categories'), label: c.nav.categories, match: (path: string) => path.includes('/categories/') },
+  { href: jgPath(lang, 'tags'), label: c.nav.tags, match: (path: string) => path.includes('/tags/') },
+  { href: jgPath(lang, 'about'), label: c.nav.about, match: (path: string) => path.includes('/about/') },
+];
+
+function languageHref(code: Language) {
+  if (langHrefs?.[code]) return langHrefs[code] as string;
+  return section ? jgPath(code, section) : jgHome(code);
+}
+---
+
+<!doctype html>
+<html lang={ui.locale} data-theme="light">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="description" content={description} />
+    <meta name="robots" content="noindex,nofollow" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta property="og:type" content={ogType} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:site_name" content={SITE.name} />
+    {imageUrl && <meta property="og:image" content={imageUrl} />}
+    <title>{pageTitle}</title>
+    <script is:inline src="/theme-init.js"></script>
+    <slot name="head" />
+  </head>
+  <body>
+    <a class="jg-skip jg-note" href="#main">{ui.skip}</a>
+
+    <div class="jg-studybar">
+      <div class="jg-studybar__inner jg-note">
+        <span class="jg-note--latin jg-note--loud">Design study · 界格</span>
+        <a href="/design/jiege/">说明 / Overview</a>
+        <span>·</span>
+        <a href={`/${lang}/`}>生产站点 →</a>
+      </div>
+    </div>
+
+    <header class="jg-masthead">
+      <div class="jg-masthead__inner">
+        <a class="jg-wordmark" href={jgHome(lang)}>{SITE.name}</a>
+
+        <nav class="jg-nav jg-note" aria-label={ui.primaryNav}>
+          {navItems.map((item) => (
+            <a href={item.href} aria-current={item.match(pathname) ? 'page' : undefined}>{item.label}</a>
+          ))}
+        </nav>
+
+        <div class="jg-tools">
+          <button class="jg-tool" type="button" aria-label={ui.search.open} title={`${ui.search.open} (Ctrl/⌘ K)`} data-search-open>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.6"></circle><path d="m16 16 4.2 4.2"></path></svg>
+          </button>
+
+          <nav class="jg-langs jg-note" aria-label={ui.languageNav}>
+            {SITE.languages.map((code: Language, index: number) => (
+              <>
+                {index > 0 && <span aria-hidden="true">/</span>}
+                <a href={languageHref(code)} lang={UI[code].locale} aria-current={code === lang ? 'page' : undefined}>
+                  {languageLabels[code]}
+                </a>
+              </>
+            ))}
+          </nav>
+
+          <button
+            class="jg-tool"
+            type="button"
+            aria-label={ui.theme}
+            title={ui.theme}
+            data-label-light={ui.themeLight}
+            data-label-dark={ui.themeDark}
+            data-theme-toggle
+          >
+            <svg class="jg-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.5"></circle><path d="M12 2.5v2M12 19.5v2M4.6 4.6 6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"></path></svg>
+            <svg class="jg-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.2 15.1A8.4 8.4 0 0 1 8.9 3.8 8.5 8.5 0 1 0 20.2 15Z"></path></svg>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <dialog
+      class="jg-search"
+      aria-labelledby="jg-search-title"
+      data-search-dialog
+      data-search-index={`/design/jiege/search/${lang}.json`}
+      data-search-locale={ui.locale}
+      data-search-idle={ui.search.idle}
+      data-search-loading={ui.search.loading}
+      data-search-error={ui.search.error}
+      data-search-result-prefix={ui.search.resultPrefix}
+      data-search-result-suffix={ui.search.resultSuffix}
+    >
+      <div class="jg-search__panel">
+        <div class="jg-search__head">
+          <h2 id="jg-search-title">{ui.search.title}</h2>
+          <button class="jg-tool" type="button" aria-label={ui.search.close} data-search-close>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 5 14 14M19 5 5 19"></path></svg>
+          </button>
+        </div>
+        <label class="jg-note" for="jg-search-input">{ui.search.label}</label>
+        <div class="jg-search__field">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.6"></circle><path d="m16 16 4.2 4.2"></path></svg>
+          <input id="jg-search-input" type="search" inputmode="search" autocomplete="off" placeholder={ui.search.placeholder} data-search-input />
+        </div>
+        <p class="jg-note" aria-live="polite" data-search-summary>{ui.search.idle}</p>
+        <ol class="jg-search__results" data-search-results></ol>
+        <p class="jg-note" data-search-empty hidden>{ui.search.empty}</p>
+      </div>
+    </dialog>
+
+    <main id="main" tabindex="-1">
+      <slot />
+    </main>
+
+    <footer class="jg-footer">
+      <div class="jg-footer__inner">
+        <div>
+          <p class="jg-wordmark">{SITE.name}</p>
+          <p class="jg-note">{ui.footer.description}</p>
+        </div>
+        <nav class="jg-note" aria-label={ui.footerNav}>
+          {(['writing', 'archive', 'categories', 'tags', 'about'] as const).map((segment) => (
+            <a href={jgPath(lang, segment)}>{c.nav[segment]}</a>
+          ))}
+          <a href={`/${lang}/rss.xml`}>RSS</a>
+        </nav>
+        <p class="jg-note">© {new Date().getFullYear()} Morii<br />{ui.footer.rights}</p>
+      </div>
+    </footer>
+
+    <script>
+      const toggle = document.querySelector<HTMLButtonElement>('[data-theme-toggle]');
+      const updateToggle = () => {
+        if (!toggle) return;
+        const dark = document.documentElement.dataset.theme === 'dark';
+        toggle.setAttribute('aria-label', dark ? toggle.dataset.labelLight ?? '' : toggle.dataset.labelDark ?? '');
+      };
+      updateToggle();
+      toggle?.addEventListener('click', () => {
+        const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+        document.documentElement.dataset.theme = next;
+        localStorage.setItem('moriium-theme', next);
+        updateToggle();
+        window.dispatchEvent(new CustomEvent('moriium:theme', { detail: next }));
+      });
+
+      const searchOpen = document.querySelector<HTMLButtonElement>('[data-search-open]');
+      const searchDialog = document.querySelector<HTMLDialogElement>('[data-search-dialog]');
+      const showSearch = async () => {
+        if (!searchDialog) return;
+        const { openSearch } = await import('../scripts/search');
+        await openSearch(searchDialog, searchOpen);
+      };
+      searchOpen?.addEventListener('click', showSearch);
+      document.addEventListener('keydown', (event) => {
+        const target = event.target;
+        const editing =
+          target instanceof HTMLInputElement ||
+          target instanceof HTMLTextAreaElement ||
+          (target instanceof HTMLElement && target.isContentEditable);
+        if (editing || event.altKey || event.shiftKey || event.key.toLocaleLowerCase() !== 'k' || (!event.ctrlKey && !event.metaKey)) return;
+        event.preventDefault();
+        void showSearch();
+      });
+    </script>
+  </body>
+</html>

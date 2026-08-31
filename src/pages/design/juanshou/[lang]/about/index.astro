@@ -1,0 +1,61 @@
+---
+import type { GetStaticPaths } from 'astro';
+import JuanshouBase from '../../../../../layouts/JuanshouBase.astro';
+import { SITE, type Language } from '../../../../../data/site';
+import { COPY, FOREWORD, jsPath } from '../../../../../data/juanshou';
+
+export const getStaticPaths: GetStaticPaths = () =>
+  SITE.languages.map((lang) => ({ params: { lang }, props: { lang } }));
+
+const { lang } = Astro.props as { lang: Language };
+const c = COPY[lang];
+const f = FOREWORD[lang];
+---
+
+<JuanshouBase lang={lang} title={c.about.title} description={c.aboutSay} section="about">
+  <div class="js-page">
+    <section class="js-section" aria-labelledby="js-about">
+      <div class="js-opener">
+        <h2 id="js-about">{c.about.title}</h2>
+        <p class="js-note js-note--latin">About</p>
+        <p class="js-opener__say">{c.aboutSay}</p>
+      </div>
+
+      <div class="js-prose js-measure">
+        {c.about.lines.map((line) => <p>{line}</p>)}
+      </div>
+
+      <p class="js-sign js-note">
+        <strong>{f.by}</strong>
+        <span>{f.at}</span>
+      </p>
+    </section>
+
+    <section class="js-section" aria-labelledby="js-about-colophon">
+      <div class="js-opener">
+        <h2 id="js-about-colophon">{c.colophon}</h2>
+        <p class="js-note js-note--latin">Colophon</p>
+      </div>
+      <dl class="js-colophon">
+        {c.about.facts.map(([term, value]) => (
+          <div>
+            <dt class="js-note">{term}</dt>
+            <dd>{value}</dd>
+          </div>
+        ))}
+        <div>
+          <dt class="js-note">RSS</dt>
+          <dd><a href={`/${lang}/rss.xml`}>/{lang}/rss.xml →</a></dd>
+        </div>
+        <div>
+          <dt class="js-note">GitHub</dt>
+          <dd><a href="https://github.com/Morii9961" rel="me">Morii9961 →</a></dd>
+        </div>
+        <div>
+          <dt class="js-note">{c.nav.writing}</dt>
+          <dd><a href={jsPath(lang, 'writing')}>{c.all} →</a></dd>
+        </div>
+      </dl>
+    </section>
+  </div>
+</JuanshouBase>

@@ -6,7 +6,7 @@ The deployed site is a directory of static files. Node.js, Pages CMS, databases,
 
 ## Current state
 
-The engineering foundation and three clean-room design studies are implemented. Morii selected A as the active direction; its practical-home revision remains under review before final tokens are frozen:
+The engineering foundation and three clean-room design studies are implemented. Morii selected A as the current production structure; its implementation remains subject to the canonical visual/design constitution in [`DESIGN.md`](DESIGN.md) and the open decisions recorded there:
 
 - `/design/a/` — 时间切片（active review）
 - `/design/b/` — 页边手记
@@ -41,8 +41,9 @@ This runs Astro type/content checks, encryption and private-rendering tests, dir
 - [Markdown extension reference](docs/markdown-reference.md)
 - [Protected article publishing](docs/encrypted-posts.md)
 - [Architecture](docs/architecture.md)
+- [Canonical design constitution](DESIGN.md)
 - [Design research](docs/design-research.md)
-- [Design system status](docs/design-system.md)
+- [Design system implementation status](docs/design-system.md)
 - [VPS deployment and rollback](docs/deployment.md)
 
 Hosted Pages CMS reads [`.pages.yml`](.pages.yml) and may edit public posts directly on `main`. Protected plaintext never enters Pages CMS.

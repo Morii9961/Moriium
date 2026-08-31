@@ -2,13 +2,7 @@
 import type { GetStaticPaths } from 'astro';
 import { render, type CollectionEntry } from 'astro:content';
 import HanshinArticle from '../../../../../layouts/HanshinArticle.astro';
-import {
-  getListedPosts,
-  getPublishedPosts,
-  getTranslations,
-  postPath,
-  routeSlug,
-} from '../../../../../utils/content';
+import { getListedPosts, getPublishedPosts, getTranslations, postPath, routeSlug } from '../../../../../utils/content';
 import { detectReaderFeatures } from '../../../../../utils/features';
 
 export const getStaticPaths: GetStaticPaths = async () => {
@@ -23,6 +17,9 @@ const { post } = Astro.props as { post: CollectionEntry<'posts'> };
 const { Content, headings } = await render(post);
 const translations = await getTranslations(post.data.translationKey);
 const features = detectReaderFeatures(post.body ?? '', post.data.copyProtection);
+
+/* Adjacent posts and taxonomy links follow the listed set, so an unlisted post
+   never advertises a route that its own listing page does not contain. */
 const listedPosts = await getListedPosts(post.data.lang);
 const listedIndex = listedPosts.findIndex((entry) => postPath(entry) === postPath(post));
 const previous = listedIndex >= 0 ? listedPosts[listedIndex + 1] : undefined;

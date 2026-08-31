@@ -1,0 +1,45 @@
+---
+import type { GetStaticPaths } from 'astro';
+import JuanshouBase from '../../../../../layouts/JuanshouBase.astro';
+import { SITE, type Language } from '../../../../../data/site';
+import { COPY, jsDay, jsYear } from '../../../../../data/juanshou';
+import { getListedPosts } from '../../../../../utils/content';
+import { jsEntryHref } from '../../../../../utils/juanshou';
+
+export const getStaticPaths: GetStaticPaths = () =>
+  SITE.languages.map((lang) => ({ params: { lang }, props: { lang } }));
+
+const { lang } = Astro.props as { lang: Language };
+const c = COPY[lang];
+const posts = await getListedPosts(lang);
+const years = [...new Set(posts.map((post) => jsYear(post.data.publishedAt)))];
+---
+
+<JuanshouBase lang={lang} title={c.nav.archive} section="archive">
+  <div class="js-page">
+    <section class="js-section" aria-labelledby="js-archive">
+      <div class="js-opener">
+        <h2 id="js-archive">{c.nav.archive}</h2>
+        <p class="js-note">{posts.length} {c.count}</p>
+        <p class="js-opener__say">{c.archiveSay}</p>
+      </div>
+
+      {years.map((year) => (
+        <section aria-label={`${year}${c.year}`}>
+          <p class="js-note js-note--loud">{year}{c.year}</p>
+          <ul class="js-rows">
+            {posts
+              .filter((post) => jsYear(post.data.publishedAt) === year)
+              .map((post) => (
+                <li>
+                  <time class="js-note" datetime={post.data.publishedAt.toISOString()}>{jsDay(post.data.publishedAt)}</time>
+                  <a href={jsEntryHref(post)}>{post.data.title}</a>
+                  <span class="js-note">{post.data.category}</span>
+                </li>
+              ))}
+          </ul>
+        </section>
+      ))}
+    </section>
+  </div>
+</JuanshouBase>

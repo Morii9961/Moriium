@@ -1,15 +1,12 @@
 import type { APIRoute, GetStaticPaths } from 'astro';
 import { SITE, UI, type Language } from '../../../../data/site';
 import { formatDate, getListedPosts } from '../../../../utils/content';
-import { hsEntryHref } from '../../../../utils/hanshin';
+import { jsEntryHref } from '../../../../utils/juanshou';
 
 /**
- * The study's own search index.
- *
- * It mirrors the production endpoint's record shape so the existing search
- * module works unchanged, but resolves every result to a study route. Without
- * this, searching inside the study would quietly return the reader to the
- * production pages and hide whichever navigation problems the new design has.
+ * The study's own search index, mirroring the production record shape so
+ * `src/scripts/search.ts` works unchanged while every result resolves to a
+ * study route.
  */
 export const getStaticPaths = (() =>
   SITE.languages.map((lang) => ({ params: { lang }, props: { lang } }))) satisfies GetStaticPaths;
@@ -23,7 +20,7 @@ export const GET = (async ({ props }) => {
     category: post.data.category,
     tags: post.data.tags,
     date: formatDate(post.data.publishedAt, UI[lang].locale),
-    url: hsEntryHref(post),
+    url: jsEntryHref(post),
   }));
 
   return new Response(JSON.stringify(records), {

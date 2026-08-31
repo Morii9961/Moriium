@@ -1,0 +1,55 @@
+---
+import type { GetStaticPaths } from 'astro';
+import JiegeBase from '../../../../../layouts/JiegeBase.astro';
+import { SITE, type Language } from '../../../../../data/site';
+import { COPY, STATEMENT, jgCount, jgPath } from '../../../../../data/jiege';
+import { getListedPosts } from '../../../../../utils/content';
+
+export const getStaticPaths: GetStaticPaths = () =>
+  SITE.languages.map((lang) => ({ params: { lang }, props: { lang } }));
+
+const { lang } = Astro.props as { lang: Language };
+const c = COPY[lang];
+const s = STATEMENT[lang];
+const posts = await getListedPosts(lang);
+const tags = jgCount(posts, (post) => [...post.data.tags]);
+---
+
+<JiegeBase lang={lang} title={c.nav.tags} section="tags">
+  <div class="jg-field">
+    <div class="jg-row jg-row--lead">
+      <div class="jg-cell jg-head">
+        <p class="jg-note jg-note--latin">Tags</p>
+        <h1>{c.nav.tags}</h1>
+        <p class="jg-head__lead">{c.tagsNote}</p>
+      </div>
+      <dl class="jg-cell jg-ledger jg-note">
+        <div>
+          <dt>{s.n.tags}</dt>
+          <dd class="jg-num">{tags.length}</dd>
+        </div>
+        <div>
+          <dt>{s.n.posts}</dt>
+          <dd class="jg-num">{posts.length}</dd>
+        </div>
+      </dl>
+    </div>
+
+    <div class="jg-row">
+      <section class="jg-cell" aria-label={c.nav.tags}>
+        {tags.length > 0 ? (
+          <div class="jg-tagfield jg-tagfield--large">
+            {tags.map((tag) => (
+              <a href={jgPath(lang, 'tags', tag.value)}>
+                <span>#{tag.value}</span>
+                <sup class="jg-num">{tag.count}</sup>
+              </a>
+            ))}
+          </div>
+        ) : (
+          <p class="jg-note">{c.empty}</p>
+        )}
+      </section>
+    </div>
+  </div>
+</JiegeBase>

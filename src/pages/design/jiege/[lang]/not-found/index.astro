@@ -1,0 +1,33 @@
+---
+import type { GetStaticPaths } from 'astro';
+import JiegeBase from '../../../../../layouts/JiegeBase.astro';
+import { SITE, type Language } from '../../../../../data/site';
+import { COPY, jgHome, jgPath } from '../../../../../data/jiege';
+
+/* A preview of the 404 state. The real 404 belongs to the site root and stays
+   with the production design unless this direction is chosen. */
+export const getStaticPaths: GetStaticPaths = () =>
+  SITE.languages.map((lang) => ({ params: { lang }, props: { lang } }));
+
+const { lang } = Astro.props as { lang: Language };
+const c = COPY[lang];
+---
+
+<JiegeBase lang={lang} title={c.notFound} section="not-found">
+  <div class="jg-field">
+    <div class="jg-row jg-row--lead">
+      <div class="jg-cell jg-head">
+        <p class="jg-note jg-note--latin">404</p>
+        <h1>{c.notFound}</h1>
+        <p class="jg-head__lead">{c.notFoundLead}</p>
+      </div>
+      <div class="jg-cell jg-ledger">
+        <nav class="jg-stack" aria-label={c.discover}>
+          <a href={jgHome(lang)}><span class="jg-stack__title">{c.nav.home} →</span></a>
+          <a href={jgPath(lang, 'writing')}><span class="jg-stack__title">{c.nav.writing} →</span></a>
+          <a href={jgPath(lang, 'archive')}><span class="jg-stack__title">{c.nav.archive} →</span></a>
+        </nav>
+      </div>
+    </div>
+  </div>
+</JiegeBase>

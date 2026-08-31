@@ -1,0 +1,46 @@
+---
+import type { GetStaticPaths } from 'astro';
+import JiegeBase from '../../../../../layouts/JiegeBase.astro';
+import { SITE, type Language } from '../../../../../data/site';
+import { COPY, jgPath } from '../../../../../data/jiege';
+
+export const getStaticPaths: GetStaticPaths = () =>
+  SITE.languages.map((lang) => ({ params: { lang }, props: { lang } }));
+
+const { lang } = Astro.props as { lang: Language };
+const c = COPY[lang];
+const about = c.about;
+---
+
+<JiegeBase lang={lang} title={about.title} description={about.lead} section="about">
+  <div class="jg-field">
+    <div class="jg-row jg-row--lead">
+      <div class="jg-cell jg-head">
+        <p class="jg-note jg-note--latin">About</p>
+        <h1>{about.title}</h1>
+        <p class="jg-head__lead">{about.lead}</p>
+      </div>
+      <dl class="jg-cell jg-ledger jg-note">
+        {about.facts.map(([term, value]) => (
+          <div>
+            <dt>{term}</dt>
+            <dd>{value}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+
+    <div class="jg-row">
+      <section class="jg-cell" aria-label={about.title}>
+        <div class="jg-copy">
+          {about.body.map((paragraph) => <p>{paragraph}</p>)}
+        </div>
+        <nav class="jg-tagfield jg-cell__note" aria-label={about.linksLabel}>
+          <a class="jg-note" href={jgPath(lang, 'writing')}>{c.nav.writing} →</a>
+          <a class="jg-note" href={`/${lang}/rss.xml`}>RSS →</a>
+          <a class="jg-note" href="https://github.com/Morii9961" rel="me">GitHub →</a>
+        </nav>
+      </section>
+    </div>
+  </div>
+</JiegeBase>

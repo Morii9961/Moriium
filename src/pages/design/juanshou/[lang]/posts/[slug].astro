@@ -1,0 +1,217 @@
+---
+/**
+ * Article reader for the 「卷首」 study.
+ *
+ * The change from the earlier studies is the rail. Dates, translations, tags
+ * and the outline stay beside the prose instead of waiting at the end, where a
+ * reader who stops halfway never learns the piece exists in three languages.
+ */
+import type { GetStaticPaths } from 'astro';
+import { render, type CollectionEntry } from 'astro:content';
+import JuanshouBase from '../../../../../layouts/JuanshouBase.astro';
+import ReaderEnhancements from '../../../../../components/ReaderEnhancements.astro';
+import { SITE, UI, type Language } from '../../../../../data/site';
+import { COPY, jsDay, jsPath, jsReadingMinutes } from '../../../../../data/juanshou';
+import { getListedPosts, getPublishedPosts, getTranslations, postPath, routeSlug } from '../../../../../utils/content';
+import { detectReaderFeatures, type ReaderFeatures } from '../../../../../utils/features';
+import { jsEntryHref } from '../../../../../utils/juanshou';
+
+type Entry = CollectionEntry<'posts'> | CollectionEntry<'protected'>;
+
+export const getStaticPaths: GetStaticPaths = async () => {
+  const posts = await getPublishedPosts();
+  return posts.map((post) => ({
+    params: { lang: post.data.lang, slug: routeSlug(post) },
+    props: { post },
+  }));
+};
+
+const { post } = Astro.props as { post: CollectionEntry<'posts'> };
+const lang = post.data.lang;
+const c = COPY[lang];
+const { Content, headings } = await render(post);
+const translations = await getTranslations(post.data.translationKey);
+const features = detectReaderFeatures(post.body ?? '', post.data.copyProtection);
+const outline = headings.filter((heading) => heading.depth === 2 || heading.depth === 3);
+const minutes = jsReadingMinutes(post.body ?? '');
+
+const listedPosts = await getListedPosts(lang);
+const listedIndex = listedPosts.findIndex((entry) => postPath(entry) === postPath(post));
+const previous = listedIndex >= 0 ? listedPosts[listedIndex + 1] : undefined;
+const next = listedIndex > 0 ? listedPosts[listedIndex - 1] : undefined;
+const linkCategory = new Set(listedPosts.map((entry) => entry.data.category)).has(post.data.category);
+const listedTags = new Set(listedPosts.flatMap((entry) => entry.data.tags));
+
+const enabled = (Object.keys(features) as Array<keyof ReaderFeatures>)
+  .filter((key) => features[key])
+  .map((key) => c.feature[key]);
+
+const translationStates = SITE.languages.map((code) => ({
+  code,
+  entry: translations.find((entry) => entry.data.lang === code) as Entry | undefined,
+  current: code === lang,
+}));
+
+const langHrefs = Object.fromEntries(
+  translationStates.filter((state) => state.entry).map((state) => [state.code, jsEntryHref(state.entry as Entry)]),
+) as Partial<Record<Language, string>>;
+---
+
+<JuanshouBase
+  lang={lang}
+  title={post.data.title}
+  description={post.data.summary}
+  ogType="article"
+  langHrefs={langHrefs}
+  {...(post.data.cover ? { image: post.data.cover } : {})}
+>
+  <div class="js-page">
+    <article class="js-article" data-copy-protection={String(features.copyProtection)}>
+      <header class="js-article__head">
+        <p class="js-note js-article__kicker">
+          <a href={jsPath(lang, 'writing')}>{c.nav.writing}</a>
+          <span> / </span>
+          {linkCategory ? (
+            <a href={jsPath(lang, 'categories', post.data.category)}>{post.data.category}</a>
+          ) : (
+            <span>{post.data.category}</span>
+          )}
+        </p>
+        <h1 class="js-article__title">{post.data.title}</h1>
+        <p class="js-article__summary">{post.data.summary}</p>
+      </header>
+
+      <div>
+        {post.data.cover && (
+          <figure>
+            <img src={post.data.cover} alt={post.data.coverAlt ?? ''} />
+            <figcaption class="js-note">{post.data.coverAlt}</figcaption>
+          </figure>
+        )}
+
+        {outline.length > 0 && (
+          <details class="js-inline-toc js-note">
+            <summary>{c.outline}</summary>
+            <ol>
+              {outline.map((heading, index) => (
+                <li>
+                  <a href={`#${heading.slug}`} data-depth={heading.depth}>
+                    <span class="js-num">{String(index + 1).padStart(2, '0')}</span> {heading.text}
+                  </a>
+                </li>
+              ))}
+            </ol>
+          </details>
+        )}
+
+        <div class="js-prose article-body" id="article-body">
+          <Content />
+        </div>
+
+        <footer class="js-end">
+          <p class="js-end__mark js-note">
+            <span class="js-note--latin">{c.end}</span>
+            <span>{post.data.title}</span>
+          </p>
+
+          {(previous || next) && (
+            <nav class="js-adjacent" aria-label={`${c.previous} / ${c.next}`}>
+              {previous && (
+                <a href={jsEntryHref(previous)}>
+                  <span class="js-note">← {c.previous}</span>
+                  <strong>{previous.data.title}</strong>
+                </a>
+              )}
+              {next && (
+                <a href={jsEntryHref(next)}>
+                  <span class="js-note">{c.next} →</span>
+                  <strong>{next.data.title}</strong>
+                </a>
+              )}
+            </nav>
+          )}
+
+          <p class="js-note"><a href={jsPath(lang, 'writing')}>{c.backToWriting}</a></p>
+        </footer>
+      </div>
+
+      <aside class="js-rail js-note" aria-label={c.readerFeatures}>
+        <section>
+          <dl>
+            <div>
+              <dt>{c.published}</dt>
+              <dd><time datetime={post.data.publishedAt.toISOString()}>{jsDay(post.data.publishedAt)}</time></dd>
+            </div>
+            {post.data.updatedAt && (
+              <div>
+                <dt>{c.updated}</dt>
+                <dd><time datetime={post.data.updatedAt.toISOString()}>{jsDay(post.data.updatedAt)}</time></dd>
+              </div>
+            )}
+            <div>
+              <dt>{c.reading}</dt>
+              <dd>{c.minutes(minutes)}</dd>
+            </div>
+          </dl>
+        </section>
+
+        <section>
+          <p class="js-note--loud">{c.translations}</p>
+          <ul class="js-trans">
+            {translationStates.map((state) => (
+              <li lang={UI[state.code].locale}>
+                {state.current ? (
+                  <>
+                    <span data-state="current">{UI[state.code].label}</span>
+                    <span>{c.current}</span>
+                  </>
+                ) : state.entry ? (
+                  <>
+                    <a href={jsEntryHref(state.entry)}>{UI[state.code].label}</a>
+                    <span>↗</span>
+                  </>
+                ) : (
+                  <>
+                    <span data-state="missing">{UI[state.code].label}</span>
+                    <span>{c.unavailable}</span>
+                  </>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        {post.data.tags.length > 0 && (
+          <section>
+            <p class="js-note--loud">{c.tags}</p>
+            <div class="js-field">
+              {post.data.tags.map((tag) => (
+                listedTags.has(tag)
+                  ? <a href={jsPath(lang, 'tags', tag)}>#{tag}</a>
+                  : <span>#{tag}</span>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {outline.length > 0 && (
+          <section class="js-rail__toc">
+            <p class="js-note--loud">{c.outline}</p>
+            <ol>
+              {outline.map((heading) => (
+                <li><a href={`#${heading.slug}`} data-depth={heading.depth}>{heading.text}</a></li>
+              ))}
+            </ol>
+          </section>
+        )}
+
+        <section>
+          <p class="js-note--loud">{c.readerFeatures}</p>
+          <p>{enabled.length > 0 ? enabled.join(' · ') : c.readerBasic}</p>
+        </section>
+      </aside>
+    </article>
+  </div>
+
+  <ReaderEnhancements features={features} lang={lang} />
+</JuanshouBase>

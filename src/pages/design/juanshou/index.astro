@@ -1,0 +1,111 @@
+---
+import JuanshouBase from '../../../layouts/JuanshouBase.astro';
+import { SITE, UI, type Language } from '../../../data/site';
+import { jsHome, jsPath } from '../../../data/juanshou';
+import { getListedPosts } from '../../../utils/content';
+import { jsEntryHref } from '../../../utils/juanshou';
+
+const samples = await Promise.all(
+  SITE.languages.map(async (lang: Language) => ({
+    lang,
+    post: (await getListedPosts(lang))[0],
+  })),
+);
+
+const pages = [
+  ['首页', 'index'],
+  ['文章', 'writing'],
+  ['归档', 'archive'],
+  ['分类', 'categories'],
+  ['标签', 'tags'],
+  ['关于', 'about'],
+  ['404', 'not-found'],
+] as const;
+
+const rules = [
+  ['开头是一段写出来的话', '首页第一屏是卷首语：署名、注明日期，用 Morii 自己的语气写。前两版把这个位置交给了字标和标语，那是可以不带任何声音就填完的槽。'],
+  ['目次带点线引导', '「有什么」用一份带点线的目次交代，右边挂着每一项的一个事实。这是印刷里的老装置，网页基本没人用，也是这一版最容易认出来的地方。'],
+  ['近况是写的，不是数出来的', '数字取自内容集合，包着数字的句子是写的。「1 篇文章」是真的，但它不说这是谁的站；文章只有一篇时，光报数字反而更难看。'],
+  ['尺度落差要拉开', '卷首语和文章标题允许很大，注解允许很小。前两版全程待在中间档，所以每一块都还行，没有一块抓人。'],
+  ['文章页把上下文常驻', '日期、翻译、标签、目录跟着正文走，不再堆在文末。读者读到一半离开，也已经知道这篇有三种语言。'],
+] as const;
+---
+
+<JuanshouBase lang="zh" title="卷首 · 设计研究" description="Moriium 第三个方向「卷首」的说明页与入口。">
+  <div class="js-page">
+    <section class="js-foreword" aria-label="卷首">
+      <p class="js-note js-note--latin js-foreword__kicker">Design study</p>
+      <p>卷首：一个站先说话，再列目录。</p>
+      <p class="js-lead__summary">
+        第三个方向。前两个（版心、界格）都在，没有改动。
+        这一版针对的是同一个问题：结构对了，但看起来不像某个人的站。
+      </p>
+      <p class="js-sign js-note">
+        <strong>/design/juanshou/</strong>
+        <span>noindex · 不进站点地图 · 不改动生产站</span>
+      </p>
+    </section>
+
+    <section class="js-section" aria-labelledby="js-rules">
+      <div class="js-opener">
+        <h2 id="js-rules">这一版在做什么</h2>
+        <p class="js-note js-note--latin">Rules</p>
+      </div>
+      <ul class="js-now">
+        {rules.map(([title, note], index) => (
+          <li>
+            <span class="js-note js-num">{String(index + 1).padStart(2, '0')}</span>
+            <div>
+              <p>{title}</p>
+              <p class="js-index__summary">{note}</p>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+
+    <section class="js-section" aria-labelledby="js-routes">
+      <div class="js-opener">
+        <h2 id="js-routes">页面入口</h2>
+        <p class="js-note js-note--latin">Routes</p>
+        <p class="js-opener__say">三种语言用同一批真实文章渲染，与另外两个方向可以并排比较。</p>
+      </div>
+
+      <div class="js-colophon">
+        {samples.map(({ lang, post }) => (
+          <div lang={UI[lang].locale}>
+            <dt class="js-note js-note--loud">{UI[lang].label}</dt>
+            <dd>
+              <ol class="js-contents">
+                {pages.map(([label, segment]) => (
+                  <li>
+                    <a href={segment === 'index' ? jsHome(lang) : jsPath(lang, segment)}>
+                      <span class="js-contents__name">{label}</span>
+                      <span class="js-contents__leader" aria-hidden="true"></span>
+                      <span class="js-contents__mark js-note">→</span>
+                    </a>
+                  </li>
+                ))}
+                {post && (
+                  <li>
+                    <a href={jsEntryHref(post)}>
+                      <span class="js-contents__name">文章页</span>
+                      <span class="js-contents__leader" aria-hidden="true"></span>
+                      <span class="js-contents__mark js-note">→</span>
+                    </a>
+                  </li>
+                )}
+              </ol>
+            </dd>
+          </div>
+        ))}
+      </div>
+
+      <p class="js-note js-back">
+        中文的 <a href={jsPath('zh', 'posts', 'reader-capabilities')}>阅读能力验收页</a>
+        是检查正文与扩展块最完整的一页。另外两个方向：
+        <a href="/design/hanshin/">版心</a> · <a href="/design/jiege/">界格</a>
+      </p>
+    </section>
+  </div>
+</JuanshouBase>

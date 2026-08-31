@@ -116,9 +116,9 @@
     --hs-paper: light-dark(#f7f7f8, #14161a);
     --hs-ink: light-dark(#16181d, #e7e8ec);
     --hs-ink-muted: light-dark(#5c616b, #9aa1ac);
-    --hs-ink-faint: light-dark(#878c96, #767d88);
-    --hs-rule: light-dark(#d9dade, #2b2f37);
-    --hs-rule-strong: light-dark(#b3b6bd, #3e444e);
+    --hs-ink-faint: light-dark(#6b7079, #7f868f);
+    --hs-rule: light-dark(#c8cbd1, #333842);
+    --hs-rule-strong: light-dark(#9ea2aa, #4b525d);
     --hs-accent: light-dark(#22508c, #93b8ec);
     --hs-accent-quiet: light-dark(#22508c40, #93b8ec4d);
     --hs-focus: light-dark(#0b4fd0, #9cc6ff);
@@ -282,8 +282,35 @@
     }
   }
 
+  /*
+   * The reading row. The outline and the prose occupy one grid row, which is
+   * what lets the outline stand in the mat and stay sticky for the length of
+   * the article instead of for the length of its own box.
+   */
+  .hs-reading {
+    grid-column: full-start / full-end;
+    display: grid;
+    grid-template-columns: subgrid;
+  }
+
+  .hs-reading > * {
+    grid-row: 1;
+  }
+
   .hs-section {
     padding-block: var(--hs-space-7);
+  }
+
+  .u-space-3 {
+    margin-block-start: var(--hs-space-3);
+  }
+
+  .u-space-4 {
+    margin-block-start: var(--hs-space-4);
+  }
+
+  .u-space-5 {
+    margin-block-start: var(--hs-space-5);
   }
 
   .hs-section + .hs-section {
@@ -431,6 +458,11 @@
   .hs-langs a {
     text-decoration: none;
     padding: 0.35rem 0.15rem;
+    /* WCAG 2.5.8 target size for web is 24 CSS pixels. "EN" is narrower than
+       that on its own, so the label sets its own floor. */
+    display: inline-block;
+    min-width: 1.5rem;
+    text-align: center;
   }
 
   .hs-langs a[aria-current="page"] {
@@ -736,6 +768,7 @@
       display: block;
       position: sticky;
       top: var(--hs-space-4);
+      align-self: start;
       grid-column: wide-start / media-start;
       justify-self: end;
       width: 11rem;
@@ -1068,6 +1101,148 @@
   .hs-search__results strong {
     font-size: var(--hs-step-1);
     font-weight: 600;
+  }
+
+  /* ---------------------------------------------------- prose without markdown */
+
+  /* Author-written page copy that is not a rendered article: the about page,
+     the study notes. Same rhythm, no grid duties. */
+  .hs-prose-plain > * + * {
+    margin-block-start: var(--hs-space-3);
+  }
+
+  .hs-prose-plain code,
+  .hs-prose code {
+    font-family: var(--hs-note);
+  }
+
+  /* ----------------------------------------------------- extended content blocks */
+
+  /*
+   * Blocks the Markdown pipeline emits. They keep the direction's rules: one
+   * hairline, the annotation register for labels, no filled panels, no radius.
+   */
+  .hs-prose .admonition {
+    border-inline-start: 2px solid var(--hs-rule-strong);
+    padding: var(--hs-space-2) 0 var(--hs-space-2) var(--hs-space-3);
+  }
+
+  .hs-prose .admonition__title {
+    font-family: var(--hs-note);
+    font-size: var(--hs-step--2);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--hs-ink-muted);
+    margin-block-end: var(--hs-space-1);
+  }
+
+  /* The accent marks importance once, on the edge, rather than tinting a panel. */
+  .hs-prose :is(.admonition--important, .admonition--warning, .admonition--caution) {
+    border-inline-start-color: var(--hs-accent);
+  }
+
+  .hs-prose .spoiler {
+    border-block: 1px solid var(--hs-rule);
+    padding-block: var(--hs-space-2);
+  }
+
+  .hs-prose .spoiler > summary {
+    cursor: pointer;
+    font-family: var(--hs-note);
+    font-size: var(--hs-step--2);
+    letter-spacing: 0.08em;
+    color: var(--hs-ink-muted);
+  }
+
+  .hs-prose :is(.github-card, .music-card, .video-card, .video-consent, .embed-error) {
+    border: 1px solid var(--hs-rule);
+    padding: var(--hs-space-3);
+    display: grid;
+    gap: var(--hs-space-2);
+  }
+
+  .hs-prose :is(.github-card__eyebrow, .music-card__artist, .music-card__status, .video-consent__note) {
+    font-family: var(--hs-note);
+    font-size: var(--hs-step--2);
+    letter-spacing: 0.08em;
+    color: var(--hs-ink-muted);
+  }
+
+  .hs-prose :is(.github-card__name, .music-card__title, .video-consent__title) {
+    font-size: var(--hs-step-1);
+    font-weight: 600;
+  }
+
+  .hs-prose .music-card {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .hs-prose .music-card__cover {
+    width: 5rem;
+    height: auto;
+  }
+
+  .hs-prose .music-card__body {
+    display: grid;
+    gap: var(--hs-space-1);
+  }
+
+  .hs-prose .music-card__lyrics {
+    font-size: var(--hs-step--1);
+    color: var(--hs-ink-muted);
+    max-height: 14rem;
+    overflow-y: auto;
+  }
+
+  .hs-prose :is(.music-card__play, .video-consent button) {
+    justify-self: start;
+    border: 1px solid var(--hs-rule-strong);
+    padding: 0.4rem var(--hs-space-3);
+    font-family: var(--hs-note);
+    font-size: var(--hs-step--2);
+    letter-spacing: 0.08em;
+    min-height: 2.25rem;
+  }
+
+  .hs-prose :is(.music-card__play, .video-consent button):hover {
+    border-color: var(--hs-accent);
+    color: var(--hs-accent);
+  }
+
+  .hs-prose .video-card iframe {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    height: auto;
+    border: 0;
+  }
+
+  .hs-prose .article-image-link {
+    display: block;
+    text-decoration: none;
+  }
+
+  .hs-prose .embed-error {
+    color: var(--hs-ink-muted);
+    font-size: var(--hs-step--1);
+  }
+
+  /* Expressive Code and KaTeX bring their own themes; only their placement and
+     the block's outer edge belong to this design. */
+  .hs-prose .expressive-code {
+    font-size: var(--hs-step--1);
+  }
+
+  .hs-prose .katex-display {
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-block: var(--hs-space-2);
+  }
+
+  .hs-prose .mermaid svg {
+    max-width: 100%;
+    height: auto;
+    margin-inline: auto;
   }
 
   /* ------------------------------------------------------------------- study */

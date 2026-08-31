@@ -1,0 +1,61 @@
+---
+import type { GetStaticPaths } from 'astro';
+import JiegeBase from '../../../../../layouts/JiegeBase.astro';
+import { SITE, type Language } from '../../../../../data/site';
+import { COPY, STATEMENT, jgCount, jgDay, jgPath } from '../../../../../data/jiege';
+import { getListedPosts } from '../../../../../utils/content';
+import { jgEntryHref } from '../../../../../utils/jiege';
+
+export const getStaticPaths: GetStaticPaths = () =>
+  SITE.languages.map((lang) => ({ params: { lang }, props: { lang } }));
+
+const { lang } = Astro.props as { lang: Language };
+const c = COPY[lang];
+const s = STATEMENT[lang];
+const posts = await getListedPosts(lang);
+const categories = jgCount(posts, (post) => [post.data.category]);
+---
+
+<JiegeBase lang={lang} title={c.nav.categories} section="categories">
+  <div class="jg-field">
+    <div class="jg-row jg-row--lead">
+      <div class="jg-cell jg-head">
+        <p class="jg-note jg-note--latin">Categories</p>
+        <h1>{c.nav.categories}</h1>
+        <p class="jg-head__lead">{c.categoriesNote}</p>
+      </div>
+      <dl class="jg-cell jg-ledger jg-note">
+        <div>
+          <dt>{s.n.categories}</dt>
+          <dd class="jg-num">{categories.length}</dd>
+        </div>
+        <div>
+          <dt>{s.n.posts}</dt>
+          <dd class="jg-num">{posts.length}</dd>
+        </div>
+      </dl>
+    </div>
+
+    {categories.map((category) => (
+      <div class="jg-row">
+        <section class="jg-cell" aria-label={category.value}>
+          <p class="jg-note jg-note--loud jg-label">
+            <a href={jgPath(lang, 'categories', category.value)}>{category.value}</a>
+            <span class="jg-num">{category.count} {c.count}</span>
+          </p>
+          <ul class="jg-rows">
+            {posts
+              .filter((post) => post.data.category === category.value)
+              .map((post) => (
+                <li>
+                  <time class="jg-note" datetime={post.data.publishedAt.toISOString()}>{jgDay(post.data.publishedAt)}</time>
+                  <a href={jgEntryHref(post)}>{post.data.title}</a>
+                  <span class="jg-note">{post.data.tags.map((tag) => `#${tag}`).join(' ')}</span>
+                </li>
+              ))}
+          </ul>
+        </section>
+      </div>
+    ))}
+  </div>
+</JiegeBase>

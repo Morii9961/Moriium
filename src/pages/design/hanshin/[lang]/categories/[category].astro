@@ -1,7 +1,7 @@
 ---
 import type { GetStaticPaths } from 'astro';
 import HanshinBase from '../../../../../layouts/HanshinBase.astro';
-import { SITE, UI, type Language } from '../../../../../data/site';
+import { SITE, type Language } from '../../../../../data/site';
 import { HANSHIN, hsDay, hsPath } from '../../../../../data/hanshin';
 import { getListedPosts, type Post, type ProtectedPost } from '../../../../../utils/content';
 import { hsEntryHref } from '../../../../../utils/hanshin';
@@ -25,7 +25,6 @@ const { lang, category, posts } = Astro.props as {
   category: string;
   posts: Array<Post | ProtectedPost>;
 };
-const ui = UI[lang];
 const c = HANSHIN[lang];
 ---
 
@@ -59,7 +58,6 @@ const c = HANSHIN[lang];
         ))}
       </ol>
       <p class="hs-note u-space-4"><a href={hsPath(lang, 'writing')}>{c.backToWriting}</a></p>
-      <p class="hs-note" hidden>{ui.allPosts}</p>
     </section>
   </div>
 </HanshinBase>

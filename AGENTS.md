@@ -26,12 +26,14 @@ Twilight is a functional reference and a visual counterexample. Do not copy its 
 
 Build the design through editorial hierarchy, readable rhythm, whitespace, and restrained rules. Do not reduce “Japanese minimalism” to beige, serif type, red dots, or vertical Japanese text.
 
+`DESIGN.md` is Moriium's canonical public visual/design constitution and design-Skills specification. Read it before any meaningful visual change. `docs/design-system.md` is a derived implementation/status record: it may describe what is currently shipped, but it must not redefine the canonical design language.
+
 Before freezing typography, color, grid, spacing, rules, or dark mode:
 
 1. Show Morii three comparable concepts using identical real content.
 2. Include both home and article pages at desktop and mobile widths.
 3. Record each visited reference, extracted principle, and resulting decision in `docs/design-research.md`.
-4. Implement the selected direction in `docs/design-system.md`; that document then becomes the only visual implementation source of truth.
+4. Implement the selected direction against `DESIGN.md` and record implementation status in `docs/design-system.md`; the canonical rules remain in `DESIGN.md`.
 
 ## Content and privacy
 
@@ -67,19 +69,28 @@ Do not commit, push, publish, deploy, create a repository, or change remote stat
 
 ## Skill routing
 
-Skills are installed at `~/.claude/skills/` for Claude and `~/.codex/skills/` for Codex. Both agents route from this section; do not keep a second routing list in an agent-specific file.
+Skills are installed at `~/.claude/skills/` for Claude and `~/.codex/skills/` for Codex. Both agents route from this section; do not keep a second routing list in an agent-specific file. Read `DESIGN.md` before routing public design work.
 
 Load the smallest skill set that fully covers the task. Do not invoke a skill merely because it is available, and do not preload speculative skills. Combine skills only when their responsibilities genuinely overlap.
 
-A skill's output is advice, never authority. This file, `docs/design-system.md`, and Morii's direct instructions override any skill recommendation. `docs/design-research.md` already records one round of rejected automated design recommendations; record future rejections the same way.
+A skill's output is advice, never authority. Morii's direct instructions, this file's product and engineering rules, and `DESIGN.md` for public visual decisions override any skill recommendation. `docs/design-system.md` records implementation status; `docs/design-research.md` records evidence and rejected recommendations. Record future research and rejections there rather than treating a generic Skill as a decision.
 
 ### Design and implementation
 
 | Skill | Invoke when | Do not invoke when |
 | --- | --- | --- |
-| `frontend-design` | Making a genuinely new visual decision: art direction, typography, hierarchy, or composition that `docs/design-system.md` has not already settled. | Implementing the selected A direction, fixing a local style bug, or changing non-visual code. |
-| `ui-ux-pro-max` | Deciding interaction, responsive behavior, accessibility, color, typography, or navigation. Detect the stack first; `data/stacks/astro.csv` covers the current public site. | A trivial CSS correction, or a task with no UX decision. |
+| `frontend-design` | Making a genuinely new visual decision: art direction, typography, hierarchy, or composition that `DESIGN.md` has not already settled. | Implementing an approved direction, fixing a local style bug, or changing non-visual code. |
+| `ui-ux-pro-max` | Deciding interaction, responsive behavior, accessibility, color, typography, or navigation after checking `DESIGN.md`. Detect the stack first; `data/stacks/astro.csv` covers the current public site. | A trivial CSS correction, or a task with no UX decision. |
+| `animate` | Implementing motion that is actually requested or needed, as a narrow motion specialist under `DESIGN.md`. | Static UI, motion-free work, or adding movement only because the Skill is installed. |
+| `gsap-core`, `gsap-timeline`, `gsap-scrolltrigger`, `gsap-performance`, `gsap-frameworks` | Using the smallest relevant official GSAP specialist when GSAP is justified by the interaction; `gsap-frameworks` is for actual Astro/Vue integration needs. | A CSS transition is sufficient, no GSAP is justified, or React-specific work without React in the repository. |
+| `review-animations` | An explicit animation-quality review. | The default implementation path or an unrelated UI review. |
+| `find-animation-opportunities` | An explicit pass to identify worthwhile motion opportunities. | Routine pages or adding motion by default. |
+| `improve-animations` | An explicit motion-quality improvement pass after an animation exists. | Routine styling or a page with no requested motion. |
+| `prototype` | An explicit interaction or motion prototype task. | Ordinary production implementation. |
 | `web-design-guidelines` | Morii asks for a UI, UX, or accessibility audit, or an interface is formally reviewed before release. | Initial design or routine implementation. It is an audit skill, not a default coding skill. |
+| `hallmark` | Explicit visual study, audit, or major redesign work. | Ordinary Moriium pages or competing with `frontend-design` by default. |
+| `cinematic-ui` | An explicitly requested cinematic/directorial treatment. | Ordinary Moriium pages or default art direction. |
+| `mono-color` | Explicit editorial, poster, zine, or photography-asset treatment. The repository `yanliudesign/mono-color-skill` exports this name. | Ordinary frontend layout or the global Moriium public visual system. |
 | `vercel-react-best-practices` | Writing, reviewing, or refactoring React or Next.js code in the vNext full-stack work. | The file under change is Astro, plain TypeScript, or a static asset. |
 | `vercel-composition-patterns` | Designing reusable React component APIs, compound components, or context boundaries. | A one-off section, or any non-React task. |
 | `source-driven-development` | Behavior depends on the current Astro, Tiptap, browser, or third-party API surface; a dependency is added or upgraded; a vNext claim needs a first-party citation. | A self-contained local change that follows an already verified project pattern. |
@@ -94,7 +105,7 @@ A skill's output is advice, never authority. This file, `docs/design-system.md`,
 
 ### Writing
 
-Project documents are mixed-language. `AGENTS.md`, `README.md`, `docs/architecture.md`, `docs/design-system.md`, `docs/design-research.md`, `docs/authoring.md`, `docs/deployment.md`, `docs/encrypted-posts.md`, and `docs/markdown-reference.md` are English. `docs/enouia-todo.md`, `docs/vnext-architecture-plan.md`, the `docs/adr-*.md` series, and the `docs/handoff-*.md` and `docs/claude-vnext-handoff.md` handoffs are Chinese. Match the language of the file being edited.
+Project documents are mixed-language. `AGENTS.md`, `README.md`, `DESIGN.md`, `docs/architecture.md`, `docs/design-system.md`, `docs/design-research.md`, `docs/authoring.md`, `docs/deployment.md`, `docs/encrypted-posts.md`, and `docs/markdown-reference.md` are English. `docs/enouia-todo.md`, `docs/vnext-architecture-plan.md`, the `docs/adr-*.md` series, and the `docs/handoff-*.md` and `docs/claude-vnext-handoff.md` handoffs are Chinese. Match the language of the file being edited.
 
 Code, comments, commit messages, and files under `prototypes/` are English, matching `src/`.
 
@@ -106,9 +117,12 @@ Code, comments, commit messages, and files under `prototypes/` are English, matc
 | `doc-coauthoring` | A substantial proposal, ADR, or specification set needs iterative context transfer, outline agreement, and reader verification, such as the Phase 5 architecture ADR. | A focused single-file edit with clear requirements. |
 | `beautiful-prose` | Morii explicitly names it. | Any implicit or routine task. |
 
+The installed specialist set is not a panel of competing design directors. Do not make `emil-design-eng`, `gsap-react`, `gpt-taste`, Open Design's full bundle, Claude Design Skill, PencilPlaybook, or Landing Page Generator part of Moriium's default workflow unless Morii explicitly changes the project rules.
+
 ### Common combinations
 
-- New or redesigned public-site UI: `frontend-design` + `ui-ux-pro-max`, checked against the clean-room visual contract.
+- New or redesigned public-site UI: read `DESIGN.md`, then use `frontend-design` + `ui-ux-pro-max` only when their roles are needed, checked against the clean-room visual contract.
+- Motion: read `DESIGN.md`, then use `animate` or the smallest relevant GSAP specialist only when motion is part of the requested interaction; use the three animation-review Skills only for their explicit passes.
 - Bug or failed build: `systematic-debugging` first, then the relevant implementation skill, then `verification-before-completion`.
 - Pre-commit readiness: `code-review-and-quality` + `verification-before-completion`.
 - vNext research or an ADR: `source-driven-development` + `doc-coauthoring`, with every external claim carrying a first-party link.

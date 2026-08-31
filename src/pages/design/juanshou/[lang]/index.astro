@@ -1,0 +1,163 @@
+---
+import type { GetStaticPaths } from 'astro';
+import JuanshouBase from '../../../../layouts/JuanshouBase.astro';
+import { SITE, UI, type Language } from '../../../../data/site';
+import { COPY, FOREWORD, jsCount, jsDay, jsPath, jsYear, nowLines } from '../../../../data/juanshou';
+import { getListedPosts, getTranslations } from '../../../../utils/content';
+import { jsEntryHref } from '../../../../utils/juanshou';
+
+export const getStaticPaths: GetStaticPaths = () =>
+  SITE.languages.map((lang) => ({ params: { lang }, props: { lang } }));
+
+const { lang } = Astro.props as { lang: Language };
+const c = COPY[lang];
+const f = FOREWORD[lang];
+
+const posts = await getListedPosts(lang);
+const [lead, ...rest] = posts;
+const categories = jsCount(posts, (post) => [post.data.category]);
+const tags = jsCount(posts, (post) => [...post.data.tags]);
+const years = jsCount(posts, (post) => [jsYear(post.data.publishedAt)]);
+
+const now = nowLines(lang, {
+  total: posts.length,
+  ...(lead ? { latestTitle: lead.data.title, latestDate: lead.data.publishedAt } : {}),
+  languages: SITE.languages.length,
+});
+
+/* Which languages carry the lead piece. Stated, not switched. */
+const leadTranslations = lead ? await getTranslations(lead.data.translationKey) : [];
+
+/* The contents list is the spine of the page: what this site holds, with the
+   one fact about each that a reader would want before clicking. */
+const contents = [
+  { name: c.nav.writing, href: jsPath(lang, 'writing'), mark: `${posts.length} ${c.count}` },
+  { name: c.nav.archive, href: jsPath(lang, 'archive'), mark: years.map((y) => `${y.value}${c.year}`).join(' · ') || '—' },
+  { name: c.nav.categories, href: jsPath(lang, 'categories'), mark: `${categories.length}` },
+  { name: c.nav.tags, href: jsPath(lang, 'tags'), mark: `${tags.length}` },
+  { name: c.nav.about, href: jsPath(lang, 'about'), mark: 'Morii' },
+  { name: 'RSS', href: `/${lang}/rss.xml`, mark: c.rss },
+];
+---
+
+<JuanshouBase lang={lang} description={f.lines[0]}>
+  <div class="js-page">
+    <section class="js-foreword" aria-label={f.kicker}>
+      <p class="js-note js-foreword__kicker">{f.kicker}</p>
+      {f.lines.map((line) => <p>{line}</p>)}
+      <p class="js-sign js-note">
+        <strong>{f.by}</strong>
+        <span>{f.at}</span>
+      </p>
+    </section>
+
+    <section class="js-section" aria-labelledby="js-contents">
+      <div class="js-opener">
+        <h2 id="js-contents">{c.contents}</h2>
+        <p class="js-note js-note--latin">Contents</p>
+        <p class="js-opener__say">{c.contentsSay}</p>
+      </div>
+
+      <ol class="js-contents">
+        {contents.map((entry) => (
+          <li>
+            <a href={entry.href}>
+              <span class="js-contents__name">{entry.name}</span>
+              <span class="js-contents__leader" aria-hidden="true"></span>
+              <span class="js-contents__mark js-note">{entry.mark}</span>
+            </a>
+          </li>
+        ))}
+      </ol>
+    </section>
+
+    {lead && (
+      <section class="js-section" aria-labelledby="js-latest">
+        <div class="js-opener">
+          <h2 id="js-latest">{c.latest}</h2>
+          <p class="js-note"><time datetime={lead.data.publishedAt.toISOString()}>{jsDay(lead.data.publishedAt)}</time></p>
+          <p class="js-opener__say">{c.latestSay}</p>
+        </div>
+
+        <article class="js-lead">
+          <h3 class="js-lead__title"><a href={jsEntryHref(lead)}>{lead.data.title}</a></h3>
+          <p class="js-lead__summary">{lead.data.summary}</p>
+          <p class="js-lead__meta js-note">
+            <a href={jsPath(lang, 'categories', lead.data.category)}>{lead.data.category}</a>
+            {lead.data.tags.map((tag) => <a href={jsPath(lang, 'tags', tag)}>#{tag}</a>)}
+            <span>
+              {c.translations}
+              {' '}
+              {SITE.languages
+                .filter((code) => leadTranslations.some((entry) => entry.data.lang === code))
+                .map((code) => UI[code].label)
+                .join(' · ')}
+            </span>
+          </p>
+          <p class="js-note"><a href={jsEntryHref(lead)}>{c.more} →</a></p>
+        </article>
+      </section>
+    )}
+
+    <section class="js-section" aria-labelledby="js-now">
+      <div class="js-opener">
+        <h2 id="js-now">{c.now}</h2>
+        <p class="js-note js-note--latin">Lately</p>
+      </div>
+      <ul class="js-now">
+        {now.map((line) => (
+          <li>
+            <span class="js-note">{line.mark}</span>
+            <p>{line.text}</p>
+          </li>
+        ))}
+      </ul>
+    </section>
+
+    {rest.length > 0 && (
+      <section class="js-section" aria-labelledby="js-recent">
+        <div class="js-opener">
+          <h2 id="js-recent">{c.recent}</h2>
+          <p class="js-note"><a href={jsPath(lang, 'writing')}>{c.all} →</a></p>
+          <p class="js-opener__say">{c.recentSay}</p>
+        </div>
+        <ol class="js-index">
+          {rest.map((post) => (
+            <li>
+              <p class="js-index__meta js-note">
+                <time datetime={post.data.publishedAt.toISOString()}>{jsDay(post.data.publishedAt)}</time>
+                <span>{post.data.category}</span>
+              </p>
+              <h3 class="js-index__title"><a href={jsEntryHref(post)}>{post.data.title}</a></h3>
+              <p class="js-index__summary">{post.data.summary}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
+    )}
+
+    <section class="js-section" aria-labelledby="js-colophon">
+      <div class="js-opener">
+        <h2 id="js-colophon">{c.colophon}</h2>
+        <p class="js-note js-note--latin">Colophon</p>
+        <p class="js-opener__say">{c.colophonSay}</p>
+      </div>
+      <dl class="js-colophon">
+        {c.about.facts.map(([term, value]) => (
+          <div>
+            <dt class="js-note">{term}</dt>
+            <dd>{value}</dd>
+          </div>
+        ))}
+        <div>
+          <dt class="js-note">{c.aboutMore}</dt>
+          <dd><a href={jsPath(lang, 'about')}>{c.nav.about} →</a></dd>
+        </div>
+        <div>
+          <dt class="js-note">GitHub</dt>
+          <dd><a href="https://github.com/Morii9961" rel="me">Morii9961 →</a></dd>
+        </div>
+      </dl>
+    </section>
+  </div>
+</JuanshouBase>

@@ -1,0 +1,43 @@
+---
+import type { GetStaticPaths } from 'astro';
+import JuanshouBase from '../../../../../layouts/JuanshouBase.astro';
+import { SITE, type Language } from '../../../../../data/site';
+import { COPY, jsHome, jsPath } from '../../../../../data/juanshou';
+
+/* A preview of the 404 state. The real 404 belongs to the site root and stays
+   with the production design unless this direction is chosen. */
+export const getStaticPaths: GetStaticPaths = () =>
+  SITE.languages.map((lang) => ({ params: { lang }, props: { lang } }));
+
+const { lang } = Astro.props as { lang: Language };
+const c = COPY[lang];
+---
+
+<JuanshouBase lang={lang} title={c.notFound} section="not-found">
+  <div class="js-page">
+    <section class="js-foreword" aria-label={c.notFound}>
+      <p class="js-note js-note--latin js-foreword__kicker">404</p>
+      <p>{c.notFound}</p>
+      <p class="js-lead__summary">{c.notFoundSay}</p>
+    </section>
+
+    <section class="js-section" aria-label={c.contents}>
+      <ol class="js-contents">
+        {[
+          { name: c.nav.home, href: jsHome(lang) },
+          { name: c.nav.writing, href: jsPath(lang, 'writing') },
+          { name: c.nav.archive, href: jsPath(lang, 'archive') },
+          { name: c.nav.about, href: jsPath(lang, 'about') },
+        ].map((entry) => (
+          <li>
+            <a href={entry.href}>
+              <span class="js-contents__name">{entry.name}</span>
+              <span class="js-contents__leader" aria-hidden="true"></span>
+              <span class="js-contents__mark js-note">→</span>
+            </a>
+          </li>
+        ))}
+      </ol>
+    </section>
+  </div>
+</JuanshouBase>

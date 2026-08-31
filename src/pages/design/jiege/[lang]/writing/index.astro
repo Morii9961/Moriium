@@ -1,0 +1,66 @@
+---
+import type { GetStaticPaths } from 'astro';
+import JiegeBase from '../../../../../layouts/JiegeBase.astro';
+import { SITE, type Language } from '../../../../../data/site';
+import { COPY, STATEMENT, jgDay, jgPath, jgYear } from '../../../../../data/jiege';
+import { getListedPosts } from '../../../../../utils/content';
+import { jgEntryHref } from '../../../../../utils/jiege';
+
+export const getStaticPaths: GetStaticPaths = () =>
+  SITE.languages.map((lang) => ({ params: { lang }, props: { lang } }));
+
+const { lang } = Astro.props as { lang: Language };
+const c = COPY[lang];
+const s = STATEMENT[lang];
+const posts = await getListedPosts(lang);
+
+/* Writing reads; Archive scans. This page keeps summaries and gives each entry
+   room, and leaves the one-line table to /archive/. */
+const years = [...new Set(posts.map((post) => jgYear(post.data.publishedAt)))];
+---
+
+<JiegeBase lang={lang} title={c.nav.writing} section="writing">
+  <div class="jg-field">
+    <div class="jg-row jg-row--lead">
+      <div class="jg-cell jg-head">
+        <p class="jg-note jg-note--latin">Writing</p>
+        <h1>{c.nav.writing}</h1>
+        <p class="jg-head__lead">{c.archiveNote}</p>
+      </div>
+      <dl class="jg-cell jg-ledger jg-note">
+        <div>
+          <dt>{s.n.posts}</dt>
+          <dd class="jg-num">{posts.length}</dd>
+        </div>
+        {years.map((year) => (
+          <div>
+            <dt>{year}{c.year}</dt>
+            <dd class="jg-num">{posts.filter((post) => jgYear(post.data.publishedAt) === year).length}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+
+    <div class="jg-row">
+      <section class="jg-cell" aria-label={c.nav.writing}>
+        {posts.length > 0 ? (
+          <ol class="jg-stack jg-stack--roomy">
+            {posts.map((post) => (
+              <li>
+                <p class="jg-note jg-entry__meta">
+                  <time datetime={post.data.publishedAt.toISOString()}>{jgDay(post.data.publishedAt)}</time>
+                  <a href={jgPath(lang, 'categories', post.data.category)}>{post.data.category}</a>
+                  {post.data.tags.map((tag) => <a href={jgPath(lang, 'tags', tag)}>#{tag}</a>)}
+                </p>
+                <h2 class="jg-entry__title"><a href={jgEntryHref(post)}>{post.data.title}</a></h2>
+                <p class="jg-entry__summary">{post.data.summary}</p>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <p class="jg-note">{c.empty}</p>
+        )}
+      </section>
+    </div>
+  </div>
+</JiegeBase>

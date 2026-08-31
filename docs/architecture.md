@@ -43,4 +43,4 @@ Search is a newly approved V1 capability. The design prototype filters its small
 
 ## Design boundary
 
-The selected A structure has been migrated to the primary production routes. Its final typography, color, spacing, photography cadence, and other visual tokens are still under review in `docs/design-system.md`; structural migration does not mean the visual system is frozen. Prototype routes are excluded from the sitemap and carry `noindex`.
+The selected A structure has been migrated to the primary production routes. Public visual decisions follow the canonical [`DESIGN.md`](../DESIGN.md); [`design-system.md`](design-system.md) records the current implementation snapshot and remaining implementation work. Structural migration does not mean every open design item is frozen. Prototype routes are excluded from the sitemap and carry `noindex`.

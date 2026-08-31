@@ -1,0 +1,45 @@
+---
+import type { GetStaticPaths } from 'astro';
+import JuanshouBase from '../../../../../layouts/JuanshouBase.astro';
+import { SITE, type Language } from '../../../../../data/site';
+import { COPY, jsDay, jsPath } from '../../../../../data/juanshou';
+import { getListedPosts } from '../../../../../utils/content';
+import { jsEntryHref } from '../../../../../utils/juanshou';
+
+export const getStaticPaths: GetStaticPaths = () =>
+  SITE.languages.map((lang) => ({ params: { lang }, props: { lang } }));
+
+const { lang } = Astro.props as { lang: Language };
+const c = COPY[lang];
+const posts = await getListedPosts(lang);
+---
+
+<JuanshouBase lang={lang} title={c.nav.writing} section="writing">
+  <div class="js-page">
+    <section class="js-section" aria-labelledby="js-writing">
+      <div class="js-opener">
+        <h2 id="js-writing">{c.nav.writing}</h2>
+        <p class="js-note">{posts.length} {c.count}</p>
+        <p class="js-opener__say">{c.writingSay}</p>
+      </div>
+
+      {posts.length > 0 ? (
+        <ol class="js-index">
+          {posts.map((post) => (
+            <li>
+              <p class="js-index__meta js-note">
+                <time datetime={post.data.publishedAt.toISOString()}>{jsDay(post.data.publishedAt)}</time>
+                <a href={jsPath(lang, 'categories', post.data.category)}>{post.data.category}</a>
+                {post.data.tags.map((tag) => <a href={jsPath(lang, 'tags', tag)}>#{tag}</a>)}
+              </p>
+              <h3 class="js-index__title"><a href={jsEntryHref(post)}>{post.data.title}</a></h3>
+              <p class="js-index__summary">{post.data.summary}</p>
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <p class="js-note">{c.empty}</p>
+      )}
+    </section>
+  </div>
+</JuanshouBase>

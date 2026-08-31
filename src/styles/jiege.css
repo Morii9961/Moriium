@@ -1,0 +1,1295 @@
+/*
+ * Moriium — direction 「界格」 (jiege: the ruled lines that divide a printed page
+ * into columns).
+ *
+ * Clean-room. Nothing here is taken from a reference project, from the A study,
+ * or from the 版心 study it replaces.
+ *
+ * The idea: the page is a field divided by rules, not a column floating in
+ * empty margin. Every region is a cell of that field, flush against its
+ * neighbours, separated only by a hairline. The author's own statement is one
+ * cell among the work rather than a banner above it.
+ *
+ * Two things 版心 got wrong and this fixes:
+ *   - It centred a 640px column in a 1440px viewport and left the rest blank.
+ *     Here the field spans the page and every cell carries real data.
+ *   - Its section padding opened 350px voids between four short blocks. Here
+ *     the rules do the separating, so the rhythm stays tight.
+ *
+ * Loaded only by JiegeBase.astro. It does not touch base.css, hanshin.css, or
+ * any production route.
+ */
+
+@layer jg-reset, jg-tokens, jg-base, jg-field, jg-components;
+
+@layer jg-reset {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  body,
+  h1,
+  h2,
+  h3,
+  h4,
+  p,
+  figure,
+  blockquote,
+  dl,
+  dd,
+  ol,
+  ul {
+    margin: 0;
+  }
+
+  ol,
+  ul {
+    padding: 0;
+    list-style: none;
+  }
+
+  img,
+  picture,
+  video,
+  iframe {
+    display: block;
+    max-width: 100%;
+  }
+
+  button,
+  input {
+    font: inherit;
+    color: inherit;
+  }
+
+  :where(button) {
+    background: none;
+    border: 0;
+    cursor: pointer;
+  }
+}
+
+@layer jg-tokens {
+  :root {
+    color-scheme: light;
+
+    /* Chinese and Japanese take different faces: shared han characters carry
+       different regional glyph forms. Latin comes from the same Noto Serif
+       design in both, so a mixed line keeps one colour. */
+    --jg-serif: "Noto Serif SC Variable", "Songti SC", serif;
+    --jg-serif-jp: "Noto Serif JP Variable", "Hiragino Mincho ProN", serif;
+    /* Plex Mono has no han glyphs, so CJK labels fall through to the serif on
+       purpose: figures in mono, words in type. */
+    --jg-mono: "IBM Plex Mono", ui-monospace, var(--jg-serif);
+
+    /* The field runs nearly edge to edge. Reading still happens at a measure,
+       but that measure lives inside a cell instead of alone on the page. */
+    --jg-field: 92rem;
+    --jg-measure: 38rem;
+    --jg-read: 44rem;
+    --jg-gutter: clamp(1rem, 2.5vw, 2.5rem);
+    --jg-pad: clamp(1.25rem, 1.8vw, 2rem);
+
+    --jg-step--2: 0.6875rem;
+    --jg-step--1: 0.8125rem;
+    --jg-step-0: clamp(0.9375rem, 0.9rem + 0.15vw, 1rem);
+    --jg-step-1: clamp(1.0625rem, 1rem + 0.25vw, 1.1875rem);
+    --jg-step-2: clamp(1.25rem, 1.1rem + 0.6vw, 1.5rem);
+    --jg-step-3: clamp(1.5rem, 1.25rem + 1.1vw, 2.125rem);
+    --jg-step-4: clamp(1.75rem, 1.3rem + 2.1vw, 3rem);
+
+    --jg-lead-body: 1.8;
+    --jg-lead-tight: 1.28;
+
+    --jg-1: 0.25rem;
+    --jg-2: 0.5rem;
+    --jg-3: 0.875rem;
+    --jg-4: 1.5rem;
+    --jg-5: 2.25rem;
+    --jg-6: 3.5rem;
+
+    --jg-paper: light-dark(#f6f6f7, #131519);
+    --jg-cell: light-dark(#fdfdfd, #181b20);
+    --jg-ink: light-dark(#15171c, #e8e9ed);
+    --jg-muted: light-dark(#5b606a, #9ba2ad);
+    --jg-faint: light-dark(#6a6f78, #7e858e);
+    --jg-rule: light-dark(#c9ccd2, #333944);
+    --jg-rule-soft: light-dark(#dedfe3, #262b33);
+    --jg-accent: light-dark(#1f4a86, #96baee);
+    --jg-accent-quiet: light-dark(#1f4a8640, #96baee4d);
+    --jg-focus: light-dark(#0b4fd0, #9cc6ff);
+    --jg-select: light-dark(#1f4a861f, #96baee2e);
+  }
+
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+  }
+}
+
+@layer jg-base {
+  body {
+    min-width: 20rem;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    background: var(--jg-paper);
+    color: var(--jg-ink);
+    font-family: var(--jg-serif);
+    font-size: var(--jg-step-0);
+    line-height: var(--jg-lead-body);
+    font-optical-sizing: auto;
+    -webkit-text-size-adjust: 100%;
+    text-spacing-trim: space-first;
+  }
+
+  :lang(ja) {
+    font-family: var(--jg-serif-jp);
+  }
+
+  /*
+   * 版心 set `overflow-wrap: anywhere` here and broke 日本語 across two lines.
+   * CJK already wraps between characters; the only thing that needs help is a
+   * long unbroken Latin string, and `break-word` handles that without cutting
+   * words that fit.
+   */
+  :where(:lang(zh), :lang(ja)) :is(p, li, dd, blockquote) {
+    line-break: strict;
+    word-break: normal;
+    overflow-wrap: break-word;
+  }
+
+  ::selection {
+    background: var(--jg-select);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-weight: 600;
+    line-height: var(--jg-lead-tight);
+    text-wrap: balance;
+  }
+
+  a {
+    color: inherit;
+    text-decoration-color: var(--jg-accent-quiet);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+    transition: color 120ms linear, text-decoration-color 120ms linear;
+  }
+
+  a:hover {
+    color: var(--jg-accent);
+    text-decoration-color: currentColor;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--jg-focus);
+    outline-offset: 2px;
+  }
+
+  time,
+  .jg-num {
+    font-variant-numeric: tabular-nums;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+}
+
+@layer jg-field {
+  /*
+   * The field. Rows are explicit rather than auto-filled, so a rule never ends
+   * in the middle of nowhere: every row knows how many cells it holds and
+   * closes itself.
+   */
+  .jg-field {
+    width: 100%;
+    max-width: var(--jg-field);
+    margin-inline: auto;
+    padding-inline: var(--jg-gutter);
+  }
+
+  .jg-row {
+    display: grid;
+    grid-template-columns: repeat(var(--cols, 1), minmax(0, 1fr));
+    border-block-start: 1px solid var(--jg-rule);
+  }
+
+  .jg-row:last-child {
+    border-block-end: 1px solid var(--jg-rule);
+  }
+
+  .jg-row--2 {
+    --cols: 2;
+  }
+
+  .jg-row--3 {
+    --cols: 3;
+  }
+
+  /* Weighted split for a row where one cell carries the reading and the other
+     carries its context. */
+  .jg-row--lead {
+    --cols: 2;
+    grid-template-columns: minmax(0, 1.9fr) minmax(0, 1fr);
+  }
+
+  .jg-cell {
+    padding: var(--jg-pad);
+    min-width: 0;
+  }
+
+  .jg-cell + .jg-cell {
+    border-inline-start: 1px solid var(--jg-rule);
+  }
+
+  /*
+   * Collapsing happens in two steps, because a row of three and a row of two do
+   * not run out of room at the same width. Wherever a row collapses, its
+   * vertical rules become horizontal ones, so the field stays closed.
+   *
+   * A row must never hold more cells than it has columns: the borders are drawn
+   * per cell, and a wrapped cell would carry a left rule where it needs a top
+   * one. Split the content into two rows instead.
+   */
+  @media (width < 64rem) {
+    .jg-row--3 {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .jg-row--3 .jg-cell + .jg-cell {
+      border-inline-start: 0;
+      border-block-start: 1px solid var(--jg-rule);
+    }
+  }
+
+  @media (width < 48rem) {
+    .jg-row,
+    .jg-row--2,
+    .jg-row--lead {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .jg-cell + .jg-cell {
+      border-inline-start: 0;
+      border-block-start: 1px solid var(--jg-rule);
+    }
+  }
+}
+
+@layer jg-components {
+  .jg-skip {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    z-index: 20;
+    background: var(--jg-cell);
+    padding: var(--jg-2) var(--jg-3);
+    border: 1px solid var(--jg-rule);
+  }
+
+  .jg-skip:focus {
+    left: var(--jg-gutter);
+    top: var(--jg-2);
+  }
+
+  /* ------------------------------------------------------------- annotation */
+
+  .jg-note {
+    font-family: var(--jg-mono);
+    font-size: var(--jg-step--2);
+    line-height: 1.5;
+    letter-spacing: 0.09em;
+    color: var(--jg-muted);
+  }
+
+  .jg-note--loud {
+    color: var(--jg-ink);
+  }
+
+  .jg-note--latin {
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+  }
+
+  /* A note that closes a cell: pushed to the bottom so cells in one row end on
+     the same line even when their content differs in length. */
+  .jg-cell__note {
+    margin-block-start: var(--jg-4);
+  }
+
+  .jg-cell [data-gap="wide"] {
+    padding-block-start: var(--jg-5);
+  }
+
+  .jg-label {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--jg-3);
+    padding-block-end: var(--jg-3);
+  }
+
+  /* ---------------------------------------------------------------- masthead */
+
+  .jg-masthead {
+    border-block-end: 1px solid var(--jg-rule);
+    background: var(--jg-cell);
+  }
+
+  .jg-masthead__inner {
+    max-width: var(--jg-field);
+    margin-inline: auto;
+    padding: var(--jg-3) var(--jg-gutter);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--jg-3) var(--jg-4);
+  }
+
+  .jg-wordmark {
+    font-family: var(--jg-mono);
+    font-size: 0.875rem;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    font-weight: 500;
+    text-decoration: none;
+    margin-inline-end: auto;
+  }
+
+  .jg-wordmark:hover {
+    color: var(--jg-accent);
+  }
+
+  .jg-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--jg-1) var(--jg-4);
+  }
+
+  .jg-nav a {
+    text-decoration: none;
+    padding-block: 0.4rem;
+    display: inline-block;
+  }
+
+  .jg-nav a[aria-current="page"] {
+    color: var(--jg-ink);
+    box-shadow: inset 0 -1px 0 0 var(--jg-accent);
+  }
+
+  .jg-tools {
+    display: flex;
+    align-items: center;
+    gap: var(--jg-2);
+  }
+
+  .jg-tool {
+    width: 2rem;
+    height: 2rem;
+    display: grid;
+    place-items: center;
+    border: 1px solid transparent;
+    color: var(--jg-muted);
+  }
+
+  .jg-tool:hover {
+    color: var(--jg-accent);
+    border-color: var(--jg-rule);
+  }
+
+  .jg-tool svg {
+    width: 1rem;
+    height: 1rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .jg-langs {
+    display: flex;
+    align-items: baseline;
+    gap: 0.35rem;
+  }
+
+  .jg-langs a {
+    text-decoration: none;
+    /* WCAG 2.5.8 asks 24 CSS pixels; "EN" is narrower on its own. */
+    display: inline-block;
+    min-width: 1.5rem;
+    text-align: center;
+    padding-block: 0.35rem;
+  }
+
+  .jg-langs a[aria-current="page"] {
+    color: var(--jg-ink);
+    box-shadow: inset 0 -1px 0 0 var(--jg-accent);
+  }
+
+  .jg-langs span {
+    color: var(--jg-faint);
+  }
+
+  :root[data-theme="dark"] .jg-sun,
+  :root:not([data-theme="dark"]) .jg-moon {
+    display: none;
+  }
+
+  /* ------------------------------------------------------------- statement */
+
+  /*
+   * The site's voice, set once, at the top, as a sentence rather than a logo.
+   * It shares its row with the site's real numbers, so the opening states what
+   * this is and how much of it there is in one glance.
+   */
+  .jg-statement {
+    display: grid;
+    gap: var(--jg-4);
+    align-content: center;
+    padding-block: var(--jg-5);
+  }
+
+  .jg-statement p {
+    font-size: var(--jg-step-4);
+    line-height: 1.34;
+    max-width: min(18em, 100%);
+    text-wrap: balance;
+  }
+
+  .jg-statement__sub {
+    font-size: var(--jg-step-0) !important;
+    line-height: var(--jg-lead-body) !important;
+    color: var(--jg-muted);
+    max-width: min(var(--jg-read), 100%) !important;
+  }
+
+  .jg-ledger {
+    display: grid;
+    gap: var(--jg-2);
+    align-content: center;
+    padding-block: var(--jg-5);
+  }
+
+  .jg-ledger div {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--jg-3);
+    padding-block: var(--jg-2);
+    border-block-end: 1px solid var(--jg-rule-soft);
+  }
+
+  .jg-ledger div:last-child {
+    border-block-end: 0;
+  }
+
+  .jg-ledger dd {
+    color: var(--jg-ink);
+  }
+
+  /* ------------------------------------------------------------------ entry */
+
+  .jg-entry {
+    display: grid;
+    gap: var(--jg-3);
+    align-content: start;
+  }
+
+  .jg-entry__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--jg-2) var(--jg-3);
+    align-items: baseline;
+  }
+
+  .jg-entry__title {
+    font-size: var(--jg-step-3);
+  }
+
+  .jg-entry__title a {
+    text-decoration: none;
+  }
+
+  .jg-entry__summary {
+    color: var(--jg-muted);
+    max-width: var(--jg-measure);
+    text-wrap: pretty;
+  }
+
+  .jg-entry__more {
+    justify-self: start;
+  }
+
+  /* Language availability, shown as state rather than as a switcher. This is
+     the one thing a trilingual index can say that a single-language one cannot,
+     so it is given a permanent place instead of a corner. */
+  .jg-avail {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--jg-2) var(--jg-3);
+  }
+
+  .jg-avail li {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+  }
+
+  .jg-avail a {
+    text-decoration: none;
+  }
+
+  .jg-avail [data-state="missing"] {
+    color: var(--jg-faint);
+    text-decoration: line-through;
+    text-decoration-color: var(--jg-rule);
+  }
+
+  .jg-avail [data-state="current"] {
+    color: var(--jg-ink);
+    box-shadow: inset 0 -1px 0 0 var(--jg-accent);
+  }
+
+  /* ------------------------------------------------------------------ lists */
+
+  .jg-stack {
+    display: grid;
+  }
+
+  .jg-stack li {
+    padding-block: var(--jg-3);
+    border-block-start: 1px solid var(--jg-rule-soft);
+  }
+
+  .jg-stack li:first-child {
+    border-block-start: 0;
+    padding-block-start: 0;
+  }
+
+  .jg-stack a {
+    text-decoration: none;
+  }
+
+  .jg-stack__title {
+    display: block;
+    font-size: var(--jg-step-1);
+  }
+
+  .jg-rows {
+    display: grid;
+  }
+
+  .jg-rows > li {
+    display: grid;
+    grid-template-columns: 6.5rem minmax(0, 1fr) auto;
+    gap: var(--jg-3);
+    align-items: baseline;
+    padding-block: var(--jg-3);
+    border-block-start: 1px solid var(--jg-rule-soft);
+  }
+
+  .jg-rows > li:first-child {
+    border-block-start: 0;
+  }
+
+  .jg-rows a {
+    text-decoration: none;
+    font-size: var(--jg-step-1);
+  }
+
+  @media (width < 40rem) {
+    .jg-rows > li {
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--jg-1);
+    }
+  }
+
+  .jg-tagfield {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--jg-2) var(--jg-4);
+    align-items: baseline;
+  }
+
+  .jg-tagfield a,
+  .jg-tagfield > span {
+    text-decoration: none;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    padding-block: 0.35rem;
+  }
+
+  .jg-tagfield sup {
+    font-family: var(--jg-mono);
+    font-size: var(--jg-step--2);
+    color: var(--jg-faint);
+    vertical-align: baseline;
+    top: 0;
+  }
+
+
+  /* A list of entries that each need room to read, as opposed to .jg-rows,
+     which is the one-line scanning variant. */
+  .jg-stack--roomy > li {
+    display: grid;
+    gap: var(--jg-2);
+    padding-block: var(--jg-5);
+  }
+
+  .jg-stack--roomy > li:first-child {
+    padding-block-start: 0;
+  }
+
+  .jg-stack--roomy .jg-entry__title {
+    font-size: var(--jg-step-2);
+  }
+
+  /* The tag page has nothing but tags, so they carry the page. */
+  .jg-tagfield--large {
+    gap: var(--jg-3) var(--jg-5);
+  }
+
+  .jg-tagfield--large a {
+    font-size: var(--jg-step-2);
+    font-family: var(--jg-serif);
+    letter-spacing: normal;
+  }
+
+  .jg-tagfield--large sup {
+    font-size: var(--jg-step--2);
+  }
+
+  /* Author-written page copy that is not a rendered article. */
+  .jg-copy {
+    max-width: var(--jg-read);
+  }
+
+  .jg-copy > * + * {
+    margin-block-start: var(--jg-4);
+  }
+
+  .jg-article__crumb {
+    margin-block-end: var(--jg-4);
+  }
+
+  .jg-cover {
+    grid-column: media-start / media-end;
+    margin-block-end: var(--jg-6);
+  }
+
+  .jg-cover img {
+    width: 100%;
+    height: auto;
+  }
+
+  .jg-cover figcaption {
+    margin-block-start: var(--jg-2);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--jg-2) var(--jg-3);
+  }
+
+  .jg-end__block {
+    display: grid;
+    gap: var(--jg-2);
+    padding-block: var(--jg-4);
+    border-block-end: 1px solid var(--jg-rule-soft);
+  }
+
+  .jg-end__block:last-of-type {
+    border-block-end: 0;
+  }
+
+  .jg-ledger nav.jg-stack {
+    gap: var(--jg-2);
+  }
+
+  /* --------------------------------------------------------------- page head */
+
+  .jg-head {
+    display: grid;
+    gap: var(--jg-3);
+    padding-block: var(--jg-5);
+  }
+
+  .jg-head h1 {
+    font-size: var(--jg-step-4);
+  }
+
+  .jg-head__lead {
+    color: var(--jg-muted);
+    max-width: var(--jg-read);
+    font-size: var(--jg-step-1);
+    text-wrap: pretty;
+  }
+
+  .jg-head__facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--jg-2) var(--jg-4);
+  }
+
+  /* ---------------------------------------------------------------- article */
+
+  /*
+   * Reading happens at a measure, but the measure sits inside the field rather
+   * than alone on the page: the header band spans the full width, the body
+   * indents to the measure, and anything wider than a sentence steps back out.
+   */
+  .jg-article {
+    display: grid;
+    grid-template-columns:
+      [edge-start] minmax(0, 1fr)
+      [wide-start] minmax(0, 3rem)
+      [media-start] minmax(0, 4rem)
+      [text-start] minmax(0, var(--jg-read)) [text-end]
+      minmax(0, 4rem) [media-end]
+      minmax(0, 3rem) [wide-end]
+      minmax(0, 1fr) [edge-end];
+    padding-block-end: var(--jg-6);
+  }
+
+  .jg-article > * {
+    grid-column: text-start / text-end;
+    min-width: 0;
+  }
+
+  .jg-article > .jg-band {
+    grid-column: edge-start / edge-end;
+  }
+
+  .jg-band {
+    padding-block: var(--jg-5);
+    border-block-end: 1px solid var(--jg-rule);
+    margin-block-end: var(--jg-5);
+    display: grid;
+    grid-template-columns: subgrid;
+  }
+
+  /* The rule spans the whole field, the type sits over the prose it introduces.
+     Left-aligning the title to the field edge instead read as misalignment. */
+  .jg-band > * {
+    grid-column: text-start / text-end;
+  }
+
+  .jg-article__title {
+    font-size: var(--jg-step-4);
+    max-width: 24ch;
+  }
+
+  .jg-article__summary {
+    margin-block-start: var(--jg-3);
+    font-size: var(--jg-step-1);
+    color: var(--jg-muted);
+    max-width: var(--jg-read);
+    text-wrap: pretty;
+  }
+
+  .jg-facts {
+    margin-block-start: var(--jg-4);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--jg-2) var(--jg-5);
+  }
+
+  .jg-facts div {
+    display: flex;
+    gap: 0.5rem;
+    align-items: baseline;
+  }
+
+  .jg-facts dt {
+    color: var(--jg-faint);
+  }
+
+  .jg-toc {
+    display: none;
+  }
+
+  .jg-inline-toc {
+    border-block: 1px solid var(--jg-rule-soft);
+    padding-block: var(--jg-2);
+    margin-block-end: var(--jg-4);
+  }
+
+  .jg-inline-toc summary {
+    cursor: pointer;
+    padding-block: 0.35rem;
+  }
+
+  .jg-inline-toc ol {
+    display: grid;
+    gap: var(--jg-1);
+    margin-block-start: var(--jg-2);
+  }
+
+  .jg-inline-toc a {
+    text-decoration: none;
+  }
+
+  @media (width >= 78rem) {
+    .jg-toc {
+      display: block;
+      position: sticky;
+      top: var(--jg-4);
+      align-self: start;
+      grid-column: edge-start / media-start;
+      justify-self: end;
+      width: 12rem;
+      padding-inline-end: var(--jg-4);
+      text-align: end;
+      max-height: calc(100dvh - var(--jg-6));
+      overflow-y: auto;
+    }
+
+    .jg-toc ol {
+      display: grid;
+      gap: var(--jg-1);
+      margin-block-start: var(--jg-2);
+    }
+
+    .jg-toc a {
+      display: block;
+      text-decoration: none;
+      padding-block: 0.2rem;
+    }
+
+    .jg-toc a[data-depth="3"] {
+      padding-inline-end: var(--jg-2);
+      color: var(--jg-faint);
+    }
+
+    .jg-inline-toc {
+      display: none;
+    }
+  }
+
+  /*
+   * The reading row. The outline and the prose share one grid row so the
+   * outline can stand in the margin and stay sticky for the length of the
+   * article rather than the length of its own box.
+   *
+   * They are wrapped rather than pinned directly: pinning `grid-row: 1` on
+   * children of .jg-article pushed every auto-placed sibling after them, which
+   * put the article header underneath its own body.
+   */
+  .jg-reading {
+    grid-column: edge-start / edge-end;
+    display: grid;
+    grid-template-columns: subgrid;
+  }
+
+  .jg-reading > * {
+    grid-row: 1;
+  }
+
+  .jg-body {
+    grid-column: edge-start / edge-end;
+    display: grid;
+    grid-template-columns: subgrid;
+  }
+
+  .jg-body > * {
+    grid-column: text-start / text-end;
+    min-width: 0;
+  }
+
+  .jg-body > * + * {
+    margin-block-start: var(--jg-4);
+  }
+
+  .jg-body > h2 {
+    font-size: var(--jg-step-3);
+    margin-block-start: var(--jg-6);
+    padding-block-end: var(--jg-2);
+    border-block-end: 1px solid var(--jg-rule-soft);
+  }
+
+  .jg-body > h3 {
+    font-size: var(--jg-step-2);
+    margin-block-start: var(--jg-5);
+  }
+
+  .jg-body > h4 {
+    font-size: var(--jg-step-1);
+    margin-block-start: var(--jg-5);
+  }
+
+  .jg-body :is(h2, h3, h4) > a {
+    text-decoration: none;
+  }
+
+  .jg-body p {
+    text-wrap: pretty;
+  }
+
+  .jg-body > :is(ul, ol) {
+    display: grid;
+    gap: var(--jg-1);
+    padding-inline-start: 1.4em;
+  }
+
+  .jg-body > ul {
+    list-style: disc;
+  }
+
+  .jg-body > ol {
+    list-style: decimal;
+  }
+
+  .jg-body li::marker {
+    color: var(--jg-faint);
+  }
+
+  .jg-body > blockquote {
+    padding-inline-start: var(--jg-4);
+    border-inline-start: 2px solid var(--jg-rule);
+    color: var(--jg-muted);
+  }
+
+  .jg-body :not(pre) > code {
+    font-family: var(--jg-mono);
+    font-size: 0.875em;
+    padding: 0.1em 0.35em;
+    border: 1px solid var(--jg-rule-soft);
+  }
+
+  /* Anything the measure cannot hold honestly steps back out to the media tier. */
+  .jg-body > figure,
+  .jg-body > .expressive-code,
+  .jg-body > pre,
+  .jg-body > table,
+  .jg-body > .mermaid,
+  .jg-body > .music-card,
+  .jg-body > .video-card,
+  .jg-body > .github-card {
+    grid-column: media-start / media-end;
+    margin-block: var(--jg-6);
+  }
+
+  .jg-body > figure img {
+    width: 100%;
+    height: auto;
+  }
+
+  .jg-body figcaption {
+    margin-block-start: var(--jg-2);
+    font-family: var(--jg-mono);
+    font-size: var(--jg-step--2);
+    letter-spacing: 0.07em;
+    color: var(--jg-muted);
+  }
+
+  .jg-body > hr {
+    border: 0;
+    height: 1px;
+    background: var(--jg-rule);
+    margin-block: var(--jg-6);
+  }
+
+  .jg-body table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--jg-step--1);
+  }
+
+  .jg-body :is(th, td) {
+    text-align: start;
+    padding: var(--jg-2);
+    border-block-end: 1px solid var(--jg-rule-soft);
+  }
+
+  .jg-body th {
+    font-family: var(--jg-mono);
+    font-size: var(--jg-step--2);
+    letter-spacing: 0.08em;
+    color: var(--jg-muted);
+    font-weight: 400;
+  }
+
+  /* Markdown blocks keep the direction's rules: one hairline, labels in the
+     annotation register, no filled panels, no radius. */
+  .jg-body .admonition {
+    border-inline-start: 2px solid var(--jg-rule);
+    padding: var(--jg-2) 0 var(--jg-2) var(--jg-4);
+  }
+
+  .jg-body .admonition__title {
+    font-family: var(--jg-mono);
+    font-size: var(--jg-step--2);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--jg-muted);
+    margin-block-end: var(--jg-1);
+  }
+
+  .jg-body :is(.admonition--important, .admonition--warning, .admonition--caution) {
+    border-inline-start-color: var(--jg-accent);
+  }
+
+  .jg-body .spoiler {
+    border-block: 1px solid var(--jg-rule-soft);
+    padding-block: var(--jg-2);
+  }
+
+  .jg-body .spoiler > summary {
+    cursor: pointer;
+    font-family: var(--jg-mono);
+    font-size: var(--jg-step--2);
+    letter-spacing: 0.08em;
+    color: var(--jg-muted);
+  }
+
+  .jg-body :is(.github-card, .music-card, .video-card, .video-consent, .embed-error) {
+    border: 1px solid var(--jg-rule);
+    padding: var(--jg-4);
+    display: grid;
+    gap: var(--jg-2);
+  }
+
+  .jg-body :is(.github-card__eyebrow, .music-card__artist, .music-card__status, .video-consent__note) {
+    font-family: var(--jg-mono);
+    font-size: var(--jg-step--2);
+    letter-spacing: 0.08em;
+    color: var(--jg-muted);
+  }
+
+  .jg-body :is(.github-card__name, .music-card__title, .video-consent__title) {
+    font-size: var(--jg-step-1);
+    font-weight: 600;
+  }
+
+  .jg-body .music-card {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .jg-body .music-card__cover {
+    width: 5rem;
+    height: auto;
+  }
+
+  .jg-body .music-card__lyrics {
+    font-size: var(--jg-step--1);
+    color: var(--jg-muted);
+    max-height: 14rem;
+    overflow-y: auto;
+  }
+
+  .jg-body :is(.music-card__play, .video-consent button) {
+    justify-self: start;
+    border: 1px solid var(--jg-rule);
+    padding: 0.4rem var(--jg-4);
+    font-family: var(--jg-mono);
+    font-size: var(--jg-step--2);
+    letter-spacing: 0.08em;
+    min-height: 2.25rem;
+  }
+
+  .jg-body .video-card iframe {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    height: auto;
+    border: 0;
+  }
+
+  .jg-body .katex-display {
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .jg-body .mermaid svg {
+    max-width: 100%;
+    height: auto;
+    margin-inline: auto;
+  }
+
+  /* ------------------------------------------------------------ article end */
+
+  .jg-end {
+    margin-block-start: var(--jg-6);
+    border-block-start: 1px solid var(--jg-rule);
+  }
+
+  .jg-adjacent {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  }
+
+  .jg-adjacent a {
+    display: grid;
+    gap: var(--jg-1);
+    text-decoration: none;
+    padding: var(--jg-4) 0;
+  }
+
+  .jg-adjacent a + a {
+    text-align: end;
+  }
+
+  /* ------------------------------------------------------------------ footer */
+
+  .jg-footer {
+    margin-block-start: auto;
+    border-block-start: 1px solid var(--jg-rule);
+    background: var(--jg-cell);
+  }
+
+  .jg-footer__inner {
+    max-width: var(--jg-field);
+    margin-inline: auto;
+    padding: var(--jg-5) var(--jg-gutter);
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    gap: var(--jg-4);
+    align-items: start;
+  }
+
+  .jg-footer nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--jg-1) var(--jg-4);
+  }
+
+  .jg-footer a {
+    text-decoration: none;
+    padding-block: 0.35rem;
+  }
+
+  /* ------------------------------------------------------------------ search */
+
+  .jg-search {
+    border: 1px solid var(--jg-rule);
+    background: var(--jg-cell);
+    color: var(--jg-ink);
+    padding: 0;
+    width: min(38rem, calc(100vw - 2rem));
+    margin: auto;
+  }
+
+  .jg-search::backdrop {
+    background: light-dark(#17191d2e, #04060990);
+  }
+
+  .jg-search__panel {
+    padding: var(--jg-5);
+    display: grid;
+    gap: var(--jg-4);
+  }
+
+  .jg-search__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--jg-3);
+  }
+
+  .jg-search__head h2 {
+    font-size: var(--jg-step-2);
+  }
+
+  .jg-search__field {
+    display: flex;
+    align-items: center;
+    gap: var(--jg-2);
+    border-block-end: 1px solid var(--jg-rule);
+    padding-block-end: var(--jg-2);
+  }
+
+  .jg-search__field:focus-within {
+    border-color: var(--jg-accent);
+  }
+
+  .jg-search__field svg {
+    width: 1rem;
+    height: 1rem;
+    flex: none;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.4;
+    color: var(--jg-faint);
+  }
+
+  .jg-search input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    background: none;
+    padding: 0.35rem 0;
+    font-size: var(--jg-step-1);
+  }
+
+  .jg-search input:focus {
+    outline: none;
+  }
+
+  .jg-search__results {
+    display: grid;
+    max-height: 50dvh;
+    overflow-y: auto;
+  }
+
+  .jg-search__results a {
+    display: grid;
+    gap: 0.2rem;
+    padding: var(--jg-3) 0;
+    border-block-start: 1px solid var(--jg-rule-soft);
+    text-decoration: none;
+  }
+
+  .jg-search__results span,
+  .jg-search__results time {
+    font-family: var(--jg-mono);
+    font-size: var(--jg-step--2);
+    letter-spacing: 0.08em;
+    color: var(--jg-muted);
+  }
+
+  .jg-search__results strong {
+    font-size: var(--jg-step-1);
+  }
+
+  /* ------------------------------------------------------------------- study */
+
+  .jg-studybar {
+    border-block-end: 1px solid var(--jg-rule);
+  }
+
+  .jg-studybar__inner {
+    max-width: var(--jg-field);
+    margin-inline: auto;
+    padding: var(--jg-2) var(--jg-gutter);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--jg-2) var(--jg-3);
+    align-items: baseline;
+  }
+
+  .jg-studybar a {
+    text-decoration: none;
+    padding-block: 0.3rem;
+  }
+
+  @media print {
+    .jg-masthead,
+    .jg-footer,
+    .jg-studybar,
+    .jg-toc,
+    .jg-search {
+      display: none;
+    }
+  }
+}

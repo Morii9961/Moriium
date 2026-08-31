@@ -1,0 +1,97 @@
+---
+import JiegeBase from '../../../layouts/JiegeBase.astro';
+import { SITE, UI, type Language } from '../../../data/site';
+import { jgHome, jgPath } from '../../../data/jiege';
+import { getListedPosts } from '../../../utils/content';
+import { jgEntryHref } from '../../../utils/jiege';
+
+/* One real post per language, so every link below opens a page built from the
+   same content the production site carries and the Hanshin study shows. */
+const samples = await Promise.all(
+  SITE.languages.map(async (lang: Language) => ({
+    lang,
+    post: (await getListedPosts(lang))[0],
+  })),
+);
+
+const pages = [
+  ['首页', 'index'],
+  ['文章', 'writing'],
+  ['归档', 'archive'],
+  ['分类', 'categories'],
+  ['标签', 'tags'],
+  ['关于', 'about'],
+  ['404', 'not-found'],
+] as const;
+
+const rules = [
+  ['版面是格出来的', '页面是一片被细线分开的场，不是浮在空白里的一栏。每个区域都是这片场里的一格，与邻格齐平，只用一条细线隔开。'],
+  ['作者的话是其中一格', '站点的声音写成一句话放在第一格，与作品同级，而不是压在作品之上的横幅。'],
+  ['正文有定宽，图可以越出去', '阅读发生在固定的字段宽度里，但这个宽度长在格子内部。照片、代码、表格比句子宽时退到更外一档。'],
+  ['只有两种声音', '一种衬线负责阅读，中文与日文各用本地字形；一种等宽负责标注日期、计数、分类与导航。没有第三种。'],
+] as const;
+---
+
+<JiegeBase lang="zh" title="界格 · 设计研究" description="Moriium 新方向「界格」的说明页与入口。">
+  <div class="jg-field">
+    <div class="jg-row jg-row--lead">
+      <div class="jg-cell jg-statement">
+        <p>界格：把版面分开的那些线。</p>
+        <p class="jg-statement__sub">
+          一份从零开始的公开站点方向，与「版心」并行提交，供并排体验。
+          两者用同一批真实文章渲染，因此差别只在设计本身。
+          这里不复制任何参考项目的样式、结构或素材，也不改动生产站点。
+        </p>
+      </div>
+      <dl class="jg-cell jg-ledger jg-note">
+        <div><dt>路由前缀</dt><dd>/design/jiege/</dd></div>
+        <div><dt>语言</dt><dd>中文 · 日本語 · English</dd></div>
+        <div><dt>索引</dt><dd>noindex，不进站点地图</dd></div>
+        <div><dt>对照方向</dt><dd><a href="/design/hanshin/">版心 →</a></dd></div>
+      </dl>
+    </div>
+
+    {[rules.slice(0, 2), rules.slice(2)].map((pair) => (
+      <div class="jg-row jg-row--2">
+        {pair.map(([title, note]) => (
+          <section class="jg-cell">
+            <p class="jg-note jg-note--loud jg-label">{title}</p>
+            <p class="jg-entry__summary">{note}</p>
+          </section>
+        ))}
+      </div>
+    ))}
+
+    <div class="jg-row jg-row--3">
+      {samples.map(({ lang, post }) => (
+        <section class="jg-cell" lang={UI[lang].locale}>
+          <p class="jg-note jg-note--loud jg-label">{UI[lang].label}</p>
+          <ul class="jg-note">
+            {pages.map(([label, segment]) => (
+              <li><a href={segment === 'index' ? jgHome(lang) : jgPath(lang, segment)}>{label}</a></li>
+            ))}
+            {post && <li><a href={jgEntryHref(post)}>文章页</a></li>}
+          </ul>
+        </section>
+      ))}
+    </div>
+
+    <div class="jg-row jg-row--2">
+      <section class="jg-cell">
+        <p class="jg-note jg-note--loud jg-label">最完整的一页</p>
+        <p class="jg-entry__summary">
+          中文的<a href={jgPath('zh', 'posts', 'reader-capabilities')}>阅读能力验收页</a>
+          是检查越档规则最完整的一页：图片、代码、公式、图表、音乐、视频与提示块都在其中。
+        </p>
+      </section>
+      <section class="jg-cell">
+        <p class="jg-note jg-note--loud jg-label">边界</p>
+        <p class="jg-entry__summary">
+          全部页面 noindex，不进站点地图，不改动 <code>/zh/</code>、<code>/ja/</code>、<code>/en/</code> 下的任何生产路由。
+          加密文章仍走生产路由，因为解密流程不属于这次视觉改动。取舍写在
+          <code>docs/design-jiege.md</code>。
+        </p>
+      </section>
+    </div>
+  </div>
+</JiegeBase>

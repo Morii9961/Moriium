@@ -1,0 +1,188 @@
+---
+import type { GetStaticPaths } from 'astro';
+import JiegeBase from '../../../../layouts/JiegeBase.astro';
+import { SITE, UI, type Language } from '../../../../data/site';
+import { COPY, STATEMENT, jgCount, jgDay, jgPath, jgYear } from '../../../../data/jiege';
+import { getListedPosts, getTranslations } from '../../../../utils/content';
+import { jgEntryHref } from '../../../../utils/jiege';
+
+export const getStaticPaths: GetStaticPaths = () =>
+  SITE.languages.map((lang) => ({ params: { lang }, props: { lang } }));
+
+const { lang } = Astro.props as { lang: Language };
+const c = COPY[lang];
+const s = STATEMENT[lang];
+
+const posts = await getListedPosts(lang);
+const [lead, ...rest] = posts;
+const categories = jgCount(posts, (post) => [post.data.category]);
+const tags = jgCount(posts, (post) => [...post.data.tags]);
+const years = jgCount(posts, (post) => [jgYear(post.data.publishedAt)]);
+const lastUpdated = posts[0]?.data.updatedAt ?? posts[0]?.data.publishedAt;
+const firstPublished = posts.at(-1)?.data.publishedAt;
+
+/* Which languages carry the lead piece. Availability is site information, not a
+   switcher, so it is stated in place rather than hidden in the header. */
+const leadTranslations = lead ? await getTranslations(lead.data.translationKey) : [];
+const availability = SITE.languages.map((code) => ({
+  code,
+  entry: leadTranslations.find((entry) => entry.data.lang === code),
+  current: code === lang,
+}));
+---
+
+<JiegeBase lang={lang} description={s.sub}>
+  <div class="jg-field">
+    <div class="jg-row jg-row--lead">
+      <div class="jg-cell jg-statement">
+        <p>{s.line}</p>
+        <p class="jg-statement__sub">{s.sub}</p>
+      </div>
+
+      <dl class="jg-cell jg-ledger jg-note">
+        <div>
+          <dt>{s.n.posts}</dt>
+          <dd class="jg-num">{posts.length}</dd>
+        </div>
+        <div>
+          <dt>{s.n.categories}</dt>
+          <dd class="jg-num">{categories.length}</dd>
+        </div>
+        <div>
+          <dt>{s.n.tags}</dt>
+          <dd class="jg-num">{tags.length}</dd>
+        </div>
+        <div>
+          <dt>{s.languages}</dt>
+          <dd>{s.languageValue}</dd>
+        </div>
+        {firstPublished && (
+          <div>
+            <dt>{s.since}</dt>
+            <dd><time datetime={firstPublished.toISOString()}>{jgYear(firstPublished)}</time></dd>
+          </div>
+        )}
+        {lastUpdated && (
+          <div>
+            <dt>{s.n.updated}</dt>
+            <dd><time datetime={lastUpdated.toISOString()}>{jgDay(lastUpdated)}</time></dd>
+          </div>
+        )}
+      </dl>
+    </div>
+
+    {lead && (
+      <div class="jg-row jg-row--lead">
+        <article class="jg-cell jg-entry">
+          <p class="jg-note jg-entry__meta">
+            <span class="jg-note--latin">{c.latest}</span>
+            <time datetime={lead.data.publishedAt.toISOString()}>{jgDay(lead.data.publishedAt)}</time>
+            <a href={jgPath(lang, 'categories', lead.data.category)}>{lead.data.category}</a>
+          </p>
+          <h2 class="jg-entry__title"><a href={jgEntryHref(lead)}>{lead.data.title}</a></h2>
+          <p class="jg-entry__summary">{lead.data.summary}</p>
+          <p class="jg-note jg-entry__more"><a href={jgEntryHref(lead)}>{c.more} →</a></p>
+        </article>
+
+        <div class="jg-cell">
+          <p class="jg-note jg-note--loud jg-label">{c.translations}</p>
+          <ul class="jg-avail jg-note">
+            {availability.map((state) => (
+              <li lang={UI[state.code].locale}>
+                {state.current ? (
+                  <span data-state="current">{UI[state.code].label}</span>
+                ) : state.entry ? (
+                  <a href={jgEntryHref(state.entry)}>{UI[state.code].label} →</a>
+                ) : (
+                  <span data-state="missing">{UI[state.code].label}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+
+          <p class="jg-note jg-note--loud jg-label" data-gap="wide">{c.recent}</p>
+          {rest.length > 0 ? (
+            <ul class="jg-stack">
+              {rest.slice(0, 4).map((post) => (
+                <li>
+                  <a href={jgEntryHref(post)}>
+                    <span class="jg-note"><time datetime={post.data.publishedAt.toISOString()}>{jgDay(post.data.publishedAt)}</time></span>
+                    <span class="jg-stack__title">{post.data.title}</span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p class="jg-note">{c.empty}</p>
+          )}
+          <p class="jg-note jg-cell__note"><a href={jgPath(lang, 'writing')}>{c.nav.writing} →</a></p>
+        </div>
+      </div>
+    )}
+
+    <div class="jg-row jg-row--3">
+      <section class="jg-cell" aria-labelledby="jg-archive">
+        <p class="jg-note jg-note--loud jg-label" id="jg-archive">
+          <a href={jgPath(lang, 'archive')}>{c.nav.archive}</a>
+        </p>
+        <ul class="jg-note">
+          {years.map((year) => (
+            <li>
+              <a href={jgPath(lang, 'archive')}>{year.value}{c.year}</a>
+              <span class="jg-num"> · {year.count}</span>
+            </li>
+          ))}
+        </ul>
+        <p class="jg-note jg-cell__note">{c.archiveNote}</p>
+      </section>
+
+      <section class="jg-cell" aria-labelledby="jg-categories">
+        <p class="jg-note jg-note--loud jg-label" id="jg-categories">
+          <a href={jgPath(lang, 'categories')}>{c.nav.categories}</a>
+        </p>
+        <ul class="jg-note">
+          {categories.map((entry) => (
+            <li>
+              <a href={jgPath(lang, 'categories', entry.value)}>{entry.value}</a>
+              <span class="jg-num"> · {entry.count}</span>
+            </li>
+          ))}
+        </ul>
+        <p class="jg-note jg-cell__note">{c.categoriesNote}</p>
+      </section>
+
+      <section class="jg-cell" aria-labelledby="jg-tags">
+        <p class="jg-note jg-note--loud jg-label" id="jg-tags">
+          <a href={jgPath(lang, 'tags')}>{c.nav.tags}</a>
+        </p>
+        <div class="jg-tagfield jg-note">
+          {tags.map((tag) => (
+            <a href={jgPath(lang, 'tags', tag.value)}>
+              <span>#{tag.value}</span>
+              <sup class="jg-num">{tag.count}</sup>
+            </a>
+          ))}
+        </div>
+        <p class="jg-note jg-cell__note">{c.tagsNote}</p>
+      </section>
+    </div>
+
+    <div class="jg-row jg-row--2">
+      <section class="jg-cell" aria-labelledby="jg-about">
+        <p class="jg-note jg-note--loud jg-label" id="jg-about">{c.aboutLead}</p>
+        <p class="jg-entry__summary">{c.about.lead}</p>
+        <p class="jg-note jg-cell__note">
+          <a href={jgPath(lang, 'about')}>{c.aboutMore}</a>
+        </p>
+      </section>
+
+      <section class="jg-cell" aria-labelledby="jg-rss">
+        <p class="jg-note jg-note--loud jg-label" id="jg-rss">RSS</p>
+        <p class="jg-entry__summary">{c.rss}</p>
+        <p class="jg-note jg-cell__note">
+          <a href={`/${lang}/rss.xml`}>/{lang}/rss.xml →</a>
+        </p>
+      </section>
+    </div>
+  </div>
+</JiegeBase>

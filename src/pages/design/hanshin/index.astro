@@ -1,23 +1,115 @@
 ---
-import BaseLayout from '../../../layouts/BaseLayout.astro';
-import { SITE, UI } from '../../../data/site';
-import { hsHome } from '../../../data/hanshin';
+import HanshinBase from '../../../layouts/HanshinBase.astro';
+import { SITE, UI, type Language } from '../../../data/site';
+import { hsHome, hsPath } from '../../../data/hanshin';
+import { getListedPosts } from '../../../utils/content';
+import { hsEntryHref } from '../../../utils/hanshin';
+
+/* One real post per language, so every link below opens a page built from the
+   same content the production site carries. */
+const samples = await Promise.all(
+  SITE.languages.map(async (lang: Language) => ({
+    lang,
+    post: (await getListedPosts(lang))[0],
+  })),
+);
+
+const tiers = [
+  ['正文 text', '40rem', '唯一的阅读宽度。段落、标题、列表、引用都在这里，不随页面变宽。'],
+  ['媒体 media', '52rem', '照片、代码、表格、图表。越过版心细线的第一档。'],
+  ['宽幅 wide', '68rem', '页眉页脚的外框，以及文章页目录所占的天头。'],
+  ['通栏 full', '100%', '为摄影专题保留，当前公开页面没有使用。'],
+] as const;
+
+const pages = [
+  ['首页', 'index'],
+  ['文章', 'writing'],
+  ['归档', 'archive'],
+  ['分类', 'categories'],
+  ['标签', 'tags'],
+  ['关于', 'about'],
+  ['404', 'not-found'],
+] as const;
 ---
 
-<BaseLayout lang="zh" title="版心设计研究" noindex>
-  <header class="site-shell page-heading">
-    <p class="page-heading__eyebrow">Clean-room design study</p>
-    <h1>版心</h1>
-    <p>围绕正文尺度、旁注层级与克制分隔线展开的三语版式研究。此处只用于比较，不会替换当前生产站点。</p>
-  </header>
+<HanshinBase lang="zh" title="版心 · 设计研究" description="Moriium 新方向「版心」的说明页与入口。">
+  <div class="hs-flow hs-plate">
+    <section class="hs-opening">
+      <p class="hs-note hs-note--latin hs-opening__label">Design study</p>
+      <h1>版心</h1>
+      <p class="hs-opening__lead">
+        一份从零开始的公开站点方向。页面画出正文所在的那一块地方，照片和代码越过它，其余一切留在里面。
+        这里不复制任何参考项目的样式、结构或素材；它也不改动生产站点，只在 <code>/design/hanshin/</code> 下并行存在。
+      </p>
+    </section>
 
-  <nav class="site-shell taxonomy-grid" aria-label="选择预览语言">
-    {SITE.languages.map((lang) => (
-      <a href={hsHome(lang)} lang={UI[lang].locale}>
-        <span class="taxonomy-label">{lang.toUpperCase()}</span><br />
-        <strong>{UI[lang].label}</strong><br />
-        <span>{UI[lang].description}</span>
-      </a>
-    ))}
-  </nav>
-</BaseLayout>
+    <hr class="hs-divider" />
+
+    <section class="hs-section" aria-labelledby="hs-study-idea">
+      <h2 class="hs-note hs-note--loud" id="hs-study-idea">三条规则</h2>
+      <div class="hs-prose-plain u-space-3">
+        <p><strong>一、版心是画出来的。</strong>桌面宽度下，正文两侧各有一条细线，标出阅读发生的位置。页面其余部分是它的衬边。</p>
+        <p><strong>二、越界是唯一的表达动作。</strong>照片、代码、表格、图表可以跨过那两条线；标题、段落、导航一律不越界。因为有线，变宽才成为一个决定，而不只是一张大图。</p>
+        <p><strong>三、只有两种声音。</strong>一种衬线负责阅读，中文与日文各用本地字形；一种等宽负责标注日期、计数、分类与导航。没有第三种。</p>
+      </div>
+    </section>
+
+    <hr class="hs-divider" />
+
+    <section class="hs-section u-media" aria-labelledby="hs-study-tiers">
+      <h2 class="hs-note hs-note--loud" id="hs-study-tiers">四档宽度</h2>
+      <ul class="hs-list u-space-3">
+        {tiers.map(([name, width, note]) => (
+          <li class="hs-list__row">
+            <span class="hs-note">{name}</span>
+            <span class="hs-list__title">{note}</span>
+            <span class="hs-note hs-num">{width}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+
+    <hr class="hs-divider" />
+
+    <section class="hs-section u-media" aria-labelledby="hs-study-routes">
+      <h2 class="hs-note hs-note--loud" id="hs-study-routes">页面入口</h2>
+      <div class="hs-columns u-space-4">
+        {samples.map(({ lang, post }) => (
+          <div class="hs-column" lang={UI[lang].locale}>
+            <h3>{UI[lang].label}</h3>
+            <ul class="hs-note">
+              {pages.map(([label, segment]) => (
+                <li>
+                  <a href={segment === 'index' ? hsHome(lang) : hsPath(lang, segment)}>{label}</a>
+                </li>
+              ))}
+              {post && (
+                <li><a href={hsEntryHref(post)}>文章页</a></li>
+              )}
+            </ul>
+          </div>
+        ))}
+      </div>
+      <p class="hs-note u-space-4">
+        中文的 <a href={hsPath('zh', 'posts', 'reader-capabilities')}>阅读能力验收页</a>
+        是检查越界规则最完整的一页：图片、代码、公式、图表、音乐、视频与提示块都在其中。
+      </p>
+    </section>
+
+    <hr class="hs-divider" />
+
+    <section class="hs-section" aria-labelledby="hs-study-scope">
+      <h2 class="hs-note hs-note--loud" id="hs-study-scope">边界</h2>
+      <div class="hs-prose-plain u-space-3">
+        <p>
+          这些页面全部 <code>noindex</code>，不进入站点地图，也不改动 <code>/zh/</code>、<code>/ja/</code>、<code>/en/</code> 下的任何生产路由。
+          加密文章仍走生产路由，因为解密流程不属于这次视觉改动。
+        </p>
+        <p>
+          决定采用之前，这只是一个提案：<code>DESIGN.md</code> 规定共享设计原则，<code>docs/design-system.md</code> 只记录当前生产实现。
+          具体取舍写在 <code>docs/design-hanshin.md</code>，参考来源记在 <code>docs/design-research.md</code>。
+        </p>
+      </div>
+    </section>
+  </div>
+</HanshinBase>

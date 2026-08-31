@@ -1,5 +1,7 @@
 # Claude 交接：Moriium vNext
 
+> 历史交接文档，已被当前生产交接取代。本文提及的 A 方案和 `design-system.md` 仅记录当时状态；当前公共视觉与设计 Skills 规范以根目录 [`DESIGN.md`](../DESIGN.md) 为准。
+
 > 日期：2026-08-29  
 > 状态：架构研究与路线提案已完成，尚未开始 vNext 实现。
 
