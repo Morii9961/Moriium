@@ -8,6 +8,7 @@ import {
   DEFAULT_BACKUP_ROOT,
   startDatabaseBackupScheduler,
   type BackupScheduler,
+  type DatabaseBackupStatus,
 } from '../backup/database-backup.ts';
 import { describeForLog } from '../errors.ts';
 import { openDatabase } from './open.ts';
@@ -18,15 +19,30 @@ export const DEFAULT_DATABASE_PATH =
 let database: DatabaseSync | undefined;
 let backupScheduler: BackupScheduler | undefined;
 
+export function databaseBackupRoot(): string {
+  return process.env.MORIIUM_BACKUP_ROOT?.trim() || DEFAULT_BACKUP_ROOT;
+}
+
+export function getDatabaseBackupStatus(): DatabaseBackupStatus {
+  return (
+    backupScheduler?.status() ?? {
+      running: false,
+      inFlight: false,
+      lastSucceededAt: null,
+      lastFailedAt: null,
+      lastError: null,
+    }
+  );
+}
+
 export function getDatabase(): DatabaseSync {
   if (database) return database;
   const path = process.env.MORIIUM_DATABASE_PATH?.trim() || DEFAULT_DATABASE_PATH;
   mkdirSync(dirname(path), { recursive: true });
   database = openDatabase(path);
-  const backupRoot = process.env.MORIIUM_BACKUP_ROOT?.trim() || DEFAULT_BACKUP_ROOT;
   backupScheduler ??= startDatabaseBackupScheduler({
     db: database,
-    root: backupRoot,
+    root: databaseBackupRoot(),
     onError: (error) => console.error(describeForLog(error)),
   });
   return database;

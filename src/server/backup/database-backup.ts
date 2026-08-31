@@ -10,9 +10,10 @@
 
 import { backup as sqliteBackup, DatabaseSync } from 'node:sqlite';
 import { randomUUID } from 'node:crypto';
+import { readdirSync, statSync } from 'node:fs';
 import { mkdir, readdir, rename, rm } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
-import { AdminError } from '../errors.ts';
+import { AdminError, describeForLog } from '../errors.ts';
 
 export const BACKUP_INTERVAL_MS = 60 * 60 * 1_000;
 export const RETAINED_LOCAL_BACKUPS = 48;
@@ -70,6 +71,23 @@ async function pruneBackups(root: string, keep: number): Promise<string[]> {
   const removed = names.slice(keep);
   for (const name of removed) await rm(join(root, name));
   return removed;
+}
+
+/** Milliseconds since the newest completed backup, or null when none exists. */
+export function ageOfNewestDatabaseBackup(root: string, now = new Date()): number | null {
+  let names: string[];
+  try {
+    names = readdirSync(root)
+      .filter((name) => BACKUP_NAME.test(name))
+      .sort()
+      .reverse();
+  } catch (error) {
+    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') return null;
+    throw error;
+  }
+  const newest = names[0];
+  if (!newest) return null;
+  return Math.max(0, now.getTime() - statSync(join(root, newest)).mtimeMs);
 }
 
 async function removeBackupSidecars(path: string): Promise<void> {
@@ -141,6 +159,15 @@ export async function createDatabaseBackup(options: BackupOptions): Promise<Data
 export type BackupScheduler = {
   readonly runNow: () => Promise<DatabaseBackup>;
   readonly stop: () => void;
+  readonly status: () => DatabaseBackupStatus;
+};
+
+export type DatabaseBackupStatus = {
+  readonly running: boolean;
+  readonly inFlight: boolean;
+  readonly lastSucceededAt: string | null;
+  readonly lastFailedAt: string | null;
+  readonly lastError: string | null;
 };
 
 export type SchedulerOptions = BackupOptions & {
@@ -157,14 +184,23 @@ export function startDatabaseBackupScheduler(options: SchedulerOptions): BackupS
   }
 
   let inFlight: Promise<DatabaseBackup> | undefined;
+  let running = true;
+  let lastSucceededAt: string | null = null;
+  let lastFailedAt: string | null = null;
+  let lastError: string | null = null;
+  const statusNow = options.now ?? (() => new Date());
   const runNow = (): Promise<DatabaseBackup> => {
     if (inFlight) return inFlight;
     inFlight = createDatabaseBackup(options)
       .then((result) => {
+        lastSucceededAt = statusNow().toISOString();
+        lastError = null;
         options.onSuccess?.(result);
         return result;
       })
       .catch((error: unknown) => {
+        lastFailedAt = statusNow().toISOString();
+        lastError = describeForLog(error);
         options.onError?.(error);
         throw error;
       })
@@ -181,5 +217,18 @@ export function startDatabaseBackupScheduler(options: SchedulerOptions): BackupS
   timer.unref();
   void runNow().catch(() => undefined);
 
-  return { runNow, stop: () => clearInterval(timer) };
+  return {
+    runNow,
+    stop: () => {
+      clearInterval(timer);
+      running = false;
+    },
+    status: () => ({
+      running,
+      inFlight: inFlight !== undefined,
+      lastSucceededAt,
+      lastFailedAt,
+      lastError,
+    }),
+  };
 }

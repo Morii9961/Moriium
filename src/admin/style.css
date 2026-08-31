@@ -80,6 +80,18 @@ h2 { margin-bottom: 14px; font-size: 17px; }
 .article-states { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
 .empty { margin: 32px 0; color: var(--admin-muted); text-align: center; }
 
+.status-panel { margin-bottom: 32px; }
+.status-items { display: grid; gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
+.status-item { display: grid; grid-template-columns: minmax(96px, max-content) 1fr max-content; gap: 12px; align-items: center; padding: 10px 12px; border: 1px solid var(--admin-line); border-radius: 6px; background: var(--admin-surface); }
+.status-item.attention { border-color: var(--admin-warning); }
+.status-label { font-weight: 600; }
+.status-detail { color: var(--admin-muted); font-size: 13px; }
+
+@media (max-width: 640px) {
+  .status-item { grid-template-columns: 1fr max-content; }
+  .status-detail { grid-column: 1 / -1; }
+}
+
 .pill, .state { display: inline-flex; align-items: center; min-height: 24px; padding: 2px 8px; border: 1px solid var(--admin-line); border-radius: 999px; color: var(--admin-muted); font-size: 11px; white-space: nowrap; }
 .pill.draft { border-color: currentColor; color: var(--admin-danger); }
 .pill.published, .state.changed { border-color: currentColor; color: var(--admin-accent); }

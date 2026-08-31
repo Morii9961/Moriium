@@ -6,6 +6,7 @@ import {
   type ArticleRow,
   type Author,
   type NewArticleInput,
+  type OperationalStatus,
 } from './api.ts';
 
 function newArticle(): NewArticleInput {
@@ -44,6 +45,8 @@ export default defineComponent({
     const creating = ref(false);
     const draft = ref<NewArticleInput>(newArticle());
     const tagsText = ref('');
+    const status = ref<OperationalStatus | null>(null);
+    const checkingStatus = ref(false);
     const signedIn = computed(() => author.value !== null);
 
     function report(error: unknown): void {
@@ -54,10 +57,34 @@ export default defineComponent({
       articles.value = (await api.listArticles()).articles;
     }
 
+    async function loadStatus(): Promise<void> {
+      checkingStatus.value = true;
+      try {
+        status.value = await api.status();
+      } catch (error) {
+        status.value = {
+          checkedAt: new Date().toISOString(),
+          items: [
+            {
+              id: 'panel',
+              label: '运维状态',
+              verdict: 'unknown',
+              detail: messageForApiFailure(error, '连接不上状态接口，请检查网络后重试。'),
+            },
+          ],
+        };
+      } finally {
+        checkingStatus.value = false;
+      }
+    }
+
     async function bootstrap(): Promise<void> {
       try {
         author.value = await api.session();
-        if (author.value) await refresh();
+        if (author.value) {
+          await refresh();
+          await loadStatus();
+        }
       } catch (error) {
         report(error);
       } finally {
@@ -72,6 +99,7 @@ export default defineComponent({
         author.value = await api.login(name.value, password.value);
         password.value = '';
         await refresh();
+        await loadStatus();
       } catch (error) {
         report(error);
       } finally {
@@ -87,6 +115,7 @@ export default defineComponent({
         author.value = null;
         articles.value = [];
         openId.value = null;
+        status.value = null;
       } catch (error) {
         report(error);
       } finally {
@@ -121,6 +150,7 @@ export default defineComponent({
     async function backToList(): Promise<void> {
       openId.value = null;
       await refresh();
+      await loadStatus();
     }
 
     onMounted(() => void bootstrap());
@@ -138,6 +168,9 @@ export default defineComponent({
       creating,
       draft,
       tagsText,
+      status,
+      checkingStatus,
+      loadStatus,
       signIn,
       signOut,
       create,
@@ -194,6 +227,23 @@ export default defineComponent({
         <label><span>初始 Markdown</span><textarea v-model="draft.markdown" rows="6" required></textarea></label>
         <button class="primary" type="submit" :disabled="busy">{{ busy ? '创建中…' : '创建并打开' }}</button>
       </form>
+
+      <section v-if="status" class="status-panel" aria-labelledby="status-title">
+        <div class="section-heading">
+          <div><p class="eyebrow">Operations</p><h2 id="status-title">运维状态</h2></div>
+          <button type="button" class="quiet" :disabled="checkingStatus" @click="loadStatus">{{ checkingStatus ? '检查中…' : '重新检查' }}</button>
+        </div>
+        <p class="note">这里不会主动告警；需要注意和未观测的状态都会明确列出。</p>
+        <ul class="status-items">
+          <li v-for="item in status.items" :key="item.id" :class="['status-item', item.verdict]">
+            <span class="status-label">{{ item.label }}</span>
+            <span class="status-detail">{{ item.detail }}</span>
+            <span :class="['pill', item.verdict === 'attention' ? 'waiting' : item.verdict === 'ok' ? 'live' : 'unknown']">
+              {{ item.verdict === 'ok' ? '正常' : item.verdict === 'attention' ? '需要注意' : '未观测' }}
+            </span>
+          </li>
+        </ul>
+      </section>
 
       <section class="article-list" aria-labelledby="article-list-title">
         <div class="section-heading"><h2 id="article-list-title">全部文章</h2><span class="note">{{ articles.length }} 篇</span></div>
