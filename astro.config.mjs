@@ -4,13 +4,13 @@ import { resolve } from 'node:path';
 import { unified } from '@astrojs/markdown-remark';
 import sitemap from '@astrojs/sitemap';
 import expressiveCode from 'astro-expressive-code';
-import { pluginCollapsibleSections } from '@expressive-code/plugin-collapsible-sections';
-import { pluginLineNumbers } from '@expressive-code/plugin-line-numbers';
-import remarkDirective from 'remark-directive';
-import remarkMath from 'remark-math';
-import rehypeKatex from 'rehype-katex';
-import { remarkMoriiumDirectives } from './src/markdown/remark-moriium-directives.mjs';
-import { rehypeMoriiumContent } from './src/markdown/rehype-moriium-content.mjs';
+// The plugin chain lives in its own module so the trusted renderer can share it
+// without importing this file. See the header of src/markdown/pipeline.mjs.
+import {
+  expressiveCodeOptions,
+  rehypePlugins,
+  remarkPlugins,
+} from './src/markdown/pipeline.mjs';
 
 // Production data never belongs to an immutable release directory. Windows is
 // the local development host; the Linux default is the ADR 0002 data layout.
@@ -42,16 +42,7 @@ export default defineConfig({
     format: 'directory',
   },
   integrations: [
-    expressiveCode({
-      plugins: [pluginLineNumbers(), pluginCollapsibleSections()],
-      defaultProps: {
-        wrap: true,
-        showLineNumbers: false,
-      },
-      themes: ['github-light', 'github-dark'],
-      themeCssSelector: (theme) =>
-        theme.name === 'github-dark' ? '[data-theme="dark"]' : '[data-theme="light"]',
-    }),
+    expressiveCode(expressiveCodeOptions),
     sitemap({
       filter: (page) => !page.includes('/design/'),
       i18n: {
@@ -61,10 +52,7 @@ export default defineConfig({
     }),
   ],
   markdown: {
-    processor: unified({
-      remarkPlugins: [remarkMath, remarkDirective, remarkMoriiumDirectives],
-      rehypePlugins: [rehypeKatex, rehypeMoriiumContent],
-    }),
+    processor: unified({ remarkPlugins, rehypePlugins }),
   },
   vite: {
     build: { target: 'es2022' },
