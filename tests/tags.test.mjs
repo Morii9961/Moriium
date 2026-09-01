@@ -8,10 +8,10 @@ async function read(relativePath) {
   return readFile(new URL(relativePath, root), 'utf8');
 }
 
-test('production tag directory uses A layout with frequency-ranked taxonomy data', async () => {
+test('production tag directory uses the public editorial layout with frequency-ranked taxonomy data', async () => {
   const tags = await read('src/pages/[lang]/tags/index.astro');
 
-  assert.match(tags, /bodyClass="concept-a"/);
+  assert.doesNotMatch(tags, /bodyClass=|prototypes\.css/);
   assert.match(tags, /import type \{ GetStaticPaths \} from 'astro'/);
   assert.match(tags, /getListedPosts\(lang\)/);
   assert.match(tags, /uniqueTaxonomy\(posts, 'tags'\)/);
@@ -23,10 +23,10 @@ test('production tag directory uses A layout with frequency-ranked taxonomy data
   assert.doesNotMatch(tags, /taxonomy-grid|site-shell page-heading|client:/);
 });
 
-test('production tag directory has localized empty states and responsive A styles', async () => {
+test('production tag directory has localized empty states and responsive public styles', async () => {
   const [tags, styles] = await Promise.all([
     read('src/pages/[lang]/tags/index.astro'),
-    read('src/styles/prototypes.css'),
+    read('src/styles/public.css'),
   ]);
 
   assert.match(tags, /tagEntries\.length > 0/);
@@ -34,10 +34,10 @@ test('production tag directory has localized empty states and responsive A style
     assert.match(tags, new RegExp(text));
   }
   assert.match(tags, /a-tag-field--quiet/);
-  assert.match(styles, /\.concept-a \.a-tag-field--quiet\s*\{[^}]*border-top:[^}]*border-bottom:/s);
-  assert.match(styles, /@media \(max-width: 64rem\)[\s\S]*\.concept-a \.a-tag-field\s*\{[^}]*grid-template-columns:\s*repeat\(3, minmax\(0, 1fr\)\)/s);
-  assert.match(styles, /@media \(max-width: 46rem\)[\s\S]*\.concept-a \.a-tag-field\s*\{[^}]*grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/s);
-  assert.match(styles, /\.a-tag-field a:focus-visible/);
+  assert.match(styles, /\.a-tag-field\s*\{[^}]*display:\s*flex[^}]*flex-direction:\s*column/s);
+  assert.match(styles, /\.a-tag-field > a\s*\{[^}]*min-height:\s*7rem[^}]*padding-left:\s*calc\(var\(--tag-rank, 0\)/s);
+  assert.match(styles, /@media \(max-width: 48rem\)[\s\S]*\.a-tag-field > a\s*\{[^}]*min-height:\s*6rem[^}]*padding-left:\s*0/s);
+  assert.match(styles, /\.a-tag-field > a:focus-visible/);
 });
 
 test('production tag detail uses the shared localized taxonomy article list', async () => {
@@ -46,7 +46,7 @@ test('production tag detail uses the shared localized taxonomy article list', as
     read('src/components/TaxonomyPostList.astro'),
   ]);
 
-  assert.match(tag, /bodyClass="concept-a"/);
+  assert.doesNotMatch(tag, /bodyClass=|prototypes\.css/);
   assert.match(tag, /import type \{ GetStaticPaths \} from 'astro'/);
   assert.match(tag, /getListedPosts\(lang\).*filter\(\(post\) => post\.data\.tags\.includes\(tag\)\)/s);
   assert.match(tag, /formatDate\(latest\.data\.publishedAt, ui\.locale\)/);

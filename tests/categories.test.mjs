@@ -8,10 +8,10 @@ async function read(relativePath) {
   return readFile(new URL(relativePath, root), 'utf8');
 }
 
-test('production category directory uses A layout with real taxonomy data', async () => {
+test('production category directory uses the public editorial layout with real taxonomy data', async () => {
   const categories = await read('src/pages/[lang]/categories/index.astro');
 
-  assert.match(categories, /bodyClass="concept-a"/);
+  assert.doesNotMatch(categories, /bodyClass=|prototypes\.css/);
   assert.match(categories, /getListedPosts\(lang\)/);
   assert.match(categories, /uniqueTaxonomy\(posts, 'category'\)/);
   assert.match(categories, /categoryEntries\.map/);
@@ -20,10 +20,10 @@ test('production category directory uses A layout with real taxonomy data', asyn
   assert.doesNotMatch(categories, /PROTOTYPE_CATEGORIES|taxonomy-grid|style=/);
 });
 
-test('production category directory has localized empty states and mobile-safe A styles', async () => {
+test('production category directory has localized empty states and mobile-safe public styles', async () => {
   const [categories, styles] = await Promise.all([
     read('src/pages/[lang]/categories/index.astro'),
-    read('src/styles/prototypes.css'),
+    read('src/styles/public.css'),
   ]);
 
   assert.match(categories, /categoryEntries\.length > 0/);
@@ -31,19 +31,19 @@ test('production category directory has localized empty states and mobile-safe A
     assert.match(categories, new RegExp(text));
   }
   assert.match(categories, /a-category-directory--quiet/);
-  assert.match(styles, /\.concept-a \.a-category-directory--quiet\s*{[^}]*border-top:[^}]*border-bottom:/s);
-  assert.match(styles, /@media \(max-width: 46rem\)[\s\S]*\.concept-a \.a-category-directory > a\s*{[^}]*grid-template-columns:\s*2rem minmax\(0, 1fr\) 1\.25rem[^}]*min-height:\s*7\.25rem/s);
-  assert.match(styles, /\.concept-a \.a-category-directory strong\s*{[^}]*grid-column:\s*2/s);
+  assert.match(styles, /\.a-category-directory\s*{[^}]*border-top:\s*1px solid var\(--ink\)/s);
+  assert.match(styles, /@media \(max-width: 48rem\)[\s\S]*\.a-category-directory > a\s*{[^}]*grid-template-columns:\s*2rem minmax\(0, 1fr\) auto[^}]*min-height:\s*8rem/s);
+  assert.match(styles, /\.a-category-directory > a:focus-visible::before/);
 });
 
-test('production category detail uses A layout with a static, localized article list', async () => {
+test('production category detail uses the public layout with a static, localized article list', async () => {
   const [category, list, styles] = await Promise.all([
     read('src/pages/[lang]/categories/[category].astro'),
     read('src/components/TaxonomyPostList.astro'),
-    read('src/styles/prototypes.css'),
+    read('src/styles/public.css'),
   ]);
 
-  assert.match(category, /bodyClass="concept-a"/);
+  assert.doesNotMatch(category, /bodyClass=|prototypes\.css/);
   assert.match(category, /import type \{ GetStaticPaths \} from 'astro'/);
   assert.match(category, /getListedPosts\(lang\).*filter\(\(post\) => post\.data\.category === category\)/s);
   assert.match(category, /formatDate\(latest\.data\.publishedAt, ui\.locale\)/);
@@ -58,7 +58,7 @@ test('production category detail uses A layout with a static, localized article 
   }
   assert.doesNotMatch(category, /<PostList|site-shell page-heading|client:/);
 
-  assert.match(styles, /\.concept-a \.a-taxonomy-posts > li > a\s*{[^}]*grid-template-columns:\s*8\.5rem minmax\(0, 1fr\) minmax\(8rem, 0\.35fr\) 1\.5rem[^}]*min-height:\s*10rem/s);
-  assert.match(styles, /@media \(max-width: 46rem\)[\s\S]*\.concept-a \.a-taxonomy-posts > li > a\s*{[^}]*grid-template-columns:\s*minmax\(0, 1fr\) 1\.25rem[^}]*min-height:\s*9rem/s);
-  assert.match(styles, /\.a-taxonomy-posts > li > a:focus-visible h3/);
+  assert.match(styles, /\.a-taxonomy-posts > li > a\s*{[^}]*grid-template-columns:\s*3rem minmax\(18rem, 1fr\) minmax\(8rem, 0\.4fr\) 8rem auto[^}]*min-height:\s*10rem/s);
+  assert.match(styles, /@media \(max-width: 48rem\)[\s\S]*\.a-taxonomy-posts > li > a\s*{[^}]*grid-template-columns:\s*2rem minmax\(0, 1fr\) auto[^}]*min-height:\s*9rem/s);
+  assert.match(styles, /\.a-taxonomy-posts > li > a:focus-visible::before/);
 });

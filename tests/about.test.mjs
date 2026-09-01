@@ -8,10 +8,10 @@ async function read(relativePath) {
   return readFile(new URL(relativePath, root), 'utf8');
 }
 
-test('production about page uses localized A layout and confirmed public facts', async () => {
+test('production about page uses the public editorial layout and confirmed public facts', async () => {
   const about = await read('src/pages/[lang]/about/index.astro');
 
-  assert.match(about, /bodyClass="concept-a"/);
+  assert.doesNotMatch(about, /bodyClass=|prototypes\.css/);
   assert.match(about, /import type \{ GetStaticPaths \} from 'astro'/);
   assert.match(about, /class="a-about-page__statement"/);
   assert.match(about, /class="a-about-page__principles"/);
@@ -28,12 +28,12 @@ test('production about page uses localized A layout and confirmed public facts',
 test('production about page keeps responsive principles and visible link focus', async () => {
   const [about, styles] = await Promise.all([
     read('src/pages/[lang]/about/index.astro'),
-    read('src/styles/prototypes.css'),
+    read('src/styles/public.css'),
   ]);
 
   assert.match(about, /c\.rules\.map/);
-  assert.match(styles, /\.concept-a \.a-about-page__links\s*{[^}]*grid-template-columns:\s*repeat\(3, minmax\(0, 1fr\)\)/s);
-  assert.match(styles, /@media \(max-width: 46rem\)[\s\S]*\.concept-a \.a-about-page__principles ol\s*{[^}]*display:\s*block/s);
-  assert.match(styles, /@media \(max-width: 46rem\)[\s\S]*\.concept-a \.a-about-page__links\s*{[^}]*display:\s*block/s);
-  assert.match(styles, /\.a-about-page__links a:focus-visible span/);
+  assert.match(styles, /\.a-about-page__links\s*{[^}]*grid-template-columns:\s*repeat\(3, 1fr\)/s);
+  assert.match(styles, /@media \(max-width: 48rem\)[\s\S]*\.a-about-page__statement\s*{[^}]*grid-template-columns:\s*1fr/s);
+  assert.match(styles, /@media \(max-width: 48rem\)[\s\S]*\.a-about-page__links\s*{[^}]*grid-template-columns:\s*1fr/s);
+  assert.match(styles, /\.public-site :focus-visible/);
 });

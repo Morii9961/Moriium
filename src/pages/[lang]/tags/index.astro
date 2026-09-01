@@ -3,7 +3,6 @@ import type { GetStaticPaths } from 'astro';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import { SITE, UI, type Language } from '../../../data/site';
 import { getListedPosts, uniqueTaxonomy } from '../../../utils/content';
-import '../../../styles/prototypes.css';
 
 export const getStaticPaths: GetStaticPaths = () =>
   SITE.languages.map((lang) => ({ params: { lang }, props: { lang } }));
@@ -37,10 +36,10 @@ const copy = {
 const c = copy[lang];
 ---
 
-<BaseLayout lang={lang} title={c.title} bodyClass="concept-a">
+<BaseLayout lang={lang} title={c.title}>
   <div class="a-directory">
     <header class="a-directory__hero">
-      <p class="prototype-kicker">04 / Tags</p>
+      <p class="prototype-kicker">Index / Tags</p>
       <div class="a-directory__title"><h1>{c.title}</h1><p>{c.intro}</p></div>
       <dl class="a-directory__stats">
         <div><dt>{c.tags}</dt><dd>{String(tagEntries.length).padStart(2, '0')}</dd></div>

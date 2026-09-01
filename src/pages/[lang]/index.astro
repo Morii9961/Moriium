@@ -1,8 +1,8 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/public-home.css';
 import { SITE, UI, type Language } from '../../data/site';
 import { formatDate, getListedPosts, postPath, uniqueTaxonomy } from '../../utils/content';
-import '../../styles/prototypes.css';
 
 export function getStaticPaths() {
   return SITE.languages.map((lang) => ({ params: { lang }, props: { lang } }));
@@ -11,233 +11,201 @@ export function getStaticPaths() {
 const { lang } = Astro.props as { lang: Language };
 const ui = UI[lang];
 const posts = await getListedPosts(lang);
-const latestPosts = posts.slice(0, 4);
-const featuredPosts = [...new Map(posts.map((post) => [post.data.category, post])).values()].slice(0, 3);
+const recentPosts = posts.slice(0, 4);
 const categories = uniqueTaxonomy(posts, 'category').map((name) => ({
   name,
   count: posts.filter((post) => post.data.category === name).length,
 }));
-const tags = uniqueTaxonomy(posts, 'tags');
-
-const calendarDate = posts[0]?.data.publishedAt ?? new Date();
-const calendarYear = calendarDate.getFullYear();
-const calendarMonth = calendarDate.getMonth();
-const calendarDays = Array.from(
-  { length: new Date(calendarYear, calendarMonth + 1, 0).getDate() },
-  (_, index) => index + 1,
-);
-const calendarOffset = new Date(calendarYear, calendarMonth, 1).getDay();
-const activeDays = new Set(
-  posts
-    .filter((post) => post.data.publishedAt.getFullYear() === calendarYear && post.data.publishedAt.getMonth() === calendarMonth)
-    .map((post) => post.data.publishedAt.getDate()),
-);
-const calendarMonthLabel = new Intl.DateTimeFormat(ui.locale, { year: 'numeric', month: 'long' }).format(calendarDate);
-const shortDate = (date: Date) => date.toISOString().slice(0, 10).replaceAll('-', '.');
-const monthDay = (date: Date) => new Intl.DateTimeFormat(ui.locale, { month: '2-digit', day: '2-digit' }).format(date);
+const tags = uniqueTaxonomy(posts, 'tags').slice(0, 8);
 
 const copy = {
   zh: {
-    thesis: ['想到什么，', '就慢慢写下来。'],
-    intro: 'Moriium 是我的个人博客。这里没有固定主题，也不赶更新；文章、照片和路上的见闻，想整理时就放进来。',
-    enter: '看看文章', featured: '精选文章', featuredLabel: 'Featured',
-    latest: '最近文章', latestNote: '新的排在前面，旧的可以从归档、分类和标签里找。', all: '全部文章',
-    glance: 'Moriium 近况', glanceNote: '文章有多少，最近写了什么，都列在这里。',
-    author: 'Morii 和 Enouia 一起维护 Moriium。Morii 写文章、拍照片；Enouia 整理内容，也负责把网站搭起来、照看好。',
-    about: '关于我', stats: '站点统计', currentIndex: '截至目前', posts: '文章', directions: '分类', tagIndex: '标签', languages: '语言',
-    calendar: '更新日历', archive: '完整归档', updatedDay: '日有文章更新',
-    discover: '随便逛逛', discoverNote: '按分类找，或者翻翻旧文章。', byCategory: '分类', themes: '个', browseTheme: '查看',
-    now: '现在', nowItems: [
-      ['2026.08', '还在重做这个网站', '先把页面和写作流程理顺，功能一项一项补。'],
-      ['2026.08', '日本旅行的照片还在整理', '路线和现场笔记都在，等照片理好再慢慢写。'],
+    register: 'Moriium / 个人记录',
+    thesis: {
+      primary: ['把所见', '写下'],
+      secondary: ['把未完', '留下'],
+      label: '把所见写下，把未完留下。',
+    },
+    identity: 'Moriium / 私人存档',
+    identityMeta: 'ZH · JA · EN',
+    identityThemes: '文字 · 照片 · 旅途',
+    identityText: '文字、照片与旅途，在这里被慢慢整理成可以返回的页。',
+    identityEnter: '进入文章',
+    routes: [
+      ['Writing', '写下的', '全部公开文章'],
+      ['Archive', '回看的', '按年份寻找'],
+      ['Subjects', '反复出现的', '分类与标签'],
+      ['About', '这个地方', 'Moriium 是什么'],
     ],
-    siteIndex: '站内入口', archiveTitle: '文章归档', archiveNote: '按年份翻看文章', taxonomyTitle: '分类与标签', taxonomyNote: '按主题或标签查找', rssTitle: 'RSS 订阅', rssNote: '有新文章时直接收到',
-    aboutKicker: '04 / About', aboutTitle: '这里没有更新计划。',
-    aboutText: 'Moriium 是我放文章的地方。写什么、多久更新都不固定；归档、分类和 RSS 留着，方便以后自己找，也方便愿意来看的人订阅。',
-    aboutSite: '关于 Moriium', browse: '看看分类', subscribe: '订阅 RSS', coverLabel: '精选',
+    recent: '前几页', recentNote: '最近公开、但不必立刻读完的文字。', all: '查看全部',
+    field: '内容星图', fieldNote: '分类是较大的方向，标签是文章之间偶然形成的连线。',
+    category: '主要方向', tags: '交叉索引', posts: (count: number) => `${count} 篇`,
+    allCategories: '全部分类', allTags: '全部标签',
+    now: '此刻仍在发生', nowNote: '还没有写成长文，但已经留下时间。',
+    nowItems: [
+      ['2026.08', '重做 Moriium', '先改变人与内容相遇的方式，再决定哪些功能值得留下。'],
+      ['2026.08', '整理日本旅行照片', '路线与现场笔记都还在，等照片理顺后再写。'],
+    ],
+    closing: '下一页没有预告。',
+    closingText: '你可以从文章进入，也可以从年份、主题或 RSS 以后再回来。这里不要求连续阅读。',
+    archive: '打开归档', rss: '订阅 RSS', about: '关于这里',
   },
   ja: {
-    thesis: ['思いついたことを、', 'ゆっくり書いていく。'],
-    intro: 'Moriium は私の個人ブログです。テーマも更新頻度も決めていません。文章や写真、旅先で見たことを、整理したくなったときに残します。',
-    enter: '記事を見る', featured: '注目の記事', featuredLabel: 'Featured',
-    latest: '最近の記事', latestNote: '新しい記事から並んでいます。過去の記事はアーカイブ、カテゴリー、タグから探せます。', all: 'すべての記事',
-    glance: 'Moriium のいま', glanceNote: '記事数と最近の更新をまとめています。',
-    author: 'Morii と Enouia で Moriium を運営しています。Morii が文章を書き、写真を撮り、Enouia が内容を整理してサイトを整えます。',
-    about: '私について', stats: 'サイト統計', currentIndex: '現在', posts: '記事', directions: 'カテゴリー', tagIndex: 'タグ', languages: '言語',
-    calendar: '更新カレンダー', archive: '全アーカイブ', updatedDay: '日に記事を更新',
-    discover: 'もう少し見る', discoverNote: 'カテゴリーや過去の記事から探せます。', byCategory: 'カテゴリー', themes: '件', browseTheme: '見る',
-    now: 'いま', nowItems: [
-      ['2026.08', 'サイトを作り直しています', 'ページと執筆の流れを整え、機能を一つずつ追加しています。'],
-      ['2026.08', '日本旅行の写真を整理中', 'ルートとメモは残っています。写真が整ったら少しずつ書きます。'],
+    register: 'Moriium / 個人記録',
+    thesis: {
+      primary: ['見たものを', '書く'],
+      secondary: ['未完のまま', '残す'],
+      label: '見たものを書き、未完のまま残す。',
+    },
+    identity: 'Moriium / 個人アーカイブ',
+    identityMeta: 'ZH · JA · EN',
+    identityThemes: '文章 · 写真 · 旅',
+    identityText: '文章、写真、旅の断片を、あとで戻って来られる頁へゆっくり整えています。',
+    identityEnter: '記事へ',
+    routes: [
+      ['Writing', '書いたもの', '公開中の記事'],
+      ['Archive', '振り返るもの', '年から探す'],
+      ['Subjects', '繰り返すもの', 'カテゴリーとタグ'],
+      ['About', 'この場所', 'Moriium について'],
     ],
-    siteIndex: 'サイト内', archiveTitle: '記事アーカイブ', archiveNote: '年ごとに記事を見る', taxonomyTitle: 'カテゴリーとタグ', taxonomyNote: 'テーマやタグから探す', rssTitle: 'RSS', rssNote: '新しい記事を受け取る',
-    aboutKicker: '04 / About', aboutTitle: '更新予定は決めていません。',
-    aboutText: 'Moriium は私が文章を置くための場所です。何を書くかも、いつ更新するかも決めていません。アーカイブ、カテゴリー、RSS は、自分と読者があとから探せるように残しています。',
-    aboutSite: 'Moriium について', browse: 'カテゴリーを見る', subscribe: 'RSS を購読', coverLabel: '注目',
+    recent: '前の頁', recentNote: '最近公開した、急いで読み終えなくてもよい文章。', all: 'すべて見る',
+    field: '内容の星図', fieldNote: 'カテゴリーは大きな方向、タグは記事のあいだに偶然生まれた線です。',
+    category: '主な方向', tags: '交差する索引', posts: (count: number) => `${count} 件`,
+    allCategories: 'カテゴリー一覧', allTags: 'タグ一覧',
+    now: 'まだ途中にあること', nowNote: '長い文章にはなっていませんが、時間はすでに残っています。',
+    nowItems: [
+      ['2026.08', 'Moriium を作り直す', '内容との出会い方を変えてから、残す機能を決めます。'],
+      ['2026.08', '日本旅行の写真を整理中', 'ルートと現地のメモは残っています。写真が整ったら書きます。'],
+    ],
+    closing: '次の頁に予告はありません。',
+    closingText: '記事、年、テーマ、RSS。どの入口からでも、あとで戻って来られます。続けて読む必要はありません。',
+    archive: 'アーカイブを開く', rss: 'RSS を購読', about: 'この場所について',
   },
   en: {
-    thesis: ['I write things down', 'when I feel like it.'],
-    intro: 'Moriium is my personal blog. It has no fixed subject or schedule. I use it for articles, photographs, and notes from the road.',
-    enter: 'Read the posts', featured: 'Featured post', featuredLabel: 'Featured',
-    latest: 'Latest posts', latestNote: 'New posts come first. Older ones are in the archive, categories, and tags.', all: 'All posts',
-    glance: 'Moriium now', glanceNote: 'A quick count and the latest updates.',
-    author: 'Morii and Enouia run Moriium together. Morii writes and takes photographs; Enouia organizes the work and looks after the site.',
-    about: 'About me', stats: 'Site count', currentIndex: 'Now', posts: 'Posts', directions: 'Categories', tagIndex: 'Tags', languages: 'Languages',
-    calendar: 'Update calendar', archive: 'Full archive', updatedDay: ' has an update',
-    discover: 'Look around', discoverNote: 'Browse by category or open an older post.', byCategory: 'Categories', themes: 'total', browseTheme: 'View',
-    now: 'Now', nowItems: [
-      ['2026.08', 'Rebuilding this site', 'I am sorting out the pages and writing flow, then adding features one at a time.'],
-      ['2026.08', 'Sorting the Japan photographs', 'The route and notes are ready. I will write when the photographs are in order.'],
+    register: 'Moriium / Personal record',
+    thesis: {
+      primary: ['Write what', 'was seen'],
+      secondary: ['Keep what remains', 'unfinished'],
+      label: 'Write what was seen. Keep what remains unfinished.',
+    },
+    identity: 'Moriium / Personal archive',
+    identityMeta: 'ZH · JA · EN',
+    identityThemes: 'Writing · Photography · Journey',
+    identityText: 'Writing, photographs, and fragments from the road, slowly arranged into pages worth returning to.',
+    identityEnter: 'Enter the writing',
+    routes: [
+      ['Writing', 'Things written', 'Every public post'],
+      ['Archive', 'Things revisited', 'Find a year'],
+      ['Subjects', 'Things recurring', 'Categories and tags'],
+      ['About', 'This place', 'What Moriium is'],
     ],
-    siteIndex: 'On this site', archiveTitle: 'Archive', archiveNote: 'Browse posts by year', taxonomyTitle: 'Categories and tags', taxonomyNote: 'Find posts by subject', rssTitle: 'RSS', rssNote: 'Get new posts directly',
-    aboutKicker: '04 / About', aboutTitle: 'There is no posting schedule.',
-    aboutText: 'Moriium is where I keep my writing. The subject and timing vary. The archive, categories, and RSS are here so both I and my readers can find things later.',
-    aboutSite: 'About Moriium', browse: 'Browse categories', subscribe: 'Subscribe by RSS', coverLabel: 'Feature',
+    recent: 'Previous pages', recentNote: 'Recently published writing that does not ask to be finished at once.', all: 'See all writing',
+    field: 'A map of the work', fieldNote: 'Categories mark broad directions; tags are lines that happen to form between posts.',
+    category: 'Main directions', tags: 'Cross-index', posts: (count: number) => `${count} ${count === 1 ? 'post' : 'posts'}`,
+    allCategories: 'All categories', allTags: 'All tags',
+    now: 'Still in progress', nowNote: 'Not long enough to be an essay, but already part of the record.',
+    nowItems: [
+      ['2026.08', 'Rebuilding Moriium', 'Change how people encounter the work first; decide which features deserve to remain later.'],
+      ['2026.08', 'Sorting the Japan photographs', 'The route and field notes remain. I will write after the photographs are in order.'],
+    ],
+    closing: 'The next page is unannounced.',
+    closingText: 'Enter through a post, a year, a subject, or return later by RSS. Nothing here has to be read in sequence.',
+    archive: 'Open the archive', rss: 'Subscribe by RSS', about: 'About this place',
   },
 } as const;
 const c = copy[lang];
+const routeHrefs = [`/${lang}/writing/`, `/${lang}/archive/`, `/${lang}/categories/`, `/${lang}/about/`];
 ---
 
-<BaseLayout lang={lang} bodyClass="concept-a">
-  <div class="a-home">
-    <section class="a-opening" aria-labelledby="a-opening-title">
-      <header class="a-opening__mast">
-        <h1 id="a-opening-title" lang="en">Moriium</h1>
-        <p class="a-opening__thesis">{c.thesis[0]}<br />{c.thesis[1]}</p>
-        <p class="a-opening__intro">{c.intro}</p>
-        <a class="a-opening__entry" href={`/${lang}/writing/`}>{c.enter} <span aria-hidden="true">↘</span></a>
-      </header>
+<BaseLayout lang={lang}>
+  <div class="aperture-home">
+    <section class="aperture-hero" aria-labelledby="home-title">
+      <p class="aperture-hero__register">{c.register}<span>{String(posts.length).padStart(2, '0')} / {lang.toUpperCase()}</span></p>
 
-      {featuredPosts.length > 0 && (
-        <section class="a-feature-reel" data-feature-reel aria-label={c.featured}>
-          <div class="a-feature-reel__slides" aria-live="polite">
-            {featuredPosts.map((post, index) => (
-              <article class="a-feature-slide" data-feature-slide hidden={index > 0}>
-                <a href={postPath(post)} aria-label={`${ui.read}: ${post.data.title}`}>
-                  {post.collection === 'posts' && post.data.cover ? (
-                    <figure class="a-feature-visual a-feature-visual--photo">
-                      <img src={post.data.cover} alt={post.data.coverAlt ?? ''} />
-                      <figcaption><span>{c.coverLabel} #{String(index + 1).padStart(2, '0')}</span><span>{shortDate(post.data.publishedAt)}</span></figcaption>
-                    </figure>
-                  ) : (
-                    <div class="a-feature-visual a-feature-visual--build" aria-hidden="true">
-                      <p>MORIIUM / {post.data.category}</p><strong>{post.data.title}</strong>
-                      <code>{post.data.category} · {post.data.tags.slice(0, 2).join(' · ') || SITE.name}</code>
-                      <span>{String(index + 1).padStart(2, '0')} / {post.data.lang.toUpperCase()}</span>
-                    </div>
-                  )}
-                  <div class="a-feature-slide__copy">
-                    <p><span>{post.data.category}</span><time datetime={post.data.publishedAt.toISOString()}>{shortDate(post.data.publishedAt)}</time></p>
-                    <h2>{post.data.title}</h2>
-                    <p>{post.data.summary}</p>
-                  </div>
-                </a>
-              </article>
-            ))}
+      <div class="aperture-hero__thesis">
+        <h1 id="home-title" aria-label={c.thesis.label}>
+          <span class="aperture-hero__type-row aperture-hero__type-row--primary" aria-hidden="true">
+            <span>{c.thesis.primary[0]}</span><em>{c.thesis.primary[1]}</em>
+          </span>
+          <span class="aperture-hero__type-row aperture-hero__type-row--secondary" aria-hidden="true">
+            <span>{c.thesis.secondary[0]}</span><em>{c.thesis.secondary[1]}</em>
+          </span>
+        </h1>
+      </div>
+
+      <div class="aperture-hero__window">
+        <span class="aperture-hero__shutter" aria-hidden="true"></span>
+        <div class="aperture-identity">
+          <p class="aperture-identity__register"><span>{c.identity}</span><span>{c.identityMeta}</span></p>
+          <div class="aperture-identity__body">
+            <small>{c.identityThemes}</small>
+            <h2 lang="en">Moriium</h2>
+            <p>{c.identityText}</p>
           </div>
-          <nav class="a-feature-reel__controls" aria-label={c.featured}>
-            <span>{c.featuredLabel}</span>
-            <div>{featuredPosts.map((post, index) => <button type="button" data-feature-control aria-pressed={index === 0 ? 'true' : 'false'} aria-label={`${c.featured}: ${post.data.title}`}>{String(index + 1).padStart(2, '0')}</button>)}</div>
-          </nav>
-        </section>
-      )}
+          <a href={`/${lang}/writing/`}><span>{c.identityEnter}</span><i aria-hidden="true">↗</i></a>
+        </div>
+      </div>
+
+      <div class="aperture-hero__overprint" aria-hidden="true">
+        <span class="aperture-hero__type-row aperture-hero__type-row--primary">
+          <span>{c.thesis.primary[0]}</span><em>{c.thesis.primary[1]}</em>
+        </span>
+        <span class="aperture-hero__type-row aperture-hero__type-row--secondary">
+          <span>{c.thesis.secondary[0]}</span><em>{c.thesis.secondary[1]}</em>
+        </span>
+      </div>
     </section>
 
-    <section class="a-home-section" id="writing" aria-labelledby="a-latest-title">
-      <header class="a-section-heading">
-        <p><span>01</span> Writing</p>
-        <div><h2 id="a-latest-title">{c.latest}</h2><p>{c.latestNote}</p></div>
-        <a href={`/${lang}/writing/`}>{c.all} →</a>
-      </header>
-      <ol class="prototype-posts a-post-index">
-        {latestPosts.map((post, index) => (
-          <li class="prototype-post"><a href={postPath(post)}>
-            <span>{String(index + 1).padStart(2, '0')}</span>
-            <div><h3>{post.data.title}</h3><p>{post.data.summary}</p></div>
-            <span>{post.data.category}</span>
-            <time datetime={post.data.publishedAt.toISOString()}>{formatDate(post.data.publishedAt, ui.locale)}</time>
-            <span class="a-post-index__arrow" aria-hidden="true">↗</span>
-          </a></li>
-        ))}
-      </ol>
-    </section>
+    <nav class="aperture-ways" aria-label={ui.primaryNav}>
+      {c.routes.map(([label, title, note], index) => (
+        <a href={routeHrefs[index]}>
+          <small>{label}</small><span>{title}</span><i>{note}</i><b aria-hidden="true">↗</b>
+        </a>
+      ))}
+    </nav>
 
-    <section class="a-home-utility" aria-labelledby="a-utility-title">
-      <header class="a-section-heading a-section-heading--compact">
-        <p><span>02</span> At a glance</p>
-        <div><h2 id="a-utility-title">{c.glance}</h2><p>{c.glanceNote}</p></div>
+    {recentPosts.length > 0 && (
+      <section class="aperture-recent" aria-labelledby="home-recent-title">
+        <header><p>Writing / Recent</p><h2 id="home-recent-title">{c.recent}</h2><span>{c.recentNote}</span></header>
+        <ol>
+          {recentPosts.map((post) => (
+            <li><a href={postPath(post)}>
+              <time datetime={post.data.publishedAt.toISOString()}>{formatDate(post.data.publishedAt, ui.locale)}</time>
+              <h3>{post.data.title}</h3><p>{post.data.summary}</p><i aria-hidden="true">↗</i>
+            </a></li>
+          ))}
+        </ol>
+        <a class="aperture-text-link" href={`/${lang}/writing/`}>{c.all} →</a>
+      </section>
+    )}
+
+    <section class="aperture-field" aria-labelledby="home-field-title">
+      <header>
+        <p>Index / Coordinates</p>
+        <h2 id="home-field-title">{c.field}</h2>
+        <span>{c.fieldNote}</span>
       </header>
-      <div class="a-home-utility__grid">
-        <section class="a-profile-panel" aria-labelledby="a-profile-title">
-          <div class="a-profile-panel__body"><h3 id="a-profile-title">Morii &amp; Enouia</h3><p>{c.author}</p></div>
-          <nav aria-label={c.about}><a href={`/${lang}/about/`}>{c.about}</a><a href="https://github.com/Morii9961">GitHub</a><a href={`/${lang}/rss.xml`}>RSS</a></nav>
+      <div class="aperture-field__body">
+        <section aria-labelledby="home-categories-title">
+          <div class="aperture-field__label"><h3 id="home-categories-title">{c.category}</h3><a href={`/${lang}/categories/`}>{c.allCategories} ↗</a></div>
+          <ol>{categories.map((category) => <li><a href={`/${lang}/categories/${encodeURIComponent(category.name)}/`}><span>{category.name}</span><small>{c.posts(category.count)}</small></a></li>)}</ol>
         </section>
-        <section class="a-stats-panel" aria-labelledby="a-stats-title">
-          <header><h3 id="a-stats-title">{c.stats}</h3><p>{c.currentIndex}</p></header>
-          <dl>
-            <div><dt>{c.posts}</dt><dd>{String(posts.length).padStart(2, '0')}</dd></div>
-            <div><dt>{c.directions}</dt><dd>{String(categories.length).padStart(2, '0')}</dd></div>
-            <div><dt>{c.tagIndex}</dt><dd>{String(tags.length).padStart(2, '0')}</dd></div>
-            <div><dt>{c.languages}</dt><dd>{String(SITE.languages.length).padStart(2, '0')}</dd></div>
-          </dl>
-        </section>
-        <section class="a-activity-panel" aria-labelledby="a-activity-title">
-          <header><div><h3 id="a-activity-title">{c.calendar}</h3><p>{calendarMonthLabel}</p></div><a href={`/${lang}/archive/`}>{c.archive} →</a></header>
-          <div class="a-activity-calendar" aria-label={`${c.calendar}: ${calendarMonthLabel}`}>
-            <div class="a-activity-calendar__week" aria-hidden="true"><span>{lang === 'en' ? 'S' : '日'}</span><span>{lang === 'en' ? 'M' : '一'}</span><span>{lang === 'en' ? 'T' : '二'}</span><span>{lang === 'en' ? 'W' : '三'}</span><span>{lang === 'en' ? 'T' : '四'}</span><span>{lang === 'en' ? 'F' : '五'}</span><span>{lang === 'en' ? 'S' : '六'}</span></div>
-            <div class="a-activity-calendar__days">
-              {Array.from({ length: calendarOffset }).map(() => <span aria-hidden="true"></span>)}
-              {calendarDays.map((day) => {
-                const date = new Date(calendarYear, calendarMonth, day);
-                const datetime = date.toISOString().slice(0, 10);
-                return activeDays.has(day)
-                  ? <time class="is-active" datetime={datetime} title={`${day}${c.updatedDay}`}>{day}<i aria-hidden="true"></i></time>
-                  : <time datetime={datetime}>{day}</time>;
-              })}
-            </div>
-          </div>
-          <ol class="a-activity-panel__latest">{posts.slice(0, 3).map((post) => <li><a href={postPath(post)}>{post.data.title}</a><time datetime={post.data.publishedAt.toISOString()}>{monthDay(post.data.publishedAt)}</time></li>)}</ol>
+        <section class="aperture-field__tags" aria-labelledby="home-tags-title">
+          <div class="aperture-field__label"><h3 id="home-tags-title">{c.tags}</h3><a href={`/${lang}/tags/`}>{c.allTags} ↗</a></div>
+          <div>{tags.map((tag, index) => <a href={`/${lang}/tags/${encodeURIComponent(tag)}/`} style={`--tag-offset: ${index}`}># {tag}</a>)}</div>
         </section>
       </div>
     </section>
 
-    <section class="a-discovery" aria-labelledby="a-discovery-title">
-      <header class="a-section-heading a-section-heading--compact">
-        <p><span>03</span> Discover</p>
-        <div><h2 id="a-discovery-title">{c.discover}</h2><p>{c.discoverNote}</p></div>
-      </header>
-      <section class="a-categories" aria-labelledby="a-categories-title">
-        <header><h3 id="a-categories-title">{c.byCategory}</h3><p>{categories.length} {c.themes}</p></header>
-        <ul>{categories.map((category) => <li><a href={`/${lang}/categories/${encodeURIComponent(category.name)}/`}><span>{category.name}</span><small>{c.browseTheme}</small><strong>{String(category.count).padStart(2, '0')}</strong></a></li>)}</ul>
-      </section>
-      <section class="a-now" aria-labelledby="a-now-title">
-        <header><h3 id="a-now-title">{c.now}</h3><p>Now / 2026.08</p></header>
-        <ol>{c.nowItems.map(([date, title, note]) => <li><time>{date}</time><h4>{title}</h4><p>{note}</p></li>)}</ol>
-      </section>
-      <nav class="a-site-index" aria-label={c.siteIndex}>
-        <p>{c.siteIndex}</p>
-        <a href={`/${lang}/archive/`}><span>{c.archiveTitle}</span><small>{c.archiveNote}</small></a>
-        <a href={`/${lang}/categories/`}><span>{c.taxonomyTitle}</span><small>{c.taxonomyNote}</small></a>
-        <a href={`/${lang}/rss.xml`}><span>{c.rssTitle}</span><small>{c.rssNote}</small></a>
-      </nav>
+    <section class="aperture-now" aria-labelledby="home-now-title">
+      <header><p>Now / 2026.08</p><h2 id="home-now-title">{c.now}</h2><span>{c.nowNote}</span></header>
+      <ol>{c.nowItems.map(([date, title, note]) => <li><time>{date}</time><div><h3>{title}</h3><p>{note}</p></div></li>)}</ol>
     </section>
 
-    <section class="a-about" aria-labelledby="a-about-title">
-      <p class="prototype-kicker">{c.aboutKicker}</p>
-      <h2 id="a-about-title">{c.aboutTitle}</h2>
-      <div><p>{c.aboutText}</p><nav aria-label={c.about}><a href={`/${lang}/about/`}>{c.aboutSite}</a><a href={`/${lang}/categories/`}>{c.browse}</a><a href={`/${lang}/rss.xml`}>{c.subscribe}</a></nav></div>
+    <section class="aperture-closing" aria-labelledby="home-closing-title">
+      <p>Moriium / Continue later</p>
+      <h2 id="home-closing-title">{c.closing}</h2>
+      <div><p>{c.closingText}</p><nav aria-label={c.about}><a href={`/${lang}/archive/`}>{c.archive}</a><a href={`/${lang}/rss.xml`}>{c.rss}</a><a href={`/${lang}/about/`}>{c.about}</a></nav></div>
     </section>
-
-    <script>
-      const reel = document.querySelector<HTMLElement>('[data-feature-reel]');
-      const slides = [...(reel?.querySelectorAll<HTMLElement>('[data-feature-slide]') ?? [])];
-      const controls = [...(reel?.querySelectorAll<HTMLButtonElement>('[data-feature-control]') ?? [])];
-      controls.forEach((control, index) => {
-        control.addEventListener('click', () => {
-          slides.forEach((slide, slideIndex) => { slide.hidden = slideIndex !== index; });
-          controls.forEach((button, buttonIndex) => button.setAttribute('aria-pressed', String(buttonIndex === index)));
-        });
-      });
-    </script>
   </div>
 </BaseLayout>

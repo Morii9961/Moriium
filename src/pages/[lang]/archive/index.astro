@@ -2,7 +2,6 @@
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import { SITE, UI, type Language } from '../../../data/site';
 import { getListedPosts, postPath } from '../../../utils/content';
-import '../../../styles/prototypes.css';
 
 export function getStaticPaths() {
   return SITE.languages.map((lang) => ({ params: { lang }, props: { lang } }));
@@ -39,10 +38,10 @@ const c = copy[lang];
 const monthDay = (date: Date) => new Intl.DateTimeFormat(ui.locale, { month: '2-digit', day: '2-digit' }).format(date);
 ---
 
-<BaseLayout lang={lang} title={c.title} bodyClass="concept-a">
+<BaseLayout lang={lang} title={c.title}>
   <div class="a-directory">
     <header class="a-directory__hero">
-      <p class="prototype-kicker">02 / Archive</p>
+      <p class="prototype-kicker">Archive / Years</p>
       <div class="a-directory__title"><h1>{c.title}</h1><p>{c.intro}</p></div>
       <dl class="a-directory__stats">
         <div><dt>{c.span}</dt><dd>{yearSpan}</dd></div>

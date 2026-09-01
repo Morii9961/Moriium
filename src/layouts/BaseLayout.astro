@@ -4,6 +4,7 @@ import '@fontsource-variable/sora/wght.css';
 import '@fontsource/ibm-plex-mono/latin-400.css';
 import 'lxgw-wenkai-screen-webfont/lxgwwenkaigbscreen.css';
 import '../styles/base.css';
+import '../styles/public.css';
 import { SITE, UI, type Language } from '../data/site';
 
 interface Props {
@@ -17,7 +18,7 @@ interface Props {
   bodyClass?: string;
 }
 
-const { lang, title, description = UI[lang].description, canonical, noindex = false, ogType = 'website', image, bodyClass } = Astro.props;
+const { lang, title, description = UI[lang].description, canonical, noindex = false, ogType = 'website', image, bodyClass = 'public-site' } = Astro.props;
 const ui = UI[lang];
 const pageTitle = title ? `${title} · ${SITE.name}` : SITE.name;
 const pathname = Astro.url.pathname;
@@ -54,7 +55,10 @@ const languageLabels = { zh: '中', ja: '日', en: 'EN' } as const;
     <a class="skip-link" href="#main">{ui.skip}</a>
     <header class="site-header">
       <div class="site-shell site-header__inner">
-        <a class="site-mark" href={`/${lang}/`}>{SITE.name}</a>
+        <a class="site-mark" href={`/${lang}/`}>
+          <strong>{SITE.name}</strong>
+          <span>{ui.footer.description}</span>
+        </a>
         <nav class="site-nav" aria-label={ui.primaryNav}>
           <a href={`/${lang}/`} aria-current={pathname === `/${lang}/` ? 'page' : undefined}>{ui.nav.home}</a>
           <a href={`/${lang}/writing/`} aria-current={pathname.includes('/writing/') || pathname.includes('/posts/') || pathname.includes('/protected/') ? 'page' : undefined}>{ui.nav.writing}</a>

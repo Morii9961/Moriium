@@ -2,10 +2,10 @@
 import type { CollectionEntry } from 'astro:content';
 import BaseLayout from './BaseLayout.astro';
 import ReaderEnhancements from '../components/ReaderEnhancements.astro';
+import '../styles/public-reading.css';
 import { SITE, UI, type Language } from '../data/site';
 import { formatDate, postPath } from '../utils/content';
 import type { ReaderFeatures } from '../utils/features';
-import '../styles/prototypes.css';
 
 type Post = CollectionEntry<'posts'>;
 type Entry = CollectionEntry<'posts'> | CollectionEntry<'protected'>;
@@ -68,7 +68,7 @@ const readerNote = enabledFeatures.length > 0 ? c.loaded(enabledFeatures) : c.ba
 const minutes = readingMinutes(post.body ?? '');
 ---
 
-<BaseLayout lang={lang} title={post.data.title} description={post.data.summary} ogType="article" bodyClass="concept-a" {...imageProps}>
+<BaseLayout lang={lang} title={post.data.title} description={post.data.summary} ogType="article" {...imageProps}>
   <Fragment slot="head">
     <meta property="article:published_time" content={post.data.publishedAt.toISOString()} />
     {post.data.updatedAt && <meta property="article:modified_time" content={post.data.updatedAt.toISOString()} />}

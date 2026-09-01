@@ -23,10 +23,11 @@ test('production public article route supplies static headings and adjacent post
   assert.doesNotMatch(route, /client:/);
 });
 
-test('production article layout uses A reading structure and real metadata', async () => {
+test('production article layout uses the public reading structure and real metadata', async () => {
   const article = await read('src/layouts/ArticleLayout.astro');
 
-  assert.match(article, /bodyClass="concept-a"/);
+  assert.doesNotMatch(article, /bodyClass=|prototypes\.css/);
+  assert.match(article, /import '\.\.\/styles\/public-reading\.css'/);
   for (const marker of ['a-article__hero', 'a-article__facts', 'a-article__outline', 'a-article__body', 'a-article__context', 'a-article__end']) {
     assert.match(article, new RegExp(`class="[^"]*${marker}`));
   }
@@ -47,15 +48,15 @@ test('production article layout uses A reading structure and real metadata', asy
 
 test('production article layout keeps responsive reading columns and keyboard states', async () => {
   const [styles, base] = await Promise.all([
-    read('src/styles/prototypes.css'),
+    read('src/styles/public-reading.css'),
     read('src/styles/base.css'),
   ]);
 
-  assert.match(styles, /\.concept-a \.a-reading-grid\s*{[^}]*grid-template-columns:\s*minmax\(9rem, 0\.55fr\) minmax\(0, 2fr\) minmax\(11rem, 0\.65fr\)/s);
-  assert.match(styles, /@media \(max-width: 64rem\)[\s\S]*\.concept-a \.a-reading-grid\s*{[^}]*grid-template-columns:\s*10rem minmax\(0, 1fr\)/s);
-  assert.match(styles, /@media \(max-width: 46rem\)[\s\S]*\.concept-a \.a-reading-grid\s*{[^}]*display:\s*block/s);
+  assert.match(styles, /\.a-reading-grid\s*{[^}]*grid-template-columns:\s*minmax\(9rem, 0\.42fr\) minmax\(0, var\(--layout-reading\)\) minmax\(10rem, 0\.48fr\)/s);
+  assert.match(styles, /@media \(max-width: 70rem\)[\s\S]*\.a-reading-grid\s*{[^}]*grid-template-columns:\s*minmax\(0, var\(--layout-reading\)\)[^}]*justify-content:\s*center/s);
+  assert.match(styles, /@media \(max-width: 48rem\)[\s\S]*\.a-article__outline nav,\s*\.a-article__context\s*{[^}]*grid-template-columns:\s*1fr/s);
   assert.match(styles, /\.a-article__outline nav a:focus-visible/);
   assert.match(styles, /\.a-article__end nav a:focus-visible strong/);
-  assert.match(styles, /@media \(prefers-reduced-motion: reduce\)/);
+  assert.match(base, /@media \(prefers-reduced-motion: reduce\)/);
   assert.match(base, /\.video-consent\s*{[^}]*width:\s*100%[^}]*min-height:\s*0[^}]*aspect-ratio:/s);
 });

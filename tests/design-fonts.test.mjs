@@ -85,10 +85,10 @@ test('selected A prototype exposes an expressive home, independent directories, 
   assert.match(article, /本文没有加载代码、图表或媒体模块/);
 });
 
-test('production shell uses the selected A typography and global frame', async () => {
+test('production shell loads the public typography and editorial frame', async () => {
   const [layout, styles] = await Promise.all([
     read('src/layouts/BaseLayout.astro'),
-    read('src/styles/base.css'),
+    read('src/styles/public.css'),
   ]);
 
   assert.match(layout, /@fontsource-variable\/noto-sans-sc\/wght\.css/);
@@ -100,26 +100,33 @@ test('production shell uses the selected A typography and global frame', async (
     assert.match(layout, new RegExp(marker));
   }
 
-  assert.match(styles, /--surface:\s*#f7f8f8/);
-  assert.match(styles, /--font-display:\s*"Sora Variable",\s*"LXGW WenKai Screen"/);
-  assert.match(styles, /\.site-header__inner\s*{[^}]*grid-template-columns:\s*1fr auto 1fr/s);
+  assert.match(layout, /import '\.\.\/styles\/public\.css'/);
+  assert.doesNotMatch(layout, /public-(?:home|reading)\.css/);
+  assert.match(layout, /bodyClass = 'public-site'/);
+  assert.match(styles, /--surface:\s*var\(--moriium-light-canvas\)/);
+  assert.match(styles, /--font-display:\s*"Noto Sans SC Variable",\s*"Sora Variable"/);
+  assert.match(styles, /\.public-site \.site-header__inner\s*{[^}]*grid-template-columns:\s*minmax\(12rem, 1fr\) auto minmax\(12rem, 1fr\)/s);
 });
 
-test('production home and writing index promote selected A with real content', async () => {
+test('production home and writing index use the rebuilt editorial system with real content', async () => {
   const [layout, home, writing] = await Promise.all([
     read('src/layouts/BaseLayout.astro'),
     read('src/pages/[lang]/index.astro'),
     read('src/pages/[lang]/writing/index.astro'),
   ]);
 
-  for (const marker of ['a-opening', 'a-feature-reel', 'a-home-section', 'a-home-utility', 'a-discovery', 'a-about']) {
+  for (const marker of ['aperture-hero', 'aperture-hero__type-row', 'aperture-hero__overprint', 'aperture-identity', 'aperture-ways', 'aperture-field', 'aperture-now', 'aperture-closing']) {
     assert.match(home, new RegExp(`class=\"[^\"]*${marker}`));
   }
   assert.match(home, /getListedPosts\(lang\)/);
+  assert.match(home, /import '\.\.\/\.\.\/styles\/public-home\.css'/);
   assert.match(home, /postPath\(post\)/);
+  assert.match(home, /const recentPosts = posts\.slice\(0, 4\)/);
+  assert.doesNotMatch(home, /leadPost|aperture-lead|aperture-hero__aside/);
+  assert.doesNotMatch(home, /aperture-hero__thesis-tail|aperture-hero__counterline/);
   assert.doesNotMatch(home, /PROTOTYPE_POSTS|PROTOTYPE_CATEGORIES/);
 
-  assert.match(writing, /bodyClass=\"concept-a\"/);
+  assert.doesNotMatch(writing, /bodyClass=|prototypes\.css/);
   assert.match(writing, /getListedPosts\(lang\)/);
   assert.match(writing, /class=\"a-directory\"/);
   assert.match(layout, /`\/\$\{lang\}\/writing\/`/);
@@ -134,8 +141,9 @@ test('production copy removes prototype fillers and keeps the Moriium voice', as
   ]);
 
   assert.doesNotMatch(home, /edition:|\{c\.edition\}|记录与留白/);
-  assert.match(home, /Morii &amp; Enouia/);
-  assert.match(home, /Morii 和 Enouia 一起维护 Moriium/);
+  assert.match(home, /把所见写下/);
+  assert.match(home, /把未完留下/);
+  assert.match(home, /文字、照片与旅途，在这里被慢慢整理成可以返回的页/);
   assert.doesNotMatch(home, /Morii's personal edition · Dalian|STATIC<br \/>FIRST|a-profile-panel__mark|在大连生活，持续记录/);
   assert.match(layout, /\{ui\.skip\}/);
   assert.match(layout, /aria-label=\{ui\.primaryNav\}/);

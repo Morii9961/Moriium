@@ -2,7 +2,6 @@
 import type { GetStaticPaths } from 'astro';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import { SITE, type Language } from '../../../data/site';
-import '../../../styles/prototypes.css';
 
 export const getStaticPaths: GetStaticPaths = () =>
   SITE.languages.map((lang) => ({ params: { lang }, props: { lang } }));
@@ -64,10 +63,10 @@ const copy = {
 const c = copy[lang];
 ---
 
-<BaseLayout lang={lang} title={c.title} bodyClass="concept-a">
+<BaseLayout lang={lang} title={c.title}>
   <div class="a-directory a-about-page">
     <header class="a-directory__hero">
-      <p class="prototype-kicker">05 / About</p>
+      <p class="prototype-kicker">Moriium / About</p>
       <div class="a-directory__title"><h1>{c.title}</h1><p>{c.intro}</p></div>
       <dl class="a-directory__stats">
         <div><dt>{c.author}</dt><dd>{SITE.author}</dd></div>

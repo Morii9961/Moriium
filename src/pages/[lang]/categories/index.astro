@@ -2,7 +2,6 @@
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import { SITE, UI, type Language } from '../../../data/site';
 import { getListedPosts, uniqueTaxonomy } from '../../../utils/content';
-import '../../../styles/prototypes.css';
 
 export function getStaticPaths() {
   return SITE.languages.map((lang) => ({ params: { lang }, props: { lang } }));
@@ -41,10 +40,10 @@ const copy = {
 const c = copy[lang];
 ---
 
-<BaseLayout lang={lang} title={c.title} bodyClass="concept-a">
+<BaseLayout lang={lang} title={c.title}>
   <div class="a-directory">
     <header class="a-directory__hero">
-      <p class="prototype-kicker">03 / Categories</p>
+      <p class="prototype-kicker">Index / Categories</p>
       <div class="a-directory__title"><h1>{c.title}</h1><p>{c.intro}</p></div>
       <dl class="a-directory__stats">
         <div><dt>{c.categories}</dt><dd>{String(categoryEntries.length).padStart(2, '0')}</dd></div>
