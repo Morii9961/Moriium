@@ -17,3 +17,11 @@ artifacts/
 playwright-report/
 test-results/
 .astro-preview.*.log
+
+# Written into the workspace by the release state machine, never by hand: the
+# export's articles, the media projection and the media manifest (ADR 0002
+# sections 21.9 and 21.10). Anchored to the repository root, so an author's own
+# src/content/posts/ tree and any nested public/ stay tracked.
+/src/content/posts/exported/
+/public/media/
+/src/generated/
