@@ -1464,3 +1464,261 @@ pnpm check → 0 errors    pnpm links / audit / split → 全部 exit 0
 运维状态沿用主线备份调度器，不另建第二套定时器。作者登录后可以看到五项结果：本机备份、等待上线的文章、数据盘空间、异地副本和服务健康。当前进程无法诚实观察的后两项明确显示为「未观测」，不会冒充正常。状态接口仍经过作者会话校验，公开路由不读取这些数据，也没有新增读者分析或跟踪。
 
 Morii 随后要求停止继续测试，直接整理并推送分支。因此运维面板的最终实现只完成了静态代码审查；对应测试已经写入仓库，但没有在最终实现上重新执行。这里不把它记成已验证通过。VPS、异地副本、真实浏览器登录与 RTO 仍然没有生产证据。
+
+### 21.23 运维面板的四态合同（2026-09-01）
+
+21.22 把面板写进了仓库，但只有三种 verdict，而且整个响应只有一个顶层 `checkedAt`。验收清单 E 节要的是四种状态和每项自己的读数时间，所以那一版并没有满足 E1 到 E4。这一轮补的就是这个差额。
+
+#### 四种状态，以及为什么第四种要单独存在
+
+`Verdict` 现在是 `ok`、`attention`、`failure`、`unknown`。第 12.2 节接受了「不做告警」，代价是「失败是安静的」；面板是这个决定下唯一的兜底。一个把「没读到」画成绿色的面板，会在最需要报警的时刻给出最安心的画面——所以 `unknown` 不是「其它」，它是一句和另外三种同等明确的话：这一项本轮没有可信读数。
+
+阈值写成命名常量，不散落在模板里：
+
+| 观测项 | ok | attention | failure | unknown |
+| --- | --- | --- | --- | --- |
+| 备份 | 距今 ≤ 1 个调度周期 | 距今 1 到 2 个周期；或首次备份仍在进行／尚未完成 | 距今 > 2 个周期；或调度器停止；或最近一次尝试失败 | 备份目录读不出来 |
+| 站点重建 | 没有文章等待上线 | 有文章等待，最久 ≤ 15 分钟 | 最久 > 15 分钟 | 有文章等待，但缺少可用于计时的发布审计 |
+| 磁盘 | 剩余 ≥ 4 GiB | 剩余 2 到 4 GiB | 剩余 < 2 GiB | 读不出剩余空间 |
+| 异地副本 | 采集器报告且新鲜 | 同左 | 同左 | 没有采集器，或读数过期 |
+| 服务与健康检查 | 同上 | 同上 | 同上 | 同上 |
+
+失败优先于年龄：调度器停了或最近一次备份失败时，即使磁盘上那个文件很新也是 `failure`，因为下一次读数才是不新的那一次。4 GiB 是给 2 GiB 失败线设的预警线，不是采购规格；采购下限仍然是清单 A 节的 80 GB SSD。
+
+「有文章等待但审计时间不可解析」这一条本来是个静默的错：原实现把无法解析的时间 `filter` 掉，`Math.max()` 于是拿到 `-Infinity`，结论是「没超时」，也就是正常。整条判据就是和一个截止时间比大小，没有时间就没有可比的东西，所以现在它是 `unknown` 并说明原因，而不是猜一个。
+
+#### 每项自己的时间
+
+`StatusItem` 多了 `observedAt`。直接观测的三项（备份、站点重建、磁盘）在请求时读，`observedAt` 就是这次读的时刻；读不到的时候是 `null`，面板显示「暂无读数」加上本次检查时间，而不是伪造一个观测时间。顶层 `checkedAt` 保留，但界面上明确写成「本次检查」，不冒充任何一行的读数时间。
+
+E3 要求读数过期自动变成 `unknown`。本机没有任何采集器，所以为异地副本和服务健康开了一个注入口 `ExternalReading`，带 15 分钟新鲜窗口：缺席是 `unknown`，过期也是 `unknown`，时间无法解析同样是 `unknown`。**本轮没有为这两项接任何采集器**，它们在本机始终显示「未观测」——为了让面板变绿而造一个「正常」，正是这一节要防的事。
+
+#### 两个测试缝，以及为什么它们是必要的
+
+`diskFreeBytes` 与 `backupAgeMs` 是显式的测试缝，沿用 `database-backup.ts` 里 `backup?: BackupFunction` 的既有写法。没有它们，两条最要紧的分支恰好是永远跑不到的分支：两条磁盘线只能靠把机器磁盘写满来触及；而「备份目录不可读」在 Linux 上是 ENOTDIR/EACCES，在 Windows 上同一个路径却是 ENOENT，而 ENOENT 正是读取器用来表示「还没有备份」的答案——这一点是写测试时实测出来的，不是推断的。
+
+#### 面板不能被别的失败顺手删掉
+
+浏览器验收发现的一个真问题：`bootstrap()` 原本在同一个 `try` 里顺序 `await refresh()` 再 `await loadStatus()`。文章列表一失败就直接抛过了 `loadStatus()`，`status` 停在 `null`，**整个运维面板不渲染**。也就是说，唯一会报告静默失败的那块界面，会被一次静默失败本身拿掉。现在两者用 `Promise.allSettled` 并行，互不遮蔽。这不是假想：21.24 那个打包缺陷让文章列表在构建产物里必定 500，面板因此在真实浏览器里整块消失过。
+
+`loadStatus()` 另外加了请求序号。重复点「重新检查」本来就被按钮禁用挡住，但 `bootstrap`、`signIn`、`backToList` 都会调它，一个慢的旧响应落在新响应之后，会让面板显示比旁边时间戳更旧的读数。
+
+#### 本轮验证
+
+```text
+node --test --test-isolation=none tests/admin-status.test.mjs → tests 28 / pass 28 / fail 0
+```
+
+三次反向验证，都当场变红，不是「测试写完就绿」：
+
+1. 把 `unknown` 缺席分支改成 `ok`（把没读到画成正常）→ 3 条失败；
+2. 把客户端 `unknown` 的文案改成「正常」→ 2 条失败；
+3. 让等待上线的失败线永不触发 → 2 条失败。
+
+四种状态另外在真实浏览器里逐项看过（见 21.24 的浏览器记录）：正常为实线加绿色药丸，需要注意为琥珀色边框，失败为红色加粗左边框，未观测为虚线加独立的中性色并显示「暂无读数」。颜色不是唯一通道——未观测是唯一的虚线状态。
+
+#### 仍未做
+
+- 异地副本与服务健康在本机只能是 `unknown`；目标机器上的真实读数没有发生；
+- E3 只对着注入的过期读数验过，没有对着一个真实停摆的采集器验过；
+- systemd 单元状态与健康端点仍然没有采集器，这属于第 12 块的部署工作。
+
+### 21.24 生产构建产物里的 Admin：一次真实浏览器验收（2026-09-01）
+
+之前每一轮的 Admin 证据都是对着 TypeScript 源码里的 handler 跑的单元测试，加上 `astro build` 退出码为 0。这一轮第一次用真实浏览器对着 `node dist/server/entry.mjs` 走了一遍——也就是 `deploy/systemd` 里 `ExecStart` 实际启动的那个东西。第一次这么做就发现了一个上线阻塞缺陷。
+
+#### 缺陷：构建产物把构建工具链本身打了进去，然后加载失败
+
+`/api/articles/*` 的每一条路由在构建产物里都返回**空 body 的 500**，因为路由模块根本加载不了。链条是确定的：
+
+```text
+src/pages/api/articles/*  →  src/server/http/article-handlers.ts
+                          →  src/server/rendering/public-renderer.mjs
+                          →  astro.config.mjs（以及 rehype-expressive-code）
+```
+
+第 7 节让可信 renderer 直接 import 生产 `astro.config.mjs`，为的是预览不会和生产漂移——这个意图是对的。代价是构建把这份配置连同它的整个 import 图一起内联进了 `dist/server/chunks/`。被内联的包里有三个会按自己的文件位置去找东西，一旦换了目录就全错：
+
+| 包 | 失败 | 为什么 |
+| --- | --- | --- |
+| `rolldown` | `Cannot find native binding` | 原生 binding 从 `dist/server/chunks/` 解析不到 `@rolldown/binding-*` |
+| `vite` | `CLIENT_ENTRY does not point to an existing file` | `VITE_PACKAGE_DIR` 由内联文件自己的位置算出，指向了 workspace 根 |
+| `css-tree` | `Cannot find module '../data/patch.json'` | `createRequire(import.meta.url)` 的相对 require，内联后指向别处 |
+
+三个是同一类错误的三个实例，不是三个巧合。
+
+**复现**（本机已实测）：
+
+```text
+pnpm build
+MORIIUM_DATABASE_PATH=<一次性库> node dist/server/entry.mjs
+curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:<port>/api/articles/   → 500，body 为空
+```
+
+`/api/status/`、`/api/session/`、`/api/login/`、`/api/logout/`、`/api/media/` 不经过 renderer，全部正常。
+
+**影响**：在构建产物里，文章列表、单篇、新建、保存、自动保存、可信预览、发布、回滚、撤下都不可用。作者登录后看到的是「还没有文章。可以先建一篇测试文章。」——**一次失败被画成了一个空的、看起来健康的状态**，和 E 节要防的是同一件事。错误文案也退化成「Request failed with 500.」，因为空 body 让 21.14 那套上下文文案没有东西可用。
+
+**试过但不采纳的修法**：把 `rehype-expressive-code`、`astro-expressive-code`、`css-tree`、`vite`、`rolldown` 加进 `vite.ssr.external`。构建通过，前两个错误消失，然后撞上 pnpm 的严格隔离：`css-tree` 不在顶层 `node_modules` 里，运行时 `ERR_MODULE_NOT_FOUND`。所以完整的修法要在「Astro 打包配置」和「pnpm 提升策略（`.npmrc` 的 `public-hoist-pattern` 或 `node-linker`）」之间做一次取舍，还可能要把 markdown 插件链从 `astro.config.mjs` 里拆出来，让 renderer 不再 import 整份配置。**这既动 `astro.config.mjs` 又动第 7 节定下的 renderer 接线，超出本轮交接的边界，实验已回滚，仓库未改。**
+
+#### 浏览器验收：跑到的和没跑到的
+
+一次性隔离环境：数据库、会话、备份、媒体、内容根全部在 `E:\moriium-phase6a-run\` 下，执行前用一个按路径边界（不是字符串前缀）判断的守卫脚本核对过——这个区别是实测出来的，`E:\moriium-phase6a-run` 恰好以 `E:\moriium-phase6a` 为前缀，字符串前缀法会把一次性目录判成仓库。账户走 `createAccount()`，口令随机生成、只写进一次性目录、不进命令行参数。Node 24.15.0，pnpm 11.22.0，Chromium（应用内浏览器面板）。
+
+**生产会话 cookie 没有被改动。**`secure: true` 原样留在配置里，实测浏览器在 `http://127.0.0.1` 下照常接受它（该来源被当作可信来源），所以既不需要 HTTPS 反代，也不需要为了方便把生产 cookie 改成不安全。
+
+| # | 场景 | 结果 |
+| --- | --- | --- |
+| 1 | 匿名访问 `/admin/` | 通过。看到登录界面；`/api/session/`、`/api/media/`、`/api/status/` 匿名一律 401。`/api/articles/*` 返回 500 而不是 401——**没有泄漏任何文章数据**，但状态码是错的，属于上面那个缺陷 |
+| 2 | 错误口令 | 通过。不存在的账户与口令错误返回完全相同的 401 与同一句「Invalid account name or password.」 |
+| 3 | fixture 作者登录、刷新后会话仍在 | 通过。整页刷新后仍为已登录；cookie 对 JS 不可见（HttpOnly 生效） |
+| 4 | 新建文章、slug／语言／`translationKey` | **阻塞**（上述缺陷） |
+| 5 | 改标题／frontmatter／Markdown，自动保存只追加版本 | **阻塞** |
+| 6 | 可信预览 | **阻塞** |
+| 7 | 显式发布显示「已发布、等待上线」 | **阻塞**（发布状态机本身在工作包 C 里用真实构建验过） |
+| 8 | 回滚、撤下、审计 | **阻塞** |
+| 9 | 导入脚本生成的虚构 JPEG | 通过。媒体路由不经过 renderer。上传返回 201，净化成 webp、`exif` 为空、`sanitizedAt` 已写、公开路径由内容派生。拒绝路径（非图片）返回 403 并给出可读原因，**数据库行数与媒体目录文件数前后一致，没有留下残留** |
+| 10 | 运维面板四态、时间与重新检查 | 通过。四种状态逐项看过；「重新检查」按钮在检查中禁用并改文案；异地副本与服务健康显示「未观测／暂无读数」 |
+| 11 | API 断开、会话过期、服务端拒绝 | 通过。断开显示「连接不上状态接口，请检查网络后重试。」，**没有出现 `TypeError: Failed to fetch`**；会话过期后面板收敛成一条「未观测」，页面不空白也不崩溃；服务端拒绝（媒体 403）给出可读原因 |
+| 12 | 退出后回到匿名，后退与刷新都不复现草稿 | 通过。刷新与浏览器后退都回到登录界面，没有草稿数据 |
+
+场景 11 顺带记两处文案问题，都不是阻塞：会话过期那条显示的是服务端英文原文「Authentication required.」而不是中文上下文文案；退出前界面仍然显示「已登录」，要到下一次请求才发现会话没了。
+
+**隔离证明**：`E:\Moriium\.astro\admin.db` 执行前后 SHA-256 与 mtime 完全一致（`9947e15a…6c47e3f9`，2026-08-30 21:34:48）；worktree 里的默认库自始至终没有被创建。一次性备份根里落下了 4 份真实的在线备份。
+
+### 21.25 隔离工作区里的发布彩排（2026-09-01）
+
+21.10 用假 host 钉住了顺序，但从没把真实导出、真实 Astro 构建和真实静态服务串起来跑过一次。这一轮补上了，在一份独立的 workspace 副本（源码全量复制、`node_modules` 由彩排自己 `pnpm install --frozen-lockfile` 装出来）和一份独立的数据库上进行。仓库工作副本、默认 `.astro`、`/var/www/moriium` 三处都由守卫脚本在执行前排除。
+
+#### 替换了哪两件事，以及没有替换什么
+
+彩排 host 只换了两个方法，`src/server/release/host.ts` 一个字没动：
+
+- `run()`：生产用 `shell: false`，这在 Windows 上无法启动 `pnpm.cmd`；Node 24 更是直接拒绝在无 shell 的情况下 spawn `.cmd`。彩排改成用 `node` 启动 pnpm 自己的 CJS 入口，`shell: false` 这条安全属性因此原样保留，而不是为了跑通把 shell 打开。
+- `switchLink()`：生产用「新建 symlink 再 rename 覆盖」，在 POSIX 上是原子的。本机实测 Windows 两步都是 EPERM：`symlinkSync` 直接 EPERM，改用 junction 能建但 `renameSync` 覆盖仍然 EPERM。彩排改成「删掉再建 junction」，**这不是原子的**。
+
+因此下面每一条验的都是状态机的**顺序**；**换站的原子性在本机未验证**，仍然属于影子 VPS。本机没有安装任何 WSL 发行版（`wsl --list` 确认），本轮也没有为此去装一个。21.10 里 Windows 上那条 symlink 跳过的用例继续保留、继续跳过。
+
+导出、暂存、安装、构建、上线前检查、release 复制、可服务性检查、HTTP 探测、`live_version_id` 回写与保留策略全部是真的。
+
+#### 一条在第一次运行就被拦下的事
+
+第一次彩排选了 `zh/tide-notes` 发布，导出直接拒绝：`Published content references /media/fixtures/tide-cover.svg, which is not in the media library.` 这正是 21.9 那两道拒绝在工作。**白名单里的 5 篇 fixture 有 3 篇带媒体引用**（`zh/tide-notes`、`ja/tide-notes` 共用封面与正文 SVG，`zh/reader-capabilities` 引用 `/fixtures/reader-image.svg`），它们在媒体入库之前无法端到端发布。彩排改用 `zh/darkroom-log`（无媒体引用）。这一点对 VPS 上的迁移有直接影响：**中日双语那一对恰好是带媒体的那一对**，所以「多语文章端到端上线」这件事本轮没有、也无法只靠白名单验到。
+
+#### 十条的结果
+
+探测地址：`http://127.0.0.1:4340/zh/`，由一个只服务 `current` 的静态服务器提供。
+
+| # | 场景 | 结果 |
+| --- | --- | --- |
+| 1 | 隔离库导入白名单 fixture，选一篇完成发布 | 通过。5 篇导入为草稿，`zh/darkroom-log` 发布 |
+| 2 | 只服务临时 `current` 的静态服务器与明确的 probe URL | 通过 |
+| 3 | 真实导出、构建、公开检查与发布命令 | 通过，`stage: pruned`。安装与构建都是真跑，三个上线前检查（`check-links`、`audit-public-tree`、`check-render-split`）在 workspace 内通过 |
+| 4 | 三语首页与被发布文章 200，`current` 指向新 release，随后才回写 `live_version_id` | 通过。`/zh/`、`/ja/`、`/en/`、`/zh/posts/darkroom-log/`、`/sitemap-index.xml` 全部 200；`current → releases/rehearsal-a`；`published=3 live=3` |
+| 5 | 撤下后再跑一次，页面消失且 live 指针清空 | 通过。文章 404，`live=null`，三语首页仍 200 |
+| 6 | 人为构建失败 | 通过。`stopped after "installed"`；`current` 不动，live 指针不动，没有新 release 目录 |
+| 6b | 人为上线前检查失败 | 通过。`stopped after "built"`；`current` 与 live 指针都不动 |
+| 7 | probe 返回非 2xx | 通过。`stopped after "switched": The switched release did not answer; the previous release was restored.`；`current` 恢复到上一个 release，**没有记录任何 live 指针** |
+| 8 | 不重新发布，直接重跑同一状态 | 通过。`stage: pruned`，`live=3`，文章重新 200。作者没有再点一次发布 |
+| 9 | 以 `keep=1` 验保留策略 | 通过。删掉 4 个旧 release，只留正在服务的那一个，页面仍 200，`releases/` 之外没有任何路径被删 |
+| 10 | 停掉 Admin/Node 后仅用静态服务器访问 | 通过。**并且把数据库整个改名移走**之后，`/zh/`、`/ja/`、`/en/`、`/zh/posts/darkroom-log/`、`/sitemap-index.xml`、`/zh/archive/`、`/en/about/` 仍然全部 200。读者路径不依赖 Node，也不依赖数据库 |
+
+#### 仍未做
+
+- **换站的原子性未验证**，本机 Windows 无法产生这个证据，也没有可用的 WSL；
+- 真实 VPS 上的 systemd、Nginx、TLS、fail2ban 与 `DEPLOY_ENABLED=true` 都没有发生；
+- 多语文章的端到端上线，要等媒体入库或白名单调整；
+- `.gitignore` 的三条仍然留给 Morii 决定。本轮用一次性 workspace 绕开了这个问题，没有顺手替 Morii 决定。
+
+### 21.26 修掉打包边界，以及它下面藏着的第二个缺陷（2026-09-01）
+
+Morii 于 2026-09-01 选定方案 A：把 Markdown 管线提取成独立纯净模块，`astro.config.mjs` 与 `public-renderer.mjs` 各自引用它；明确不采用 `.npmrc`、hoist、`nodeLinker` 或 `ssr.external`——那些只改变打包与依赖解析，掩盖不了「生产请求处理器导入构建配置」这条错误边界。
+
+#### 提取
+
+新增 `src/markdown/pipeline.mjs`，导出 `remarkPlugins`、`rehypePlugins`、`expressiveCodeOptions` 与 `assertPipelineOrder()`。它只 import remark/rehype 插件本身和仓库自己的两个插件，**不 import Astro 配置、adapter、integration、Vite 或打包器**。
+
+`astro.config.mjs` 现在从它拿插件数组去构造 `unified()`，并把同一份 `expressiveCodeOptions` 交给 integration。`public-renderer.mjs` 不再 import `astro.config.mjs`，改为直接引用管线模块；第 7 节「预览不能和生产漂移」的意图没有削弱——两边引用的是同一份定义，比原来从配置对象里反射插件数组更直接。原来那条运行时顺序断言保留为 `assertPipelineOrder()`。
+
+产物立刻变干净：`CLIENT_ENTRY`（Vite）与 `css-tree` 在 `dist/server/chunks/` 里归零，rolldown 的 native binding 加载器整个消失。`astro.config` 只剩 1 处命中，在 Astro 自带的错误提示数据里，不是 import。
+
+#### 修完第一层，露出第二层
+
+按 Morii 的第 4 项要求跑「全新隔离数据库 + 最终产物」时，路由**仍然** 500，但错误变了：
+
+```text
+AdminError: transaction-failed: Migration 1 (initial-schema) failed; the database is still at version 0.
+```
+
+`src/server/db/open.ts` 用 `readFileSync(resolve(import.meta.dirname, 'schema.sql'))` 读 schema。打包器把 `open.ts` 内联进 `dist/server/chunks/`，**不会把 `.sql` 文件带过去**，于是 `import.meta.dirname` 指向一个没有 schema 的目录。`find dist -name '*.sql'` 返回空，确认产物里根本没有这个文件。
+
+**这是同一类错误的第二个实例，而且后果更重：一台全新 VPS 第一次启动就无法建库。**它一直没被发现，是因为之前每次本地验证用的数据库都是先由源码路径的脚本建好的——那条路径上 `import.meta.dirname` 指向 `src/server/db/`，schema 读得到。产物只有在面对一个**从未存在过的**数据库时才会暴露。
+
+修法：把 schema 变成 `src/server/db/schema.ts` 导出的字符串常量，`schema.sql` 删除。转换是脚本做的，并逐字节核对过（模板字面量按语言规范把 CRLF 归一为 LF，SQLite 不关心）。只保留一份，不留两个会漂移的副本。
+
+#### 21.24 的结论要更正一句
+
+21.24 写的「链条是确定的」没有错，但它把问题描述成**一个**边界破损。实际是**两个**，而且第二个单靠修第一个不会显形。这里补上：那一节列的三个失败实例（rolldown、vite、css-tree）来自 `public-renderer.mjs`；`schema.sql` 这一条来自 `open.ts`，与 renderer 无关，只是碰巧被同一条 500 掩盖。
+
+#### 本轮验证
+
+最终产物、全新一次性数据库、真实 HTTP：
+
+```text
+/api/articles/          401  {"error":"Authentication required."}
+/api/articles/1/        401  {"error":"Authentication required."}
+/api/session/           401  {"error":"Authentication required."}
+/api/status/            401  {"error":"Authentication required."}
+/api/media/             401  {"error":"Authentication required."}
+/api/articles/1/preview/ 403 {"error":"Request refused."}
+```
+
+全部非空 JSON。fixture 作者登录后 `/api/articles/` 返回 200 与文章数组，可信预览返回 200 且 HTML 含 `<h1>`、KaTeX 与 Expressive Code——整条生产渲染链在产物里完好。
+
+新增 `tests/admin-built-artifact.test.mjs`：构建（产物比源码旧就自己重建）、用一次性目录启动 `dist/server/entry.mjs`、真实 HTTP 断言，外加对边界本身的静态检查。反向验证做过：把 `astro.config.mjs` 的 import 加回去，8 条里 5 条当场变红，其中既有 HTTP 断言也有边界断言。
+
+#### 仍未做
+
+- 这两个缺陷都是「生产处理器依赖只有构建树才有的东西」。仓库里可能还有第三个实例；本轮只查到这两个，没有做穷尽扫描。
+
+### 21.27 编辑器保存一直是坏的，只是没有人用真实载荷试过（2026-09-01）
+
+补跑浏览器场景 5 时，「保存版本」返回 400 `The article request is invalid.`。
+
+`src/admin/ArticleEditor.ts` 的 `load()` 和 `openVersion()` 都写 `fields.value = { ...version, tags: [...version.tags] }`。`Version` 是 `VersionFields` 再加 `id`、`articleId`、`authorId`、`kind`、`createdAt` 五个字段，展开进表单后这五个会一路留在 `currentPayload()` 的输出里，而 `src/server/http/article-handlers.ts` 的 schema 是 `.strict()`。
+
+`load()` 在**每次打开编辑器时都会执行**，所以结论是：**只要编辑器载入过任何一个版本，之后的每一次保存和自动保存都会 400。**实际上就是全部。
+
+TypeScript 看不见它：多余属性检查只作用于对象字面量，不作用于一个更宽类型的展开，所以 `fields.value = { ...version }` 赋给 `VersionFields` 完全合法。
+
+为什么测试没抓到：`tests/admin-articles-api.test.mjs` 用手写的干净 `VersionFields` 调 API，客户端测试只比对模板和字符串。**没有一处把客户端真正会发出的载荷送进真正的 schema。**这和 21.24、21.26 是同一个形状的窟窿：被验证的是「各部件分别正确」，不是「接起来会发生什么」。
+
+修法：加 `toFields(version)` 显式列出十三个字段，两处赋值都改用它。显式列举正是让载荷形状可被检查的方式。回归断言进了 `tests/admin-built-artifact.test.mjs`。
+
+修完之后，浏览器场景 5、7、8 一次通过：保存只追加版本（1→2）且不动已发布/已上线指针；发布后状态条是「最新 #3 / 已发布 #3 / 已上线 #— / 等待导出」；回滚把已发布从 #3 移到 #1 并记 `rollback 3→1`；撤下把已发布清空并记 `unpublish 1→null`。三条审计的 `from`／`to`／`note` 都正确。
+
+### 21.28 多语上线的端到端证据（2026-09-01）
+
+21.25 记过：白名单 5 篇里 3 篇带媒体引用，而中日双语那一对恰好在其中，所以多语上线无法只靠白名单验到。Morii 于 2026-09-01 定了做法：**不导入那两个 SVG，也不放宽媒体白名单**（现有媒体规则明确拒绝 SVG 与 GIF，编辑器的文件选择器只接受 JPEG/PNG/WebP/AVIF/TIFF），改为在隔离数据库里通过 Admin 临时建一对无媒体的中日文章。`tide-notes` 夹具原样不动。
+
+`zh/parallel-notes` 与 `ja/parallel-notes` 通过生产 Admin 界面创建，共用 `translationKey: parallel-notes`，正文各自独立、不含任何图片引用。两篇发布后跑真实发布状态机：
+
+```text
+release stage: pruned
+exported: ja/parallel-notes, zh/parallel-notes
+zh/parallel-notes  published=3 live=3
+ja/parallel-notes  published=2 live=2
+```
+
+静态服务器单独应答：
+
+```text
+/zh/  /ja/  /en/                      200
+/zh/posts/parallel-notes/             200
+/ja/posts/parallel-notes/             200
+/sitemap-index.xml                    200
+```
+
+并且 `/zh/posts/parallel-notes/` 的 HTML 里含 `href="/ja/posts/parallel-notes/"`——共用的 `translationKey` 经过导出、构建、上线整条链路之后仍然解析成一条可用的语言互链。这是之前拿不到的那一项证据。
+
+换站仍然用 junction 的删除重建，**不是原子的**；本机 Windows 的 `symlinkSync` 与 rename 覆盖 junction 都是 EPERM。原子性依旧属于影子 VPS。

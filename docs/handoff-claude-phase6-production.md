@@ -1,10 +1,32 @@
 # 交接：分支已收束，下一步仍是影子部署
 
-> 日期：2026-08-31
-> 交出方：Codex
-> 当前结论：**公共 UI 研究已经移出 `main`，主线保留并补齐了后端运维能力。VPS 尚未购置，影子部署、异地备份和生产恢复仍未发生。**
+> 日期：2026-08-31，2026-09-01 更新
+> 交出方：Codex；2026-09-01 的本地收尾由 Claude 追加
+> 当前结论：**公共 UI 研究已经移出 `main`，主线保留并补齐了后端运维能力。运维面板的四态合同已完成并验证，发布状态机已用真实构建彩排过。但生产构建产物里的 Admin 文章路由无法加载，这是一个上线阻塞缺陷。VPS 尚未购置，影子部署、异地备份和生产恢复仍未发生。**
 
-这份文档替代上一版同名交接。当前事实以实际 Git 状态、ADR 21.9–21.22、[`enouia-todo.md`](enouia-todo.md) 第 00 与 06A 节为准。
+这份文档替代上一版同名交接。当前事实以实际 Git 状态、ADR 21.9–21.25、[`enouia-todo.md`](enouia-todo.md) 第 00 与 06A 节为准。
+
+## 0. 2026-09-01 的本地收尾
+
+在 `claude/phase6a-local-closeout`（自 `main` 的 `b607ea4` 建立的独立 worktree）上完成了三个工作包，详见 ADR 第 21.23、21.24、21.25 节。公开站重做那棵工作树没有被碰过，本轮改动也没有触及 `src/layouts/`、`src/pages/[lang]/` 下的公开路由、公开样式或那六个公开页面测试。
+
+**已完成：**
+
+- 运维面板补齐了验收清单 E 节的四态合同：五项各自落入 `ok`／`attention`／`failure`／`unknown`，每项带自己的 `observedAt`，没有读数时显示「暂无读数」。专项用例 28/28，三次反向验证都当场变红，四种状态在真实浏览器里逐项看过。
+- 发布状态机第一次用真实导出、真实 `pnpm install`、真实 Astro 构建、真实上线前检查和真实静态服务跑通，十条场景全部通过，包括构建失败、上线前检查失败、probe 失败回滚、免重发布的重试、`keep=1` 保留策略，以及把数据库整个移走之后仍由静态服务器返回 200。
+- 生产 Admin 第一次用真实浏览器对着 `dist/server/entry.mjs` 验收，12 个场景中 7 个通过。生产会话 cookie 的 `secure: true` 没有被改动——浏览器在 `http://127.0.0.1` 下照常接受它。
+
+**曾经的阻塞，已于同日修复（ADR 21.26–21.28）：**
+
+Morii 选定方案 A，提取纯净的共享 Markdown 管线模块，明确不用 `.npmrc`／hoist／`nodeLinker`／`ssr.external` 掩盖。修的过程中又查出两个同类缺陷，三个全部是「生产请求处理器依赖只有构建树才有的东西」：
+
+1. `public-renderer.mjs` import `astro.config.mjs` → Vite／Rolldown／css-tree 被内联 → `/api/articles/*` 空 body 500。修法：新增 `src/markdown/pipeline.mjs`。
+2. `open.ts` 用 `import.meta.dirname` 读 `schema.sql` → 产物不含 `.sql` → **全新 VPS 第一次启动建不了库**。修法：schema 改为 `src/server/db/schema.ts` 的字符串常量。
+3. `ArticleEditor.ts` 把整个 `Version` 展开进表单 → 五个元数据字段进了 `.strict()` schema → **每次保存与自动保存都 400**。修法：`toFields(version)` 显式列字段。
+
+第 2、3 只有修完第 1 才会显形。新增 `tests/admin-built-artifact.test.mjs` 对最终产物做真实 HTTP 回归，反向验证过会红。浏览器场景 4–8 已在产物上逐条通过，多语上线也拿到端到端证据（ADR 21.28）。
+
+**仍然只能等 VPS 的：**异地副本与服务健康的真实读数、换站的原子性（本机 Windows 的 `symlink` 与 rename 覆盖都是 EPERM，且没有安装任何 WSL 发行版）、systemd／Nginx／TLS／fail2ban、异地传输与计时恢复。
 
 ## 1. 三个分支怎么处理
 
@@ -80,10 +102,26 @@ links / audit / split       全部 exit 0
 
 Morii 随后明确要求不再继续测试，直接整理并推送。因此运维状态的最终实现、体积基线恢复后的组合状态，以及本交接提交都没有再跑新门禁。不要把测试文件存在误写成已经通过。
 
+2026-09-01 的本地收尾补上了这一段缺口。在 `claude/phase6a-local-closeout` 的干净 worktree 里，开工基线为 174 tests / 173 pass / 1 skip，收尾后的组合验证是：
+
+```text
+pnpm check                                       0 errors / 0 warnings / 0 hints，exit 0
+node --test --test-isolation=none tests/*.test.mjs   192 tests / 191 pass / 0 fail / 1 skip，exit 0
+pnpm build                                       exit 0
+pnpm links                                       exit 0
+node scripts/audit-public-tree.mjs               exit 0
+pnpm split                                       exit 0（158 个公开文件不依赖 Node；156 个不含 Admin 代码）
+pnpm baseline                                    exit 0（四项预算全部在限额内）
+```
+
+那一条 skip 是 21.10 记过的 Windows 符号链接换站，环境未执行，不是断言失败。`pnpm audit` 不是 `package.json` 里的脚本，按仓库实际命令跑的是 `node scripts/audit-public-tree.mjs`。
+
 ## 5. 仍未完成
 
+- **构建产物里的 Admin 文章路由无法加载**（ADR 21.24）。这是上线阻塞项，且要先于影子部署决定；
 - VPS 未购置，验收清单尚未执行；
-- 没有真实作者口令的浏览器端到端验证；
+- 浏览器端到端只走到 fixture 账户与隔离数据库，正式作者口令与正式内容都没有参与；文章创建、编辑、预览、发布、回滚这五个场景被上面那个缺陷挡住；
+- 白名单 5 篇 fixture 里有 3 篇带媒体引用，媒体入库之前无法端到端发布；中日双语那一对恰好在其中，所以「多语文章上线」尚无端到端证据；
 - 没有迁移或发布正式文章；
 - 没有打开 `DEPLOY_ENABLED`，没有真实换站；
 - 没有选定异地备份目标，数据库 30 天保留与媒体每日同步未落地；
@@ -92,6 +130,10 @@ Morii 随后明确要求不再继续测试，直接整理并推送。因此运�
 - `.gitignore` 是否加入 `src/content/posts/exported/`、`public/media/`、`src/generated/` 仍待决定。
 
 ## 6. 下一入口
+
+**第一件事不是买机器，是决定怎么修 21.24 那个打包缺陷。**在它修好之前，影子部署上去的 Admin 无法写文章，验收清单 B 节的作者流程也没法验。可选方向有两条，都要 Morii 拍板：把 markdown 插件链从 `astro.config.mjs` 拆成独立模块，让可信 renderer 不再 import 整份配置；或者调整 Astro 的 SSR 打包与 pnpm 的提升策略，让这些包在运行时保持真实的 `node_modules` 解析。前者更贴近第 7 节的原意，后者改动面更小但要动 `.npmrc`。
+
+修好之后，重跑 ADR 21.24 的 12 个浏览器场景，把被挡住的 4 到 8 补上。
 
 若 Morii 购置 VPS 并授权影子部署，按 [`vps-acceptance-checklist.md`](vps-acceptance-checklist.md) 从 A、B 两节开始。先安装为可回滚状态，确认 Admin 只监听回环地址，再停止 `moriium-admin.service`，验证三语公开页仍由 Nginx 返回 200。正式内容继续不迁移。
 
