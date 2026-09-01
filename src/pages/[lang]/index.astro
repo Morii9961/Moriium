@@ -18,19 +18,48 @@ const categories = uniqueTaxonomy(posts, 'category').map((name) => ({
 }));
 const tags = uniqueTaxonomy(posts, 'tags').slice(0, 8);
 
+const heroTitle = [
+  {
+    line: 'primary',
+    glyphs: [
+      ['見', 'solid'],
+      ['た', 'solid'],
+      ['も', 'solid'],
+      ['の', 'solid'],
+      ['を', 'outline'],
+      ['記', 'bridge'],
+      ['す', 'bridge'],
+      ['。', 'bridge'],
+    ],
+  },
+  {
+    line: 'secondary',
+    glyphs: [
+      ['未', 'solid'],
+      ['完', 'solid'],
+      ['の', 'solid'],
+      ['ま', 'solid'],
+      ['ま', 'solid'],
+      ['残', 'bridge'],
+      ['す', 'bridge'],
+      ['。', 'bridge'],
+    ],
+  },
+] as const;
+
+const heroCopy = {
+  register: 'Moriium / 個人アーカイブ',
+  title: '見たものを記す。未完のまま残す。',
+  leftNote: '時間の中で、拾い集める。',
+  rightNote: 'いつか戻れるように。',
+  identity: '文字・写真・旅の記録',
+  languages: 'ZH · JA · EN',
+  body: '文字と写真と旅の断片を、ここでゆっくりと整理していく。',
+  enter: '記事を読む',
+} as const;
+
 const copy = {
   zh: {
-    register: 'Moriium / 个人记录',
-    thesis: {
-      primary: ['把所见', '写下'],
-      secondary: ['把未完', '留下'],
-      label: '把所见写下，把未完留下。',
-    },
-    identity: 'Moriium / 私人存档',
-    identityMeta: 'ZH · JA · EN',
-    identityThemes: '文字 · 照片 · 旅途',
-    identityText: '文字、照片与旅途，在这里被慢慢整理成可以返回的页。',
-    identityEnter: '进入文章',
     routes: [
       ['Writing', '写下的', '全部公开文章'],
       ['Archive', '回看的', '按年份寻找'],
@@ -51,17 +80,6 @@ const copy = {
     archive: '打开归档', rss: '订阅 RSS', about: '关于这里',
   },
   ja: {
-    register: 'Moriium / 個人記録',
-    thesis: {
-      primary: ['見たものを', '書く'],
-      secondary: ['未完のまま', '残す'],
-      label: '見たものを書き、未完のまま残す。',
-    },
-    identity: 'Moriium / 個人アーカイブ',
-    identityMeta: 'ZH · JA · EN',
-    identityThemes: '文章 · 写真 · 旅',
-    identityText: '文章、写真、旅の断片を、あとで戻って来られる頁へゆっくり整えています。',
-    identityEnter: '記事へ',
     routes: [
       ['Writing', '書いたもの', '公開中の記事'],
       ['Archive', '振り返るもの', '年から探す'],
@@ -82,17 +100,6 @@ const copy = {
     archive: 'アーカイブを開く', rss: 'RSS を購読', about: 'この場所について',
   },
   en: {
-    register: 'Moriium / Personal record',
-    thesis: {
-      primary: ['Write what', 'was seen'],
-      secondary: ['Keep what remains', 'unfinished'],
-      label: 'Write what was seen. Keep what remains unfinished.',
-    },
-    identity: 'Moriium / Personal archive',
-    identityMeta: 'ZH · JA · EN',
-    identityThemes: 'Writing · Photography · Journey',
-    identityText: 'Writing, photographs, and fragments from the road, slowly arranged into pages worth returning to.',
-    identityEnter: 'Enter the writing',
     routes: [
       ['Writing', 'Things written', 'Every public post'],
       ['Archive', 'Things revisited', 'Find a year'],
@@ -120,39 +127,46 @@ const routeHrefs = [`/${lang}/writing/`, `/${lang}/archive/`, `/${lang}/categori
 <BaseLayout lang={lang}>
   <div class="aperture-home">
     <section class="aperture-hero" aria-labelledby="home-title">
-      <p class="aperture-hero__register">{c.register}<span>{String(posts.length).padStart(2, '0')} / {lang.toUpperCase()}</span></p>
+      <p class="aperture-hero__register" lang="ja">{heroCopy.register}<span>{String(posts.length).padStart(2, '0')} / {heroCopy.languages}</span></p>
+
+      <span class="aperture-hero__fragment aperture-hero__fragment--one" aria-hidden="true">記録</span>
+      <span class="aperture-hero__fragment aperture-hero__fragment--two" aria-hidden="true">残る</span>
+      <span class="aperture-hero__fragment aperture-hero__fragment--three" aria-hidden="true">戻る</span>
+      <p class="aperture-hero__note aperture-hero__note--left" lang="ja" aria-hidden="true">{heroCopy.leftNote}</p>
+      <p class="aperture-hero__note aperture-hero__note--right" lang="ja" aria-hidden="true">{heroCopy.rightNote}</p>
 
       <div class="aperture-hero__thesis">
-        <h1 id="home-title" aria-label={c.thesis.label}>
-          <span class="aperture-hero__type-row aperture-hero__type-row--primary" aria-hidden="true">
-            <span>{c.thesis.primary[0]}</span><em>{c.thesis.primary[1]}</em>
-          </span>
-          <span class="aperture-hero__type-row aperture-hero__type-row--secondary" aria-hidden="true">
-            <span>{c.thesis.secondary[0]}</span><em>{c.thesis.secondary[1]}</em>
-          </span>
+        <h1 id="home-title" lang="ja" aria-label={heroCopy.title}>
+          {heroTitle.map(({ line, glyphs }) => (
+            <span class={`aperture-hero__phrase aperture-hero__phrase--${line}`} aria-hidden="true">
+              {glyphs.map(([glyph, treatment], index) => (
+                <span class={`aperture-hero__glyph aperture-hero__glyph--${treatment} aperture-hero__glyph--${index + 1}`}>{glyph}</span>
+              ))}
+            </span>
+          ))}
         </h1>
       </div>
 
       <div class="aperture-hero__window">
         <span class="aperture-hero__shutter" aria-hidden="true"></span>
         <div class="aperture-identity">
-          <p class="aperture-identity__register"><span>{c.identity}</span><span>{c.identityMeta}</span></p>
+          <p class="aperture-identity__register" lang="ja"><span>{heroCopy.identity}</span><span>{heroCopy.languages}</span></p>
           <div class="aperture-identity__body">
-            <small>{c.identityThemes}</small>
             <h2 lang="en">Moriium</h2>
-            <p>{c.identityText}</p>
+            <p lang="ja">{heroCopy.body}</p>
           </div>
-          <a href={`/${lang}/writing/`}><span>{c.identityEnter}</span><i aria-hidden="true">↗</i></a>
+          <a href={`/${lang}/writing/`} lang="ja"><span>{heroCopy.enter}</span><i aria-hidden="true">↗</i></a>
         </div>
       </div>
 
       <div class="aperture-hero__overprint" aria-hidden="true">
-        <span class="aperture-hero__type-row aperture-hero__type-row--primary">
-          <span>{c.thesis.primary[0]}</span><em>{c.thesis.primary[1]}</em>
-        </span>
-        <span class="aperture-hero__type-row aperture-hero__type-row--secondary">
-          <span>{c.thesis.secondary[0]}</span><em>{c.thesis.secondary[1]}</em>
-        </span>
+        {heroTitle.map(({ line, glyphs }) => (
+          <span class={`aperture-hero__phrase aperture-hero__phrase--${line}`}>
+            {glyphs.map(([glyph, treatment], index) => (
+              <span class={`aperture-hero__glyph aperture-hero__glyph--${treatment} aperture-hero__glyph--${index + 1}`}>{glyph}</span>
+            ))}
+          </span>
+        ))}
       </div>
     </section>
 

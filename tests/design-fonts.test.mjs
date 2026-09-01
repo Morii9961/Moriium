@@ -115,15 +115,18 @@ test('production home and writing index use the rebuilt editorial system with re
     read('src/pages/[lang]/writing/index.astro'),
   ]);
 
-  for (const marker of ['aperture-hero', 'aperture-hero__type-row', 'aperture-hero__overprint', 'aperture-identity', 'aperture-ways', 'aperture-field', 'aperture-now', 'aperture-closing']) {
+  for (const marker of ['aperture-hero', 'aperture-hero__note', 'aperture-hero__overprint', 'aperture-identity', 'aperture-ways', 'aperture-field', 'aperture-now', 'aperture-closing']) {
     assert.match(home, new RegExp(`class=\"[^\"]*${marker}`));
   }
+  assert.match(home, /aperture-hero__phrase aperture-hero__phrase--\$\{line\}/);
+  assert.match(home, /aperture-hero__glyph aperture-hero__glyph--\$\{treatment\}/);
   assert.match(home, /getListedPosts\(lang\)/);
   assert.match(home, /import '\.\.\/\.\.\/styles\/public-home\.css'/);
   assert.match(home, /postPath\(post\)/);
   assert.match(home, /const recentPosts = posts\.slice\(0, 4\)/);
   assert.doesNotMatch(home, /leadPost|aperture-lead|aperture-hero__aside/);
   assert.doesNotMatch(home, /aperture-hero__thesis-tail|aperture-hero__counterline/);
+  assert.doesNotMatch(home, /aperture-hero__type-row/);
   assert.doesNotMatch(home, /PROTOTYPE_POSTS|PROTOTYPE_CATEGORIES/);
 
   assert.doesNotMatch(writing, /bodyClass=|prototypes\.css/);
@@ -141,9 +144,10 @@ test('production copy removes prototype fillers and keeps the Moriium voice', as
   ]);
 
   assert.doesNotMatch(home, /edition:|\{c\.edition\}|记录与留白/);
-  assert.match(home, /把所见写下/);
-  assert.match(home, /把未完留下/);
-  assert.match(home, /文字、照片与旅途，在这里被慢慢整理成可以返回的页/);
+  assert.match(home, /見たものを記す。未完のまま残す。/);
+  assert.match(home, /時間の中で、拾い集める。/);
+  assert.match(home, /いつか戻れるように。/);
+  assert.match(home, /文字と写真と旅の断片を、ここでゆっくりと整理していく。/);
   assert.doesNotMatch(home, /Morii's personal edition · Dalian|STATIC<br \/>FIRST|a-profile-panel__mark|在大连生活，持续记录/);
   assert.match(layout, /\{ui\.skip\}/);
   assert.match(layout, /aria-label=\{ui\.primaryNav\}/);

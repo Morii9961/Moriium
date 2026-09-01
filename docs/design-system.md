@@ -7,7 +7,7 @@
 The 2026-09-01 frontend branch implements the **Blue Aperture** public design layer, independent from the archived A/B/C study stylesheet:
 
 - a compact publication header with a Sora wordmark, visible route state, and 44-pixel search, theme, and language targets;
-- an asymmetric home built around one fixed 深渊蓝 Moriium identity aperture, two opposing diagonal statements with controlled scale changes and an outlined overprint through the aperture, route edges, a content map, and a work-in-progress register;
+- an asymmetric home built around one fixed 深渊蓝 Moriium identity aperture, two glyph-composed Japanese statements, selective outline overprint, true vertical marginal notes, route edges, a content map, and a work-in-progress register;
 - independent Writing, Archive, Categories, Tags, and About routes that reuse the aperture as a spatial rule rather than a card component;
 - long-form article pages with a narrow blue title band, 48rem prose measure, 76rem cover track, desktop outline and context rails, and single-column mobile reading;
 - global static search and light/dark controls, with the generated index and search module still loading only after the reader opens search.
