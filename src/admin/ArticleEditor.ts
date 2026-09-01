@@ -16,6 +16,36 @@ import {
   type MoriiumImageAttributes,
 } from './editor/image-properties.ts';
 
+/**
+ * Narrows a stored version to the fields a save is allowed to send.
+ *
+ * `Version` is `VersionFields` plus `id`, `articleId`, `authorId`, `kind` and
+ * `createdAt`. Spreading the whole object into the form left those five on the
+ * payload, and the API schema is `.strict()`, so every save and autosave after
+ * the editor had loaded a version -- which is every editor open -- came back
+ * 400 "The article request is invalid." TypeScript could not catch it: excess
+ * property checks apply to object literals, not to a spread of a wider type.
+ * Listing the fields is what makes the payload's shape checkable at all
+ * (ADR 0002 section 21.27).
+ */
+function toFields(version: Version): VersionFields {
+  return {
+    title: version.title,
+    summary: version.summary,
+    publishedAt: version.publishedAt,
+    updatedAt: version.updatedAt,
+    category: version.category,
+    tags: [...version.tags],
+    cover: version.cover,
+    coverAlt: version.coverAlt,
+    draft: version.draft,
+    unlisted: version.unlisted,
+    copyProtection: version.copyProtection,
+    markdown: version.markdown,
+    editorJson: version.editorJson,
+  };
+}
+
 function blankFields(): VersionFields {
   return {
     title: '',
@@ -165,7 +195,7 @@ export default defineComponent({
         await refreshDetail();
         const version = detail.value?.latest;
         if (!version) return;
-        fields.value = { ...version, tags: [...version.tags] };
+        fields.value = toFields(version);
         tagsText.value = version.tags.join(', ');
         setEditorMarkdown(version.markdown);
         dirty.value = false;
@@ -275,7 +305,7 @@ export default defineComponent({
 
     function openVersion(version: Version): void {
       if (busy.value || saving.value) return;
-      fields.value = { ...version, tags: [...version.tags] };
+      fields.value = toFields(version);
       tagsText.value = version.tags.join(', ');
       setEditorMarkdown(version.markdown);
       previewHtml.value = '';
