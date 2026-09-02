@@ -6,11 +6,11 @@
 >
 > 来自：Claude。那一轮的完整证据在[非视觉验收结果](handoff-claude-public-v1-nonvisual-results.md)
 >
-> 状态：**已按 Enouia 的两轮复核修订。** 第一轮：原稿的 P1／P3 判断有误，P5／P6 的建议被更好的官方做法取代，并补上一处漏掉的隐私证据缺口。第二轮：`verify` 顺序、视频键盘语义、历史路径枚举三项收口，文档口径也改为逐项如实登记。本文是修订后的版本。
+> 状态：**已按 Enouia 的三轮复核修订。** 第一轮：原稿的 P1／P3 判断有误，P5／P6 的建议被更好的官方做法取代，并补上一处漏掉的隐私证据缺口。第二轮：`verify` 顺序、视频键盘语义、历史路径枚举三项收口，文档口径改为逐项如实登记。第三轮（PR 前）：ref 直接指向 blob 的审计盲区、音乐控件的无脚本收口、`after` 钩子的已退出判断。本文是修订后的版本。
 >
 > 注：那一轮的任务书 `docs/handoff-claude-public-v1-nonvisual-acceptance.md` 目前只存在于主检出 `E:\Moriium\docs\` 且**未被 Git 跟踪**，因此不在本工作树里，本文不对它做链接。需要原始任务书请向 Morii 取。
 >
-> 停止点：没有 Morii 的明确授权，不提交、不合并、不推送、不部署
+> 停止点：本分支已经 Morii 授权提交并推送，**未合并、未部署**。此后的改动仍需另行授权。
 
 ## 给 Codex 的启动提示
 
@@ -27,14 +27,14 @@
 | 位置 | 分支 | 状态 |
 | --- | --- | --- |
 | `E:\Moriium`（主检出） | `codex/frontend-design-rebuild` | 公开站视觉重做已提交为 `144327a`（21 个文件）。**尚未合入 `main`。** |
-| `E:\Moriium\.claude\worktrees\handoff-doc-workpackages-71e712` | `claude/handoff-doc-workpackages-71e712` | 停在 `179c709`，带 6 个已修改 + 6 个新增文件，**未提交**，等 Morii 审阅。 |
+| `E:\Moriium\.claude\worktrees\handoff-doc-workpackages-71e712` | `claude/handoff-doc-workpackages-71e712` | 11 个提交，已推送到 `origin`，**已开 PR，未合并**。 |
 | `main` / `origin/main` | — | `179c709`。既不含视觉提交，也不含非视觉修复。 |
 
-两批改动都还没进 `main`，而且**互不知情**：上一轮的全部验收是针对 `179c709` 做的，不含 `144327a`。
+两批改动都还没进 `main`，而且**互不知情**：非视觉分支的全部验收是针对 `179c709` 做的，不含 `144327a`。
 
 **合并顺序已定**（Enouia）：先把非视觉改动修正、审阅并形成独立提交，再合入视觉提交 `144327a`，最后对组合结果跑一次完整门禁。两批源码目前没有同名文件冲突。**不要 rebase 或强推已经发布的视觉分支。**
 
-上一轮待审阅的改动：
+本分支的改动：
 
 ```text
  M astro.config.mjs                        Sitemap filter/serialize、assetsInlineLimit
@@ -42,16 +42,16 @@
  M package.json                            audit → audit:public；改用 astro build --force；verify 先构建再测试
  M scripts/audit-public-tree.mjs           隐私审计扩展到全历史路径与内容，新增 --root
  M src/components/ReaderEnhancements.astro 视频链接拦截并保持链接语义、音乐按钮启用
- M src/markdown/rehype-moriium-content.mjs 三处无脚本回退修复
-?? docs/handoff-claude-public-v1-nonvisual-results.md
-?? docs/handoff-codex-public-v1-nonvisual-followups.md   本文
-?? tests/public-contracts.test.mjs         输出合同（22 项）
-?? tests/reader-loading.test.mjs           eager 可达性（14 项）
-?? tests/reader-fallbacks.test.mjs         无脚本回退（20 通过 + 1 todo）
-?? tests/privacy-audit.test.mjs            审计规则与全历史扫描的红绿测试（25 项）
+ M src/markdown/rehype-moriium-content.mjs 无脚本回退修复（视频链接、音乐按钮与文案、本地音频 controls）
++  docs/handoff-claude-public-v1-nonvisual-results.md
++  docs/handoff-codex-public-v1-nonvisual-followups.md   本文
++  tests/public-contracts.test.mjs         输出合同（22 项）
++  tests/reader-loading.test.mjs           eager 可达性（14 项）
++  tests/reader-fallbacks.test.mjs         无脚本回退（23 通过 + 1 todo）
++  tests/privacy-audit.test.mjs            审计规则与全历史扫描的红绿测试（26 项）
 ```
 
-不要丢弃、重置或重写这批改动。
+不要丢弃、重置或重写这批改动，也不要 rebase 或强推本分支——它已经推到 `origin`。
 
 ## 二、待办清单
 
@@ -127,13 +127,15 @@ pnpm run audit:public
 
 **隐私审计的历史覆盖已补齐两轮。** 第一版宣称"全历史审计通过"是超出证据的：当时对历史只应用了路径规则和两个固定字符串。第二版把内容规则铺满历史后，路径枚举仍依赖 `git log --diff-filter=A`，那又漏两类：纯重命名进入禁止路径是 R 不是 A，同一 blob 位于多个路径时只会被归到其中一个。
 
-现在的做法是求并集：遍历**所有可达提交的完整 `ls-tree` 快照**拿到每个 blob 曾经存放过的全部路径，再并上 `rev-list --objects --all`——后者能看到直接指向树或 blob 的 ref（本仓库有 15 个 `refs/codex/turn-diffs/checkpoints/*` 就是这种，藏着 35 个任何提交树里都没有的 blob）。两者缺一都是覆盖漏洞。实测 106 个可达提交、337 条历史路径、757 个 blob（756 文本、1 二进制跳过），命中 0。
+第三版又补上第三类：ref 可以直接指向一个 blob，上面没有树也没有提交，因而没有任何路径。`rev-list --objects` 把这种对象输出成一个没有路径的裸 id，所有按路径索引的枚举都会丢掉它，内容根本不会被读——`git hash-object -w` 加 `git update-ref` 就能造出来，工具误操作也会。
+
+现在的做法是三者求并集：遍历**所有可达提交的完整 `ls-tree` 快照**拿到每个 blob 曾经存放过的全部路径；并上 `rev-list --objects --all`，它能看到直接指向树的 ref（本仓库有 15 个 `refs/codex/turn-diffs/checkpoints/*` 就是这种，藏着 35 个任何提交树里都没有的 blob）；再并上 `for-each-ref`，用 ref 名代替路径覆盖直接挂在 ref 上的 blob，对它们执行全部无作用域规则（有作用域的规则问的是路径，这里没有路径，硬编一个就是编造答案）。缺任何一路都是覆盖漏洞。实测 117 个可达提交、343 条历史路径、778 个 blob（777 文本、1 二进制跳过、0 个由 ref 直接命名），命中 0。
 
 `cat-file` 子进程现在非零退出、报告对象缺失、或返回数量少于请求数时，一律让审计失败——静默少读几个对象却照样打印 "clean"，是这个脚本最危险的失败方式。
 
 补这一项时发现三条规则需要按路径限定作用域（`private-source-path`、`exif-location`、`coordinate-frontmatter`，只在 `src/content/`、`dist/`、`public/media/` 内生效）。不限定时全历史返回 15 处命中，逐条核对全部是测试夹具与设计文档在描述"如何去除 EXIF"——`scripts/sanitize-media.mjs` 与它的测试必须写出 `GPSLatitude` 才能去掉它。把安全网报成泄漏只会让人学会忽略审计。同一套作用域同时适用于当前树与历史。
 
-红绿测试已补，`tests/privacy-audit.test.mjs` 共 25 项。除了给每条规则喂合成危险样本与良性近邻，还建临时 Git 仓库验证四件事：含合成口令与坐标的文件提交后再删除仍会被抓到；纯重命名进入 `data/moriium.db` 再删除仍会被抓到；同一 blob 同时位于 `docs/` 与 `src/content/` 时，作用域内那条路径会被报出而作用域外那条不会；以及删掉某个 loose object 后审计必须失败而不是打印 "clean"。全部断言都同时检查**不打印任何匹配内容**。
+红绿测试已补，`tests/privacy-audit.test.mjs` 共 26 项。除了给每条规则喂合成危险样本与良性近邻，还建临时 Git 仓库验证五件事：含合成口令与坐标的文件提交后再删除仍会被抓到；纯重命名进入 `data/moriium.db` 再删除仍会被抓到；同一 blob 同时位于 `docs/` 与 `src/content/` 时，作用域内那条路径会被报出而作用域外那条不会；`update-ref` 直接挂一个含合成私钥标记的 blob 仍会被抓到；以及删掉某个 loose object 后审计必须失败而不是打印 "clean"。全部断言都同时检查**不打印任何匹配内容**。
 
 ## 四、验证方式
 
@@ -159,8 +161,8 @@ pnpm baseline
 | --- | --- |
 | `tests/public-contracts.test.mjs` | `/admin/`、`/api/`、`/design/`、draft 或 `unlisted` 进入 Sitemap；搜索/RSS 混入非本语言或未列出文章；文章 `hreflang` 不按 `translationKey`；结构页语言组不完整或不双向；同一 URL 重复声明某语言。 |
 | `tests/reader-loading.test.mjs` | 普通页面 eager 加载 PhotoSwipe / Mermaid / KaTeX / 搜索 / 解密 / Admin 代码；文章加载正文并不需要的模块；重型库脱离 `import()`。 |
-| `tests/reader-fallbacks.test.mjs` | 无脚本回退退化，尤其是远程视频退回成纯 `<button>`、远程音乐的按钮变回可点、本地音频丢掉 `controls`；以及视频控件重新戴上 `role="button"` 却不实现空格键。 |
-| `tests/privacy-audit.test.mjs` | 审计规则失效而没人察觉；全历史扫描的 git 管道退化到"扫不出已删除提交里的秘密"。 |
+| `tests/reader-fallbacks.test.mjs` | 无脚本回退退化：远程视频退回成纯 `<button>`、音乐按钮（本地或远程）变回可点、本地音频丢掉 `controls`、静态文案又去指使读者按一个 disabled 的按钮；以及视频控件重新戴上 `role="button"` 却不实现空格键。 |
+| `tests/privacy-audit.test.mjs` | 审计规则失效而没人察觉；全历史扫描的 git 管道退化到"扫不出已删除提交里的秘密"或"扫不出直接挂在 ref 上的 blob"。 |
 
 期望值一律从内容元数据与实际构建产物推导，没有写死任何篇目的 slug。新增或改名文章不需要改测试；若某个测试因为文章集合变化而失败，那通常是它在正确报告问题。
 
