@@ -151,12 +151,25 @@ const { features, lang } = Astro.props;
     const videoLang = document.querySelector<HTMLTemplateElement>('[data-reader-lang]')?.dataset.readerLang ?? 'en';
     const videoFallback = { zh: '嵌入视频', ja: '埋め込み動画', en: 'Embedded video' }[videoLang as 'zh' | 'ja' | 'en'];
     function bindVideos() {
-      for (const button of document.querySelectorAll<HTMLButtonElement>('[data-video-src]')) {
+      // The consent control is a link so that it still works with no script;
+      // see transformVideo in src/markdown/rehype-moriium-content.mjs. Here it
+      // is upgraded in place, which means cancelling the navigation it would
+      // otherwise perform.
+      //
+      // It keeps link semantics after binding. An earlier version set
+      // role="button", which told assistive technology to expect Space to
+      // activate it -- and an anchor does not do that, so Space scrolled the
+      // page instead and the promised affordance was simply missing. The
+      // element really is a link to the video at the provider; enhancement
+      // changes where that video opens, not what the control is. Enter
+      // activates it natively, which is what a link is supposed to do.
+      for (const button of document.querySelectorAll<HTMLAnchorElement>('[data-video-src]')) {
         if (button.dataset.videoBound) continue;
         button.dataset.videoBound = 'true';
-        button.addEventListener('click', () => {
+        button.addEventListener('click', (event) => {
         const source = button.dataset.videoSrc;
         if (!source) return;
+        event.preventDefault();
         const frame = document.createElement('iframe');
         frame.src = source;
         frame.title = button.dataset.videoTitle || videoFallback;
@@ -210,6 +223,10 @@ const { features, lang } = Astro.props;
         card.dataset.musicBound = 'true';
         const button = card.querySelector<HTMLButtonElement>('[data-music-play]');
         const status = card.querySelector<HTMLElement>('[data-music-status]');
+        // A remote track ships its button disabled so that a reader without
+        // JavaScript is not offered a control that cannot work. Now that the
+        // handler exists, it can be offered.
+        if (button) button.disabled = false;
         button?.addEventListener('click', async () => {
         button.disabled = true;
         try {
