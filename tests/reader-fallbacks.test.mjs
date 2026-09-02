@@ -197,15 +197,33 @@ describe('remote music', () => {
     );
   });
 
-  it('states plainly that the track has to be loaded', () => {
-    assert.match(capability, /data-music-status/);
-    assert.match(capability, /Remote track loads only after you press play\./);
+  it('does not tell a reader to press a button that is disabled', async () => {
+    const html = await renderPrivateMarkdown(
+      '::music{title="Final Resonance" artist="ARForest" meting="https://meting.spr-aachen.com/api?server=netease&type=song&id=1"}',
+    );
+    const status = /<p[^>]*data-music-status[^>]*>([\s\S]*?)<\/p>/.exec(html);
+    assert.ok(status, 'the status line is expected in the output');
+    assert.match(status[1], /JavaScript/, 'the static status must say what is actually missing');
+    assert.doesNotMatch(
+      status[1],
+      /press play/i,
+      'the button is disabled at this point, so instructing the reader to press it contradicts the page',
+    );
+  });
+
+  it('says the same thing in the built article', () => {
+    const status = /<p[^>]*data-music-status[^>]*>([\s\S]*?)<\/p>/.exec(capability);
+    assert.ok(status, 'the built article is expected to carry a music status line');
+    assert.match(status[1], /JavaScript/);
+    assert.doesNotMatch(status[1], /press play/i);
   });
 });
 
 describe('local music', () => {
+  const LOCAL = '::music{title="Fixture" artist="Morii" audio="/media/fixture.mp3"}';
+
   it('keeps a native audio fallback that preloads nothing', async () => {
-    const html = await renderPrivateMarkdown('::music{title="Fixture" artist="Morii" audio="/media/fixture.mp3"}');
+    const html = await renderPrivateMarkdown(LOCAL);
     const audio = /<audio[^>]*>/.exec(html);
     assert.ok(audio, 'a local track must render an audio element');
     assert.match(audio[0], /preload="none"/);
@@ -214,6 +232,25 @@ describe('local music', () => {
       /controls/,
       'without native controls a local track is unplayable when the script does not run',
     );
+  });
+
+  it('ships its custom play button disabled as well', async () => {
+    // Having a native player nearby does not make the custom button work. Every
+    // listener it needs lives in ReaderEnhancements, so with no script it is a
+    // dead control sitting next to a live one -- which reads as the player
+    // being broken rather than as the button being an enhancement.
+    const html = await renderPrivateMarkdown(LOCAL);
+    const play = /<button[^>]*data-music-play[^>]*>/.exec(html);
+    assert.ok(play, 'the play control is expected in the output');
+    assert.match(play[0], /disabled/, 'a scripted control must not ship enabled');
+  });
+
+  it('points the reader at the control that does work', async () => {
+    const html = await renderPrivateMarkdown(LOCAL);
+    const status = /<p[^>]*data-music-status[^>]*>([\s\S]*?)<\/p>/.exec(html);
+    assert.ok(status, 'the status line is expected in the output');
+    assert.match(status[1], /JavaScript/);
+    assert.match(status[1], /audio player/i, 'the native fallback is the thing that still works');
   });
 });
 
