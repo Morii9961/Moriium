@@ -165,28 +165,28 @@
 
 - [~] PhotoSwipe 已按文章内容标记动态加载。
 - [ ] 验收多图、长图、键盘操作、缩放和焦点返回。
-- [ ] 确认无图片文章不下载灯箱资源。
+- [x] 确认无图片文章不下载灯箱资源。见[非视觉验收结果](handoff-claude-public-v1-nonvisual-results.md)第五节。
 
 ### 08　代码、数学与 Mermaid
 
 - [~] Expressive Code、行号、折叠、KaTeX 和 Mermaid 已有实现。
 - [ ] 分别验收复制按钮、暗色主题、无效 Mermaid 回退和移动端溢出。
-- [ ] 确认普通文章不下载 Mermaid 客户端代码。
+- [x] 确认普通文章不下载 Mermaid 客户端代码。见[非视觉验收结果](handoff-claude-public-v1-nonvisual-results.md)第五节。
 
 ### 09　扩展内容块
 
 - [~] 提示块、剧透、GitHub 仓库卡片、视频和音乐卡片已有实现。
-- [ ] 逐项验收无 JavaScript 回退。
-- [ ] 视频和音乐必须点击后才连接第三方服务。
-- [ ] GitHub 数据获取失败时保留普通仓库链接。
-- [ ] 复核外部服务允许列表和 CSP。
+- [~] 逐项验收无 JavaScript 回退。图片、GitHub 卡片、提示块、本地视频与复制限制已通过；远程视频、远程音乐与本地音乐三处缺口已修复。**剧透仍未通过**：无脚本时是一块透明文字，既读不到也没有说明，等视觉提交合入后按渐进增强补。见[非视觉验收结果](handoff-claude-public-v1-nonvisual-results.md)第六节。
+- [x] 视频和音乐必须点击后才连接第三方服务。初始加载第三方请求数为 0；见[非视觉验收结果](handoff-claude-public-v1-nonvisual-results.md)第七节。
+- [x] GitHub 数据获取失败时保留普通仓库链接。缓存缺失时仍是完整链接卡。
+- [x] 复核外部服务允许列表和 CSP。三处允许列表一致；并发现且修复了内联脚本被生产 CSP 拦截的问题，见[非视觉验收结果](handoff-claude-public-v1-nonvisual-results.md)第七节。
 
 ### 10　加密文章
 
 - [~] 本地加密脚本、公开密文集合和浏览器解密流程已有实现与测试。
 - [ ] 按 A 方案重做解锁界面并完成三语人工验收。
 - [ ] 检查错误口令、损坏密文、键盘操作和解密后的阅读模块。
-- [ ] 再次确认构建产物、日志和 Git 历史中没有明文、口令或私密路径。
+- [x] 再次确认构建产物、日志和 Git 历史中没有明文、口令或私密路径。审计已扩展到 Git 历史、服务端产物与本轮生成物，命中 0；见[非视觉验收结果](handoff-claude-public-v1-nonvisual-results.md)第九节。
 
 ### 11　可选复制限制
 
@@ -198,8 +198,8 @@
 
 - [~] `translationKey`、缺失翻译提示和文章语言链接已有实现。
 - [ ] 语言切换尽量保留当前页面，不要总是返回首页。
-- [ ] 检查 `hreflang`、canonical、RSS 与 Sitemap 的语言关系。
-- [ ] 不生成占位翻译，不复制别的语言正文。
+- [~] 检查 `hreflang`、canonical、RSS 与 Sitemap 的语言关系。文章、首页与结构页已通过，并修复了按路径形状推断翻译关系的 Sitemap alternate。**分类与标签详情页未通过**：译名不同的 taxonomy 页（如 `Rebuild` / `再構築` / `重构`）得不到任何 alternate，需要一份 taxonomy 译名对照表，项目里目前没有。见[非视觉验收结果](handoff-claude-public-v1-nonvisual-results.md)第八节与第十二节第 3 条。
+- [x] 不生成占位翻译，不复制别的语言正文。未翻译文章不会获得虚构 alternate。
 
 ### 13　Pages CMS 写作流程
 
@@ -210,7 +210,7 @@
 
 ### 14　发布前总验收
 
-- [ ] 删除或隔离 `/design/` 原型页面，确保不会进入正式索引。
+- [~] `/design/` 已确认不进入正式索引：全部 `noindex,nofollow`，不在 Sitemap，正式页面无入口。是否删除或搬迁仍待 Morii 决定。
 - [ ] 清理未使用样式与大型分包警告。
 - [ ] 完成键盘、焦点、语义标题、对比度、减弱动画和五档宽度验收。
 - [ ] 运行 `pnpm check`、`pnpm test`、`pnpm build`、`pnpm links` 和隐私审计。
