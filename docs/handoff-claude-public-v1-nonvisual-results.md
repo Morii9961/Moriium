@@ -27,9 +27,9 @@
 | 文件 | 理由 |
 | --- | --- |
 | `astro.config.mjs` | 三处。① Sitemap `filter` 改为按内容元数据排除，修掉两个红旗；② 新增 `serialize`，让文章 alternate 依据 `translationKey` 而不是路径形状；③ `vite.build.assetsInlineLimit: 0`，让内联脚本变成外部文件，以符合既有 CSP。 |
-| `src/markdown/rehype-moriium-content.mjs` | 远程视频的同意控件由 `<button>` 改为带 `href` 的 `<a>`；远程音乐的播放按钮默认 `disabled`；本地音乐补 `controls`。三项都是无脚本回退缺口。 |
-| `src/components/ReaderEnhancements.astro` | 与上面配套：视频处理器改为拦截链接默认跳转并保持链接语义，音乐处理器在绑定后启用按钮。 |
-| `scripts/audit-public-tree.mjs` | 扩大隐私审计范围（Git 全历史路径与内容、服务端产物、本轮生成物），新增 `--root`，并导出规则集以便被合成样本验证。 |
+| `src/markdown/rehype-moriium-content.mjs` | 远程视频的同意控件由 `<button>` 改为带 `href` 的 `<a>`；音乐播放按钮一律默认 `disabled`；本地音乐补 `controls`；静态状态文案改为直说需要 JavaScript。都是无脚本回退缺口。 |
+| `src/components/ReaderEnhancements.astro` | 与上面配套：视频处理器拦截链接默认跳转并保持链接语义（不再伪装成按钮），音乐处理器在绑定后同时启用按钮并换掉静态文案。 |
+| `scripts/audit-public-tree.mjs` | 扩大隐私审计范围（Git 全历史路径与内容、ref 直接指向的 blob、服务端产物、本轮生成物），新增 `--root`，并导出规则集以便被合成样本验证。 |
 | `package.json` | 经 Morii 同意的三处：`audit` 改名为 `audit:public`（避开 pnpm 内置命令）；`build` 与 `verify` 的构建步骤改为 `astro build --force`；`verify` 把构建提到测试之前，否则 CI 干净检出没有 `dist/` 可读。 |
 | `tests/public-contracts.test.mjs`（新增） | 工作包 A 与 D 的输出合同断言。 |
 | `tests/reader-loading.test.mjs`（新增） | 工作包 B 的 eager 可达性断言。 |
@@ -84,7 +84,7 @@
 | 三语首页 | 1.4 KB | 无 | 通过 |
 | writing 列表 | 1.0 KB | 无 | 通过 |
 | 普通文章 | 2.3 KB | 仅一份共用 reader 脚本 | 通过 |
-| 能力文章 | 12.8 KB | photoswipe.css、katex.css 及六份 reader 脚本 | 通过 |
+| 能力文章 | 13.1 KB | photoswipe.css、katex.css 及六份 reader 脚本 | 通过 |
 | 搜索（未打开） | 未加载模块与索引 | 索引以 `data-search-index` 属性传递，模块经 `import()` | 通过 |
 | 加密文章 | 无公开加密文章（唯一条目是 draft fixture） | 公开产物中不存在任何解密代码 | 按交接约定，只验证生成逻辑与隐私合同 |
 
@@ -100,7 +100,7 @@
    | 预算项 | 实测 | 上限 |
    | --- | --- | --- |
    | 普通页 eager JS | 2.3 KB | 8.0 KB |
-   | 能力文章 eager JS | 12.8 KB | 24.0 KB |
+   | 能力文章 eager JS | 13.1 KB | 24.0 KB |
    | eager CSS（gzip） | 85.7 KB | 120.0 KB |
    | 搜索索引（gzip） | 0.3 KB | 256.0 KB |
 
@@ -118,12 +118,12 @@
 | 剧透 | 正文仍在文档中，`color: rgba(0,0,0,0)` 保持遮蔽，带 `role="button"`、`aria-label`、`aria-pressed="false"` | **未通过**：无脚本时是一块不可操作的透明文字，读者既看不到内容也没有任何说明。合同要求的是「可理解的无脚本状态」，只做到「内容仍在文档中」。见第十二节第 2 条 |
 | 远程视频 | **原为缺陷**：只有一个 `<button>`，URL 藏在 `data-video-src`，无脚本时完全无路可走。已改为带 `href` 的 `<a>`，指向同一个已在白名单内的 provider 地址 | 修复后通过 |
 | 本地视频 | 原生 `controls`，`preload="none"` | 原本即通过 |
-| 远程音乐 | **原为缺陷**：播放按钮在无脚本时形同虚设，却看起来可播放。已改为默认 `disabled`，由脚本绑定后启用；标题与作者始终可读，状态文案说明需要主动加载 | 修复后通过 |
-| 本地音乐 | **原为缺陷**：`<audio>` 没有 `controls`，无脚本时无法播放。已补 `controls`，保持 `preload="none"` | 修复后通过 |
+| 远程音乐 | **原为缺陷**：播放按钮在无脚本时形同虚设，却看起来可播放。已改为默认 `disabled`，由脚本绑定后启用；标题与作者始终可读。静态文案原先写"按播放即可加载"，与被禁用的按钮自相矛盾，已改为直说需要 JavaScript，绑定后由脚本换成工作态文案 | 修复后通过 |
+| 本地音乐 | **原为缺陷**：`<audio>` 没有 `controls`，无脚本时无法播放。已补 `controls`，保持 `preload="none"`。自定义 Play 按钮此前只对远程禁用，本地仍是一个点不动的死按钮，现已一律 `disabled`；静态文案指向真正可用的原生播放器 | 修复后通过 |
 | 复制限制 | 标记层没有 `user-select: none`，无脚本时正常复制；限制只由 `copy` 监听器施加，且放行 `pre`、`code`、输入框与 `[data-allow-copy]` | 原本即通过 |
 | 加密文章 | 页面外壳只服务端渲染公开元数据、加密说明与警告，正文位于 `hidden` 容器，路由在 `getStaticPaths` 阶段过滤 draft，正文从不进入 HTML | 通过（当前无公开加密文章，按逻辑与隐私合同验证） |
 
-三项修复都落在 Markdown 转换层与其配套的 reader 脚本，没有进入 CSS 或页面重做。
+所有修复都落在 Markdown 转换层与其配套的 reader 脚本，没有进入 CSS 或页面重做。原则是统一的：**凡是只有脚本能驱动的控件，静态一律不可用，绑定成功后才启用；静态文案说明缺的是 JavaScript，绑定后再换成工作态文案。**
 
 **本节不能整体宣称通过**：剧透一项是真实缺口。`tests/reader-fallbacks.test.mjs` 里那条断言只证明文字留在文档中，不证明无脚本读者看得懂；缺口本身记为一条 `todo` 用例，会在测试输出里显示为 todo 1，不会被算成通过。
 
@@ -190,7 +190,8 @@ Executing inline script violates the following Content Security Policy directive
 | 范围 | 说明 |
 | --- | --- |
 | `git-index` | 当前被跟踪的文件 |
-| `git-history` | 333 条曾被新增的路径，加上**所有 ref 可达的 752 个 blob 的完整内容**（751 个按文本扫描，1 个二进制跳过），每个 blob 过一遍全部内容规则 |
+| `git-history` | 所有可达提交的完整 `ls-tree` 快照（343 条历史路径），并上 `rev-list --objects --all`，得到 771 个唯一 blob 的完整内容（770 文本、1 二进制跳过），每个 blob 按其**全部**存放路径过一遍适用规则 |
+| `git-ref` | ref 直接指向的 blob（无提交、无树、无路径）。这类对象在 `rev-list --objects` 里是一个没有路径的裸 id，任何按路径索引的枚举都会丢掉它，内容根本不会被读。改用 `for-each-ref` 保留 ref 名代替路径，执行全部无作用域规则 |
 | `content` | `src/content/`，含受保护密文 envelope |
 | `public-output` | `dist/client`，含搜索 JSON、RSS、Sitemap |
 | `server-output` | `dist/server`（新增：不面向读者，但会随发布复制到 VPS） |
@@ -316,6 +317,8 @@ node --test --test-isolation=none tests/search.test.mjs tests/render-split.test.
 第一轮复核：隐私审计的历史扫描从"两个固定字符串"补成"全部内容规则"；剧透回退从"通过"改回未通过；结构页 `hreflang` 的判断被推翻并补了回归测试；`audit` 脚本改名，构建改用 `astro build --force`。
 
 第二轮复核：`verify` 顺序改为先构建再跑测试，否则 CI 干净检出没有 `dist/` 可读；视频同意控件不再伪装成按钮（`role="button"` 承诺了空格键，而锚点做不到），保持链接语义并补了回归测试；历史路径枚举不再依赖 `--diff-filter=A`，改为遍历所有可达提交的完整快照并与 `rev-list --objects` 求并集，补上纯重命名与同一 blob 多路径两种失败测试；`cat-file` 子进程非零退出、对象缺失或返回不全时一律让审计失败。
+
+第三轮复核（PR 前）：补上 ref 直接指向 blob 的盲区——这类对象在 `rev-list --objects` 里是没有路径的裸 id，按路径索引的枚举全部丢掉它，内容根本不会被读；改用 `for-each-ref` 以 ref 名代替路径，执行全部无作用域规则，并补了"ref 直接挂着合成私钥标记必须失败"的红绿测试。音乐回退再收口：本地的自定义 Play 按钮此前仍是无脚本时点不动的死按钮，静态文案又让读者去按一个 disabled 的按钮，两处都改为静态不可用、绑定后启用、文案随之更换。`admin-built-artifact` 的 `after` 钩子先检查 `exitCode`/`signalCode`，避免等待一个已经发生的 exit 事件——启动即崩溃的服务器会让套件挂死而不是报出真正的失败。
 
 ### 仍未验收
 
