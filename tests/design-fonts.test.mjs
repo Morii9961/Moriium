@@ -106,6 +106,8 @@ test('production shell loads the public typography and editorial frame', async (
   assert.match(styles, /--surface:\s*var\(--moriium-light-canvas\)/);
   assert.match(styles, /--font-display:\s*"Noto Sans SC Variable",\s*"Sora Variable"/);
   assert.match(styles, /\.public-site \.site-header__inner\s*{[^}]*grid-template-columns:\s*minmax\(12rem, 1fr\) auto minmax\(12rem, 1fr\)/s);
+  assert.match(styles, /\.public-site \.site-footer__name\s*{[^}]*color:\s*var\(--accent-field-ink\)/s);
+  assert.match(styles, /\.a-directory__stats div\s*{[^}]*padding-inline:\s*clamp\(1rem, 2vw, 1\.5rem\)/s);
 });
 
 test('production home and writing index use the rebuilt editorial system with real content', async () => {
