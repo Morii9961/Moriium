@@ -308,6 +308,28 @@ describe('the history sweep', () => {
     assert.doesNotMatch(output, /39\/1 54\/1/, 'the audit must never print the match');
   });
 
+  it('finds a blob a ref names directly, with no commit or path above it', () => {
+    // `git hash-object -w` plus `git update-ref` parks content in the object
+    // store under a ref with no tree and no commit. Every path-keyed
+    // enumeration misses it -- `rev-list --objects` emits it as a bare id with
+    // no path, which is exactly the shape a path-based reader skips -- so its
+    // content would never be read at all.
+    const marker = `-----${'BEGIN'} PRIVATE KEY-----\nAAAA\n`;
+    writeFileSync(join(repo, 'loose'), marker);
+    const sha = git('hash-object', '-w', 'loose').trim();
+    rmSync(join(repo, 'loose'));
+    git('update-ref', 'refs/secrets/parked', sha);
+
+    const { code, output } = run(repo);
+    assert.equal(code, 1, 'a blob parked under a ref must still be audited');
+    assert.match(output, /git-ref/);
+    assert.match(output, /private-key-block/);
+    assert.match(output, /refs\/secrets\/parked/);
+    assert.doesNotMatch(output, /BEGIN PRIVATE KEY/, 'the audit must never print the match');
+
+    git('update-ref', '-d', 'refs/secrets/parked');
+  });
+
   it('finds a secret that was committed and then deleted', () => {
     mkdirSync(join(repo, 'src/content/posts/zh'), { recursive: true });
     const leak = join(repo, 'src/content/posts/zh/leak.md');

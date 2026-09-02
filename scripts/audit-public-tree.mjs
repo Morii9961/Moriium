@@ -235,6 +235,21 @@ function auditContent(scope, location, path, text) {
 }
 
 /**
+ * Apply only the rules that hold regardless of path.
+ *
+ * For content that has no path at all -- a blob a ref names directly -- the
+ * scoped rules cannot be evaluated, and guessing a path for them would be
+ * inventing the answer. The unscoped rules still apply in full.
+ */
+export function auditUnscopedContent(scope, location, text) {
+  for (const rule of CONTENT_RULES) {
+    if (rule.appliesTo !== ANYWHERE) continue;
+    const count = rule.count(text);
+    if (count > 0) report(scope, location, rule.id, rule.describe, count);
+  }
+}
+
+/**
  * A blob is worth reading as text unless it holds a NUL byte.
  *
  * Extension is not usable here: history contains blobs whose path changed, and
@@ -378,12 +393,39 @@ async function historyBlobs() {
     if (path && objectTypes.get(sha) === 'blob') record(sha, path);
   }
 
-  return { commits, allPaths, pathsBySha };
+  // A ref can point straight at a blob, with no tree and no commit above it and
+  // therefore no path anywhere. `rev-list --objects` emits such an object as a
+  // bare id, which every path-keyed enumeration above drops on the floor: the
+  // content would never be read at all. `git hash-object -w` followed by
+  // `git update-ref` is all it takes to park a file there, so the blind spot is
+  // reachable by accident as well as on purpose.
+  //
+  // The ref name stands in for the path. Only unscoped rules can run, because
+  // the scoped ones ask a question about a path that does not exist here.
+  const refBlobs = new Map();
+  const noteRefBlob = (sha, refname) => {
+    if (!refBlobs.has(sha)) refBlobs.set(sha, new Set());
+    refBlobs.get(sha).add(refname);
+  };
+
+  for (const line of (await git([
+    'for-each-ref', '--format=%(objecttype) %(objectname) %(*objecttype) %(*objectname) %(refname)',
+  ])).split('\n')) {
+    if (!line.trim()) continue;
+    const [type, name, peeledType, peeledName, ...rest] = line.trim().split(' ');
+    const refname = rest.join(' ');
+    // An annotated tag reports its own type; the object it peels to is what
+    // actually holds content.
+    if (type === 'blob') noteRefBlob(name, refname);
+    else if (peeledType === 'blob') noteRefBlob(peeledName, refname);
+  }
+
+  return { commits, allPaths, pathsBySha, refBlobs };
 }
 
 async function main() {
   let gitAvailable = true;
-  let historyStats = { commits: 0, paths: 0, blobs: 0, text: 0, binary: 0 };
+  let historyStats = { commits: 0, paths: 0, blobs: 0, refBlobs: 0, text: 0, binary: 0 };
 
   try {
     // 1. What a push would hand over right now.
@@ -394,26 +436,38 @@ async function main() {
     // 2. What a push would hand over from every earlier commit: every path in
     // every reachable snapshot, then the contents of every unique blob against
     // every rule that applies at any path that blob was stored at.
-    const { commits, allPaths, pathsBySha } = await historyBlobs();
+    const { commits, allPaths, pathsBySha, refBlobs } = await historyBlobs();
     historyStats.commits = commits.length;
     historyStats.paths = allPaths.size;
-    historyStats.blobs = pathsBySha.size;
+    historyStats.refBlobs = refBlobs.size;
 
     for (const path of allPaths) auditPath('git-history', path);
 
-    if (pathsBySha.size > 0) {
-      await readBlobs([...pathsBySha.keys()], (sha, content) => {
+    const wanted = new Set([...pathsBySha.keys(), ...refBlobs.keys()]);
+    historyStats.blobs = wanted.size;
+
+    if (wanted.size > 0) {
+      await readBlobs([...wanted], (sha, content) => {
         if (!isTextBlob(content)) {
           historyStats.binary += 1;
           return;
         }
         historyStats.text += 1;
         const text = content.toString('utf8');
+
         // A blob can sit at several paths at once, and a rule's scope is a
         // property of the path. Reporting it at each path the rule applies to
         // is what makes "the same secret was also committed over here" visible.
-        for (const path of pathsBySha.get(sha)) {
+        for (const path of pathsBySha.get(sha) ?? []) {
           auditContent('git-history', `${sha.slice(0, 12)} ${path}`, path, text);
+        }
+
+        // A blob a ref names directly has no path, so the scoped rules have
+        // nothing to decide against. The unscoped ones describe things with no
+        // legitimate home anywhere, which is exactly the question worth asking
+        // of an object someone parked under a ref.
+        for (const refname of refBlobs.get(sha) ?? []) {
+          auditUnscopedContent('git-ref', `${sha.slice(0, 12)} ${refname}`, text);
         }
       });
     }
@@ -484,7 +538,8 @@ async function main() {
   const history = gitAvailable
     ? `git: index plus ${historyStats.commits} reachable commits, ` +
       `${historyStats.paths} distinct historical paths, ${historyStats.blobs} unique blobs ` +
-      `(${historyStats.text} scanned as text, ${historyStats.binary} binary skipped)`
+      `(${historyStats.text} scanned as text, ${historyStats.binary} binary skipped, ` +
+      `${historyStats.refBlobs} named directly by a ref)`
     : 'git: unavailable';
   console.log(
     `Privacy audit clean: ${PATH_RULES.length} path rules and ${CONTENT_RULES.length} content rules ` +
