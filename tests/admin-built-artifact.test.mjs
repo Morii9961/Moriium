@@ -153,7 +153,12 @@ after(async () => {
   // the process is actually gone, and removing the directory underneath it
   // fails with EPERM -- a green suite reported as a failure by its own cleanup.
   // So wait for the exit, then let rm retry the handles Windows releases late.
-  if (child) {
+  //
+  // Check first whether it has already gone. A server that crashed during
+  // startup has emitted its 'exit' long before this hook runs, and awaiting an
+  // event that has already fired waits forever: the suite would hang instead of
+  // reporting the failure that killed the process.
+  if (child && child.exitCode === null && child.signalCode === null) {
     const exited = new Promise((resolve) => child.once('exit', resolve));
     child.kill();
     await exited;
