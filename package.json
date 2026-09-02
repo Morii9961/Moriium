@@ -57,7 +57,7 @@
     "rehype-katex": "7.0.1",
     "remark-directive": "4.0.0",
     "remark-math": "6.0.0",
-    "sharp": "0.35.3",
+    "sharp": "0.35.4",
     "vue": "3.5.42"
   },
   "devDependencies": {
