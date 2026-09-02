@@ -55,7 +55,16 @@ export default defineConfig({
     processor: unified({ remarkPlugins, rehypePlugins }),
   },
   vite: {
-    build: { target: 'es2022' },
+    // assetsInlineLimit: 0 keeps every bundled script a file rather than letting
+    // small ones be inlined into the HTML. deploy/nginx/moriium.conf sends
+    // `script-src 'self'` with no 'unsafe-inline', no nonce and no hash, so an
+    // inlined script is not merely untidy -- the browser refuses to run it. That
+    // silently disabled the video consent control, the music card, spoilers, the
+    // copy-protection notice and the home page feature reel in production, while
+    // every local preview without the header looked correct. Serving the built
+    // tree with the production CSP is what surfaced it, so the fix belongs here
+    // rather than in a weaker policy.
+    build: { target: 'es2022', assetsInlineLimit: 0 },
     environments: {
       astro: {
         // Astro's content runner needs this CommonJS dependency pre-bundled as ESM.
