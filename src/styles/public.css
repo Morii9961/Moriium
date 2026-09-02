@@ -399,6 +399,7 @@
   }
 
   .public-site .site-footer__name {
+    color: var(--accent-field-ink);
     font-family: var(--font-wordmark);
     font-size: clamp(3rem, 8vw, 7rem);
     font-weight: 650;
@@ -509,6 +510,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
+    padding-inline: clamp(1rem, 2vw, 1.5rem);
     border-top: 1px solid var(--ink);
   }
 
@@ -1049,7 +1051,6 @@
       bottom: 2rem;
       width: min(15rem, 58%);
       margin: 0;
-      padding-inline: 1rem;
     }
 
     .a-directory__section-head,
