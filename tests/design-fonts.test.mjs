@@ -153,7 +153,7 @@ test('production home and writing index use the rebuilt editorial system with re
     read('src/pages/[lang]/writing/index.astro'),
   ]);
 
-  for (const marker of ['aperture-hero', 'aperture-hero__note', 'aperture-hero__overprint', 'aperture-identity', 'aperture-ways', 'aperture-field', 'aperture-now', 'aperture-closing']) {
+  for (const marker of ['aperture-hero', 'aperture-hero__note', 'aperture-hero__overprint', 'aperture-identity', 'aperture-ways', 'aperture-field', 'aperture-ledger', 'aperture-colophon']) {
     assert.match(home, new RegExp(`class=\"[^\"]*${marker}`));
   }
   assert.match(home, /aperture-hero__phrase aperture-hero__phrase--\$\{line\}/);

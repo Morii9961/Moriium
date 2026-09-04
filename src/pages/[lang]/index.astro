@@ -18,6 +18,41 @@ const categories = uniqueTaxonomy(posts, 'category').map((name) => ({
 }));
 const tags = uniqueTaxonomy(posts, 'tags').slice(0, 8);
 
+// The ledger is derived entirely from the posts, so it cannot go stale the way
+// a hand-written "currently" list does. Years descend; the oldest post sets the
+// date the archive starts from.
+const yearGroups = [...Map.groupBy(posts, (post) => post.data.publishedAt.getFullYear()).entries()].sort(
+  ([a], [b]) => b - a,
+);
+const oldestPost = posts.at(-1);
+const startedLabel = oldestPost
+  ? new Intl.DateTimeFormat(ui.locale, { year: 'numeric', month: 'long' }).format(oldestPost.data.publishedAt)
+  : '—';
+
+// Calendar: show the most recent month that has a post, falling back to now.
+const calendarAnchor = posts[0]?.data.publishedAt ?? new Date();
+const calendarYear = calendarAnchor.getFullYear();
+const calendarMonth = calendarAnchor.getMonth(); // 0-indexed
+const daysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
+const firstWeekday = new Date(calendarYear, calendarMonth, 1).getDay(); // 0=Sun
+const activeDays = new Set(
+  posts
+    .filter((p) => {
+      const d = p.data.publishedAt;
+      return d.getFullYear() === calendarYear && d.getMonth() === calendarMonth;
+    })
+    .map((p) => p.data.publishedAt.getDate()),
+);
+const calendarLabel = new Intl.DateTimeFormat(ui.locale, { year: 'numeric', month: 'long' }).format(
+  new Date(calendarYear, calendarMonth, 1),
+);
+const calendarRecentPosts = posts
+  .filter((p) => {
+    const d = p.data.publishedAt;
+    return d.getFullYear() === calendarYear && d.getMonth() === calendarMonth;
+  })
+  .slice(0, 3);
+
 // Four runs, and each one is a single line of type — not a row of individually
 // placed characters. Every glyph in a run shares one font-size, one line box and
 // one baseline, which is what makes the em-box top edges and bottom edges of a
@@ -127,14 +162,24 @@ const copy = {
     field: '内容星图', fieldNote: '分类是较大的方向，标签是文章之间偶然形成的连线。',
     category: '主要方向', tags: '交叉索引', posts: (count: number) => `${count} 篇`,
     allCategories: '全部分类', allTags: '全部标签',
-    now: '此刻仍在发生', nowNote: '还没有写成长文，但已经留下时间。',
-    nowItems: [
-      ['2026.08', '重做 Moriium', '先改变人与内容相遇的方式，再决定哪些功能值得留下。'],
-      ['2026.08', '整理日本旅行照片', '路线与现场笔记都还在，等照片理顺后再写。'],
+    ledger: '存了些什么', ledgerNote: '按年份看，以及这个档案从什么时候开始。',
+    ledgerYears: '年份', ledgerEntries: (count: number) => `${count} 篇`,
+    factStarted: '开始于', factPosts: '文章', factLanguages: '语言',
+    languageList: '中 / 日 / EN',
+    colophon: '关于这里',
+    colophonNote: '谁在写，什么时候更新过。',
+    authorTitle: '维护者',
+    authorNames: 'Morii & Enouia',
+    people: [
+      ['Morii', '写文章，拍照片。路上的见闻也放在这里。'],
+      ['Enouia', '整理内容，也负责把网站搭起来、照看好。'],
     ],
-    closing: '下一页没有预告。',
-    closingText: '你可以从文章进入，也可以从年份、主题或 RSS 以后再回来。这里不要求连续阅读。',
-    archive: '打开归档', rss: '订阅 RSS', about: '关于这里',
+    authorAbout: '关于',
+    calendarTitle: '更新日历',
+    calendarWeekdays: ['日', '一', '二', '三', '四', '五', '六'],
+    calendarDayActive: (day: number) => `${day}日有文章更新`,
+    fullArchive: '完整归档',
+    rss: '订阅 RSS', about: '关于 Moriium',
   },
   ja: {
     heroIdentity: '文字・写真・旅の記録',
@@ -149,14 +194,24 @@ const copy = {
     field: '内容の星図', fieldNote: 'カテゴリーは大きな方向、タグは記事のあいだに偶然生まれた線です。',
     category: '主な方向', tags: '交差する索引', posts: (count: number) => `${count} 件`,
     allCategories: 'カテゴリー一覧', allTags: 'タグ一覧',
-    now: 'まだ途中にあること', nowNote: '長い文章にはなっていませんが、時間はすでに残っています。',
-    nowItems: [
-      ['2026.08', 'Moriium を作り直す', '内容との出会い方を変えてから、残す機能を決めます。'],
-      ['2026.08', '日本旅行の写真を整理中', 'ルートと現地のメモは残っています。写真が整ったら書きます。'],
+    ledger: '残っているもの', ledgerNote: '年ごとの記事と、このアーカイブが始まった時期。',
+    ledgerYears: '年', ledgerEntries: (count: number) => `${count} 件`,
+    factStarted: '開始', factPosts: '記事', factLanguages: '言語',
+    languageList: '中 / 日 / EN',
+    colophon: 'この場所について',
+    colophonNote: '誰が書いているか、いつ更新されたか。',
+    authorTitle: '運営',
+    authorNames: 'Morii & Enouia',
+    people: [
+      ['Morii', '文章を書き、写真を撮る。旅の記録もここに置いています。'],
+      ['Enouia', '内容を整理し、サイトの構築と管理を担当しています。'],
     ],
-    closing: '次の頁に予告はありません。',
-    closingText: '記事、年、テーマ、RSS。どの入口からでも、あとで戻って来られます。続けて読む必要はありません。',
-    archive: 'アーカイブを開く', rss: 'RSS を購読', about: 'この場所について',
+    authorAbout: 'について',
+    calendarTitle: '更新カレンダー',
+    calendarWeekdays: ['日', '月', '火', '水', '木', '金', '土'],
+    calendarDayActive: (day: number) => `${day}日に記事が更新されました`,
+    fullArchive: 'アーカイブ',
+    rss: 'RSS を購読', about: 'Moriium について',
   },
   en: {
     heroIdentity: 'Words · Photographs · Travel',
@@ -171,14 +226,24 @@ const copy = {
     field: 'A map of the work', fieldNote: 'Categories mark broad directions; tags are lines that happen to form between posts.',
     category: 'Main directions', tags: 'Cross-index', posts: (count: number) => `${count} ${count === 1 ? 'post' : 'posts'}`,
     allCategories: 'All categories', allTags: 'All tags',
-    now: 'Still in progress', nowNote: 'Not long enough to be an essay, but already part of the record.',
-    nowItems: [
-      ['2026.08', 'Rebuilding Moriium', 'Change how people encounter the work first; decide which features deserve to remain later.'],
-      ['2026.08', 'Sorting the Japan photographs', 'The route and field notes remain. I will write after the photographs are in order.'],
+    ledger: 'What is kept here', ledgerNote: 'By year, and when this archive starts from.',
+    ledgerYears: 'Years', ledgerEntries: (count: number) => `${count} ${count === 1 ? 'entry' : 'entries'}`,
+    factStarted: 'Started', factPosts: 'Posts', factLanguages: 'Languages',
+    languageList: 'ZH / JA / EN',
+    colophon: 'About this place',
+    colophonNote: 'Who writes here, and when it was last updated.',
+    authorTitle: 'Maintainers',
+    authorNames: 'Morii & Enouia',
+    people: [
+      ['Morii', 'Writes and photographs. Travel notes end up here too.'],
+      ['Enouia', 'Organises the content, and builds and looks after the site.'],
     ],
-    closing: 'The next page is unannounced.',
-    closingText: 'Enter through a post, a year, a subject, or return later by RSS. Nothing here has to be read in sequence.',
-    archive: 'Open the archive', rss: 'Subscribe by RSS', about: 'About this place',
+    authorAbout: 'About',
+    calendarTitle: 'Update calendar',
+    calendarWeekdays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+    calendarDayActive: (day: number) => `Post updated on day ${day}`,
+    fullArchive: 'Full archive',
+    rss: 'Subscribe by RSS', about: 'About Moriium',
   },
 } as const;
 const c = copy[lang];
@@ -290,15 +355,98 @@ const routeHrefs = [`/${lang}/writing/`, `/${lang}/archive/`, `/${lang}/categori
       </div>
     </section>
 
-    <section class="aperture-now" aria-labelledby="home-now-title">
-      <header><p>Now / 2026.08</p><h2 id="home-now-title">{c.now}</h2><span>{c.nowNote}</span></header>
-      <ol>{c.nowItems.map(([date, title, note]) => <li><time>{date}</time><div><h3>{title}</h3><p>{note}</p></div></li>)}</ol>
+    <section class="aperture-ledger" aria-labelledby="home-ledger-title">
+      <header><p>Archive / Ledger</p><h2 id="home-ledger-title">{c.ledger}</h2><span>{c.ledgerNote}</span></header>
+      <div class="aperture-ledger__body">
+        {yearGroups.length > 0 && (
+          <ol class="aperture-ledger__years" aria-label={c.ledgerYears}>
+            {yearGroups.map(([year, entries]) => (
+              <li>
+                <a href={`/${lang}/archive/#archive-${year}`}>
+                  <span>{year}</span>
+                  <small>{c.ledgerEntries(entries.length)}</small>
+                </a>
+              </li>
+            ))}
+          </ol>
+        )}
+        <dl class="aperture-ledger__facts">
+          <div><dt>{c.factStarted}</dt><dd>{startedLabel}</dd></div>
+          <div><dt>{c.factPosts}</dt><dd>{c.ledgerEntries(posts.length)}</dd></div>
+          <div><dt>{c.factLanguages}</dt><dd>{c.languageList}</dd></div>
+        </dl>
+      </div>
     </section>
 
-    <section class="aperture-closing" aria-labelledby="home-closing-title">
-      <p>Moriium / Continue later</p>
-      <h2 id="home-closing-title">{c.closing}</h2>
-      <div><p>{c.closingText}</p><nav aria-label={c.about}><a href={`/${lang}/archive/`}>{c.archive}</a><a href={`/${lang}/rss.xml`}>{c.rss}</a><a href={`/${lang}/about/`}>{c.about}</a></nav></div>
+    <section class="aperture-colophon" aria-labelledby="home-colophon-title">
+      <header>
+        <p>Moriium / Colophon</p>
+        <h2 id="home-colophon-title">{c.colophon}</h2>
+        <span>{c.colophonNote}</span>
+      </header>
+
+      <div class="aperture-colophon__body">
+        <div class="aperture-colophon__author">
+          <div class="aperture-colophon__author-head">
+            <h3>{c.authorTitle}</h3>
+            <span>{c.authorNames}</span>
+          </div>
+          <ol class="aperture-colophon__people">
+            {c.people.map(([name, role]) => (
+              <li>
+                <h4>{name}</h4>
+                <p>{role}</p>
+              </li>
+            ))}
+          </ol>
+          <nav class="aperture-colophon__actions" aria-label={c.authorAbout}>
+            <a class="aperture-action" href={`/${lang}/about/`}>
+              <span>{c.about}</span><i aria-hidden="true">↗</i>
+            </a>
+            <a class="aperture-action" href="https://github.com/Morii9961">
+              <span>GitHub</span><i aria-hidden="true">↗</i>
+            </a>
+            <a class="aperture-action" href={`/${lang}/rss.xml`}>
+              <span>{c.rss}</span><i aria-hidden="true">↗</i>
+            </a>
+          </nav>
+        </div>
+
+        <div class="aperture-colophon__calendar">
+          <div class="aperture-colophon__calendar-head">
+            <h3>{c.calendarTitle}</h3>
+            <span>{calendarLabel}</span>
+          </div>
+          <div class="aperture-calendar" aria-label={`${c.calendarTitle}: ${calendarLabel}`}>
+            <div class="aperture-calendar__week" aria-hidden="true">
+              {c.calendarWeekdays.map((d) => <span>{d}</span>)}
+            </div>
+            <div class="aperture-calendar__days">
+              {Array.from({ length: firstWeekday }).map(() => <span aria-hidden="true"></span>)}
+              {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) =>
+                activeDays.has(day)
+                  ? <time class="is-active" datetime={`${calendarYear}-${String(calendarMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`} title={c.calendarDayActive(day)}>{day}<i aria-hidden="true"></i></time>
+                  : <time datetime={`${calendarYear}-${String(calendarMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`}>{day}</time>
+              )}
+            </div>
+          </div>
+          {calendarRecentPosts.length > 0 && (
+            <ol class="aperture-colophon__latest">
+              {calendarRecentPosts.map((post) => (
+                <li>
+                  <a href={postPath(post)}>{post.data.title}</a>
+                  <time>{`${String(calendarMonth + 1).padStart(2, '0')}/${String(post.data.publishedAt.getDate()).padStart(2, '0')}`}</time>
+                </li>
+              ))}
+            </ol>
+          )}
+          <div class="aperture-colophon__actions aperture-colophon__actions--single">
+            <a class="aperture-action" href={`/${lang}/archive/`}>
+              <span>{c.fullArchive}</span><i aria-hidden="true">↗</i>
+            </a>
+          </div>
+        </div>
+      </div>
     </section>
   </div>
 </BaseLayout>

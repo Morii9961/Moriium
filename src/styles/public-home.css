@@ -686,14 +686,24 @@
 
   .aperture-recent,
   .aperture-field,
-  .aperture-now,
-  .aperture-closing {
+  .aperture-ledger,
+  .aperture-colophon {
     padding-block: clamp(6rem, 12vw, 12rem);
+  }
+
+  /* The colophon is the last section on the page, and the footer already carries
+     the site's designed pre-footer gap (`margin-top: clamp(4rem, 10vw, 10rem)`
+     in public.css). Keeping the symmetric bottom padding here stacked a second
+     gap on that one — 282px of nothing between the last action and the footer.
+     The footer's own offset is the whole gap. */
+  .aperture-colophon {
+    padding-bottom: 0;
   }
 
   .aperture-recent > header,
   .aperture-field > header,
-  .aperture-now > header {
+  .aperture-ledger > header,
+  .aperture-colophon > header {
     display: grid;
     grid-template-columns: minmax(9rem, 0.3fr) minmax(18rem, 0.8fr) minmax(18rem, 0.9fr);
     gap: clamp(2rem, 5vw, 6rem);
@@ -703,8 +713,8 @@
 
   .aperture-recent > header > p,
   .aperture-field > header > p,
-  .aperture-now > header > p,
-  .aperture-closing > p {
+  .aperture-ledger > header > p,
+  .aperture-colophon > header > p {
     color: var(--ink-faint);
     font-family: var(--font-data);
     font-size: 0.6rem;
@@ -712,8 +722,8 @@
 
   .aperture-recent > header h2,
   .aperture-field > header h2,
-  .aperture-now > header h2,
-  .aperture-closing h2 {
+  .aperture-ledger > header h2,
+  .aperture-colophon > header h2 {
     font-family: var(--font-display);
     font-size: clamp(3rem, 7vw, 7rem);
     font-weight: 670;
@@ -723,7 +733,8 @@
 
   .aperture-recent > header > span,
   .aperture-field > header > span,
-  .aperture-now > header > span {
+  .aperture-ledger > header > span,
+  .aperture-colophon > header > span {
     max-width: 34rem;
     color: var(--ink-muted);
     font-family: var(--font-reading);
@@ -733,7 +744,7 @@
 
   .aperture-recent ol,
   .aperture-field ol,
-  .aperture-now ol {
+  .aperture-ledger ol {
     margin: 0;
     padding: 0;
     list-style: none;
@@ -880,86 +891,345 @@
     text-decoration-color: currentColor;
   }
 
-  .aperture-now {
+  .aperture-ledger {
     display: grid;
     grid-template-columns: minmax(18rem, 0.8fr) minmax(0, 1.2fr);
     gap: clamp(4rem, 10vw, 12rem);
     border-block: 1px solid var(--line);
   }
 
-  .aperture-now > header {
+  .aperture-ledger > header {
     display: block;
     margin: 0;
   }
 
-  .aperture-now > header h2 {
+  .aperture-ledger > header h2 {
     margin-top: 1.5rem;
   }
 
-  .aperture-now > header > span {
+  .aperture-ledger > header > span {
     display: block;
     margin-top: 2rem;
   }
 
-  .aperture-now ol {
+  /* Years carry the same "enter here" grammar as the categories in 内容星图:
+     a large numeral, a quiet count, one hairline per row. */
+  .aperture-ledger__years {
+    margin: 0;
+    padding: 0;
+    list-style: none;
     border-top: 1px solid var(--ink);
   }
 
-  .aperture-now li {
-    display: grid;
-    grid-template-columns: 6rem minmax(0, 1fr);
+  .aperture-ledger__years a {
+    display: flex;
+    min-height: 6rem;
+    align-items: center;
+    justify-content: space-between;
     gap: 2rem;
-    padding-block: 2.5rem;
+    border-bottom: 1px solid var(--line);
+    text-decoration: none;
+  }
+
+  .aperture-ledger__years a span {
+    font-family: var(--font-display);
+    font-size: clamp(1.6rem, 3.5vw, 3.3rem);
+    font-weight: 630;
+    letter-spacing: -0.06em;
+  }
+
+  .aperture-ledger__years a small {
+    color: var(--ink-faint);
+    font-family: var(--font-data);
+    font-size: 0.6rem;
+  }
+
+  .aperture-ledger__years a:hover span,
+  .aperture-ledger__years a:focus-visible span {
+    color: var(--accent);
+  }
+
+  /* Facts, not a scoreboard: each row states one thing about the archive and
+     reads the same whether the count is 1 or 400. */
+  .aperture-ledger__facts {
+    margin: 3rem 0 0;
+  }
+
+  .aperture-ledger__facts > div {
+    display: flex;
+    min-height: 3.4rem;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 2rem;
     border-bottom: 1px solid var(--line);
   }
 
-  .aperture-now time {
+  .aperture-ledger__facts dt,
+  .aperture-ledger__facts dd {
+    margin: 0;
+  }
+
+  .aperture-ledger__facts dt {
+    color: var(--ink-muted);
+    font-size: 0.78rem;
+  }
+
+  .aperture-ledger__facts dd {
+    color: var(--ink);
+    font-family: var(--font-data);
+    font-size: 0.72rem;
+  }
+
+  .aperture-colophon {
+    border-top: 1px solid var(--line);
+  }
+
+  /* Top rule only. The section used to close with a second one, but with the
+     closing block gone that rule became the last thing on the page before a
+     12rem gap — a line with nothing under it. The section now ends on its
+     content. */
+  .aperture-colophon__body {
+    display: grid;
+    grid-template-columns: minmax(18rem, 1fr) minmax(16rem, 0.8fr);
+    gap: clamp(3rem, 7vw, 8rem);
+    padding-top: clamp(3rem, 6vw, 5rem);
+    border-top: 1px solid var(--line);
+  }
+
+  /* The author column runs the same head/body/link rhythm as the calendar
+     beside it, so the two halves of the colophon read as one pair rather than
+     as two unrelated blocks. */
+  .aperture-colophon__author {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .aperture-colophon__author-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding-bottom: 0.8rem;
+    border-bottom: 1px solid var(--ink);
+  }
+
+  .aperture-colophon__author-head h3 {
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+
+  .aperture-colophon__author-head span {
+    color: var(--ink-faint);
+    font-family: var(--font-data);
+    font-size: 0.6rem;
+  }
+
+  .aperture-colophon__people {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /* One rule between the two people, and none after the last of them: the space
+     below is what separates the pair from the actions. */
+  .aperture-colophon__people li + li {
+    border-top: 1px solid var(--line);
+  }
+
+  .aperture-colophon__people li {
+    padding-block: 1.6rem;
+  }
+
+  .aperture-colophon__people h4 {
+    font-family: var(--font-display);
+    font-size: clamp(1.3rem, 2.6vw, 1.85rem);
+    font-weight: 600;
+    letter-spacing: -0.04em;
+    line-height: 1.1;
+  }
+
+  .aperture-colophon__people p {
+    max-width: 32rem;
+    margin-top: 0.6rem;
+    color: var(--ink-muted);
+    font-family: var(--font-reading);
+    font-size: 0.85rem;
+    line-height: 1.8;
+  }
+
+
+  .aperture-colophon__calendar-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding-bottom: 0.8rem;
+    border-bottom: 1px solid var(--ink);
+  }
+
+  .aperture-colophon__calendar-head h3 {
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+
+  .aperture-colophon__calendar-head span {
+    color: var(--ink-faint);
+    font-family: var(--font-data);
+    font-size: 0.6rem;
+  }
+
+  .aperture-calendar {
+    padding-block: 1rem;
+  }
+
+  .aperture-calendar__week,
+  .aperture-calendar__days {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+
+  .aperture-calendar__week span {
+    color: var(--ink-faint);
+    font-family: var(--font-data);
+    font-size: 0.6rem;
+    text-align: center;
+  }
+
+  .aperture-calendar__days {
+    margin-top: 0.35rem;
+  }
+
+  .aperture-calendar__days time,
+  .aperture-calendar__days > span {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-height: 2.1rem;
     color: var(--ink-faint);
     font-family: var(--font-data);
     font-size: 0.62rem;
   }
 
-  .aperture-now h3 {
-    font-family: var(--font-display);
-    font-size: clamp(1.5rem, 3vw, 2.7rem);
-    font-weight: 620;
-    letter-spacing: -0.055em;
-    line-height: 1;
+  .aperture-calendar__days time.is-active {
+    color: var(--ink);
+    font-weight: 600;
   }
 
-  .aperture-now li p {
-    max-width: 38rem;
-    margin-top: 0.8rem;
-    color: var(--ink-muted);
-    font-size: 0.82rem;
+  .aperture-calendar__days time i {
+    position: absolute;
+    bottom: 0.1rem;
+    width: 0.25rem;
+    height: 0.25rem;
+    background: var(--accent);
+    border-radius: 50%;
   }
 
-  .aperture-closing {
+  .aperture-colophon__latest {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid var(--line);
+  }
+
+  /* Same rule as the people list: dividers between entries, nothing trailing. */
+  .aperture-colophon__latest li + li {
+    border-top: 1px solid var(--line);
+  }
+
+  .aperture-colophon__latest li {
     display: grid;
-    grid-template-columns: minmax(9rem, 0.3fr) minmax(20rem, 1fr) minmax(18rem, 0.8fr);
-    gap: clamp(2rem, 6vw, 7rem);
-    align-items: start;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 1rem;
+    align-items: center;
+    min-height: 2.8rem;
   }
 
-  .aperture-closing > div > p {
-    color: var(--ink-muted);
-    font-family: var(--font-reading);
-    line-height: 1.85;
+  .aperture-colophon__latest a {
+    overflow: hidden;
+    font-size: 0.75rem;
+    text-decoration: none;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
-  .aperture-closing nav {
+  .aperture-colophon__latest a:hover {
+    color: var(--accent);
+  }
+
+  .aperture-colophon__latest time {
+    color: var(--ink-faint);
+    font-family: var(--font-data);
+    font-size: 0.62rem;
+  }
+
+  .aperture-colophon__calendar {
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem 1.5rem;
-    margin-top: 2rem;
+    flex-direction: column;
   }
 
-  .aperture-closing nav a {
-    display: inline-flex;
+
+  /* Word and arrow, carried by the space above them rather than by a rule of
+     their own. The hero's entry link earns its hairline because it sits alone in
+     a panel; here the lists above already end in one, and adding a second put
+     five rules within a hand's width. Colour and the stepping arrow are enough
+     to declare an action — and never a bordered box, which is DESIGN.md's
+     "thin gray borders and interchangeable cards" anti-goal. */
+  .aperture-action {
+    display: flex;
     min-height: 2.75rem;
     align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    color: var(--ink);
+    font-family: var(--font-data);
+    font-size: 0.68rem;
+    text-decoration: none;
+    transition: color var(--motion-fast) var(--motion-ease);
+  }
+
+  .aperture-action:hover,
+  .aperture-action:focus-visible {
     color: var(--accent);
-    font-size: 0.72rem;
+  }
+
+  .aperture-action i {
+    font-size: 1.1em;
+    font-style: normal;
+    transition: transform var(--motion-fast) var(--motion-ease);
+  }
+
+  .aperture-action:hover i,
+  .aperture-action:focus-visible i {
+    transform: translate(0.25rem, -0.25rem);
+  }
+
+  /* Three peers sharing the column rhythm of the ways nav, set well clear of the
+     list above so the separation is space rather than another line. Both columns
+     of the colophon use this wrapper — the calendar's lone action included — so
+     the spacing sits on the container in both and the two columns' actions land
+     on the same baseline. */
+  .aperture-colophon__actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0 2rem;
+    margin-top: auto;
+    padding-top: clamp(3rem, 5vw, 4.5rem);
+  }
+
+  .aperture-colophon__actions--single {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @layer components {
+    /* The colour still changes, so state stays legible. Only the travel goes. */
+    .aperture-action i {
+      transition: none;
+    }
+
+    .aperture-action:hover i,
+    .aperture-action:focus-visible i {
+      transform: none;
+    }
   }
 }
 
@@ -1029,21 +1299,15 @@
 
     .aperture-recent > header,
     .aperture-field > header,
-    .aperture-now > header {
+    .aperture-ledger > header,
+    .aperture-colophon > header {
       grid-template-columns: minmax(8rem, 0.35fr) minmax(0, 1fr);
     }
 
     .aperture-recent > header > span,
     .aperture-field > header > span,
-    .aperture-now > header > span {
-      grid-column: 2;
-    }
-
-    .aperture-closing {
-      grid-template-columns: minmax(8rem, 0.35fr) minmax(0, 1fr);
-    }
-
-    .aperture-closing > div {
+    .aperture-ledger > header > span,
+    .aperture-colophon > header > span {
       grid-column: 2;
     }
   }
@@ -1146,24 +1410,37 @@
 
     .aperture-recent > header,
     .aperture-field > header,
-    .aperture-now > header,
-    .aperture-closing {
+    .aperture-ledger > header,
+    .aperture-colophon > header {
       display: block;
     }
 
     .aperture-recent > header h2,
     .aperture-field > header h2,
-    .aperture-now > header h2,
-    .aperture-closing h2 {
+    .aperture-ledger > header h2,
+    .aperture-colophon > header h2 {
       margin-top: 1.2rem;
       font-size: clamp(3.5rem, 17vw, 6rem);
     }
 
     .aperture-recent > header > span,
     .aperture-field > header > span,
-    .aperture-now > header > span {
+    .aperture-ledger > header > span,
+    .aperture-colophon > header > span {
       display: block;
       margin-top: 1.5rem;
+    }
+
+    .aperture-colophon__body {
+      grid-template-columns: 1fr;
+    }
+
+    /* Three columns leave 92px each here, which wraps "关于 Moriium" onto a
+       second line. One per row instead — the arrow stays at the right edge and
+       each label gets the full measure. */
+    .aperture-colophon__actions {
+      grid-template-columns: minmax(0, 1fr);
+      padding-top: clamp(2rem, 8vw, 3rem);
     }
 
     .aperture-recent ol {
@@ -1196,7 +1473,7 @@
     }
 
     .aperture-field__body,
-    .aperture-now {
+    .aperture-ledger {
       grid-template-columns: 1fr;
     }
 
@@ -1204,17 +1481,12 @@
       margin-top: 4rem;
     }
 
-    .aperture-now {
+    .aperture-ledger {
       gap: 4rem;
     }
 
-    .aperture-now li {
-      grid-template-columns: 4.5rem minmax(0, 1fr);
-      gap: 1rem;
-    }
-
-    .aperture-closing > div {
-      margin-top: 2rem;
+    .aperture-colophon__calendar {
+      margin-top: 3rem;
     }
   }
 }
