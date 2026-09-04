@@ -18,33 +18,82 @@ const categories = uniqueTaxonomy(posts, 'category').map((name) => ({
 }));
 const tags = uniqueTaxonomy(posts, 'tags').slice(0, 8);
 
+// Four runs, and each one is a single line of type — not a row of individually
+// placed characters. Every glyph in a run shares one font-size, one line box and
+// one baseline, which is what makes the em-box top edges and bottom edges of a
+// run land on two exactly parallel lines. Nothing here carries a per-glyph size,
+// angle or vertical offset, and nothing should: the moment one character gets
+// its own `top` or `rotate`, those two edges break and the run stops reading as
+// a line and starts reading as five decorations.
+//
+// `nudge` is the one exception, and it is deliberately narrow. It is horizontal
+// only, expressed in em against the run's own font-size so it scales with the
+// type, and the stylesheet spends it as `margin-left` — layout, not transform.
+// That matters: a margin moves the character along the run's own axis inside the
+// shared line box, so the two em-box edges stay exactly where they were. A
+// `translateX` would need `display: inline-block` on every glyph, which gives
+// each one a box of its own and gives up the guarantee.
+//
+// The run's letter-spacing sets the rhythm; `nudge` opens one specific pair
+// wider than that rhythm. The first glyph of a run is always 0 — a margin there
+// would move the whole run rather than a gap inside it.
+//
+// A glyph may otherwise differ from its neighbours in colour and stroke only.
+// `を` is set as an outline but still belongs to 見たもの's line box, so it keeps
+// that run's baseline rather than becoming a fifth object with a position of its
+// own.
+//
+// The rest of the geometry lives in the stylesheet: the run rotates, an inner
+// wrapper shears. See `.aperture-hero__phrase` in public-home.css.
 const heroTitle = [
   {
     line: 'primary',
     glyphs: [
-      ['見', 'solid'],
-      ['た', 'solid'],
-      ['も', 'solid'],
-      ['の', 'solid'],
-      ['を', 'outline'],
-      ['記', 'bridge'],
-      ['す', 'bridge'],
-      ['。', 'bridge'],
+      { char: '見', treatment: 'solid', nudge: 0 },
+      { char: 'た', treatment: 'solid', nudge: 0.055 },
+      { char: 'も', treatment: 'solid', nudge: 0.045 },
+      { char: 'の', treatment: 'solid', nudge: 0.055 },
+      { char: 'を', treatment: 'outline', nudge: -0.055 },
+    ],
+  },
+  {
+    line: 'primary-echo',
+    glyphs: [
+      { char: '記', treatment: 'outline', nudge: 0 },
+      { char: 'す', treatment: 'outline', nudge: 0.041 },
+      { char: '。', treatment: 'outline', nudge: 0.025 },
     ],
   },
   {
     line: 'secondary',
     glyphs: [
-      ['未', 'solid'],
-      ['完', 'solid'],
-      ['の', 'solid'],
-      ['ま', 'solid'],
-      ['ま', 'solid'],
-      ['残', 'bridge'],
-      ['す', 'bridge'],
-      ['。', 'bridge'],
+      { char: '未', treatment: 'solid', nudge: 0 },
+      { char: '完', treatment: 'solid', nudge: 0.055 },
+      { char: 'の', treatment: 'solid', nudge: 0.045 },
+      { char: 'ま', treatment: 'solid', nudge: 0.055 },
+      { char: 'ま', treatment: 'solid', nudge: 0.045 },
     ],
   },
+  {
+    line: 'secondary-echo',
+    glyphs: [
+      { char: '残', treatment: 'outline', nudge: 0 },
+      { char: 'す', treatment: 'outline', nudge: 0.041 },
+      { char: '。', treatment: 'outline', nudge: 0.025 },
+    ],
+  },
+] as const;
+
+// Background texture only. `ink` is the percentage of ink mixed into the canvas,
+// so no fragment reaches a tenth of the page contrast.
+const heroFragments = [
+  { char: '残る', x: 36, y: -5, size: 3.1, ink: 7, fuzz: 0.7, tier: 'wide' },
+  { char: '戻る', x: 95.1, y: 16, size: 3.5, ink: 11, fuzz: 0.4, tier: 'wide' },
+  { char: '記録', x: 15, y: 44, size: 2.9, ink: 8, fuzz: 0.9, tier: 'core' },
+  { char: '旅の断片', x: 98.5, y: 63, size: 1.4, ink: 6, fuzz: 0.7, tier: 'wide' },
+  { char: '拾い集める', x: 1.1, y: 11.5, size: 0.72, ink: 9, fuzz: 0.3, tier: 'core' },
+  { char: '未完のまま', x: 26, y: 61, size: 0.68, ink: 7, fuzz: 0.4, tier: 'core' },
+  { char: 'いつか戻る', x: 97.5, y: 88, size: 0.68, ink: 8, fuzz: 0.3, tier: 'wide' },
 ] as const;
 
 const heroCopy = {
@@ -57,6 +106,9 @@ const heroCopy = {
   body: '文字と写真と旅の断片を、ここでゆっくりと整理していく。',
   enter: '記事を読む',
 } as const;
+
+// The panel copy breaks after the comma, as the approved composition sets it.
+const heroBodyLines = heroCopy.body.split(/(?<=、)/u);
 
 const copy = {
   zh: {
@@ -127,46 +179,66 @@ const routeHrefs = [`/${lang}/writing/`, `/${lang}/archive/`, `/${lang}/categori
 <BaseLayout lang={lang}>
   <div class="aperture-home">
     <section class="aperture-hero" aria-labelledby="home-title">
-      <p class="aperture-hero__register" lang="ja">{heroCopy.register}<span>{String(posts.length).padStart(2, '0')} / {heroCopy.languages}</span></p>
+      <div class="aperture-hero__stage">
+        <p class="aperture-hero__register" lang="ja">{heroCopy.register}</p>
 
-      <span class="aperture-hero__fragment aperture-hero__fragment--one" aria-hidden="true">記録</span>
-      <span class="aperture-hero__fragment aperture-hero__fragment--two" aria-hidden="true">残る</span>
-      <span class="aperture-hero__fragment aperture-hero__fragment--three" aria-hidden="true">戻る</span>
-      <p class="aperture-hero__note aperture-hero__note--left" lang="ja" aria-hidden="true">{heroCopy.leftNote}</p>
-      <p class="aperture-hero__note aperture-hero__note--right" lang="ja" aria-hidden="true">{heroCopy.rightNote}</p>
+        {heroFragments.map((fragment) => (
+          <span
+            class={`aperture-hero__fragment aperture-hero__fragment--${fragment.tier}`}
+            style={`--x:${fragment.x};--y:${fragment.y};--size:${fragment.size};--ink-share:${fragment.ink};--fuzz:${fragment.fuzz}`}
+            aria-hidden="true"
+          >{fragment.char}</span>
+        ))}
 
-      <div class="aperture-hero__thesis">
-        <h1 id="home-title" lang="ja" aria-label={heroCopy.title}>
+        <span class="aperture-hero__rule aperture-hero__rule--left" aria-hidden="true"></span>
+        <span class="aperture-hero__rule aperture-hero__rule--right" aria-hidden="true"></span>
+        <p class="aperture-hero__note aperture-hero__note--left" lang="ja" aria-hidden="true">{heroCopy.leftNote}</p>
+        <p class="aperture-hero__note aperture-hero__note--right" lang="ja" aria-hidden="true">{heroCopy.rightNote}</p>
+
+        <div class="aperture-hero__thesis">
+          <h1 id="home-title" lang="ja" aria-label={heroCopy.title}>
+            {heroTitle.map(({ line, glyphs }) => (
+              <span class={`aperture-hero__phrase aperture-hero__phrase--${line}`} aria-hidden="true">
+                <span class="aperture-hero__slant">
+                  {glyphs.map(({ char, treatment, nudge }) => (
+                    <span
+                      class={`aperture-hero__glyph aperture-hero__glyph--${treatment}`}
+                      style={`--nudge:${nudge}`}
+                    >{char}</span>
+                  ))}
+                </span>
+              </span>
+            ))}
+          </h1>
+        </div>
+
+        <div class="aperture-hero__window">
+          <span class="aperture-hero__shutter" aria-hidden="true"></span>
+          <span class="aperture-hero__corner" aria-hidden="true"></span>
+          <div class="aperture-identity">
+            <p class="aperture-identity__register" lang="ja"><span>{heroCopy.identity}</span><span>{heroCopy.languages}</span></p>
+            <div class="aperture-identity__body">
+              <h2 lang="en">Moriium</h2>
+              <p lang="ja">{heroBodyLines.map((piece) => <span>{piece}</span>)}</p>
+            </div>
+            <a href={`/${lang}/writing/`} lang="ja"><span>{heroCopy.enter}</span><i aria-hidden="true">↗</i></a>
+          </div>
+        </div>
+
+        <div class="aperture-hero__overprint" aria-hidden="true">
           {heroTitle.map(({ line, glyphs }) => (
-            <span class={`aperture-hero__phrase aperture-hero__phrase--${line}`} aria-hidden="true">
-              {glyphs.map(([glyph, treatment], index) => (
-                <span class={`aperture-hero__glyph aperture-hero__glyph--${treatment} aperture-hero__glyph--${index + 1}`}>{glyph}</span>
-              ))}
+            <span class={`aperture-hero__phrase aperture-hero__phrase--${line}`}>
+              <span class="aperture-hero__slant">
+                {glyphs.map(({ char, treatment, nudge }) => (
+                  <span
+                    class={`aperture-hero__glyph aperture-hero__glyph--${treatment}`}
+                    style={`--nudge:${nudge}`}
+                  >{char}</span>
+                ))}
+              </span>
             </span>
           ))}
-        </h1>
-      </div>
-
-      <div class="aperture-hero__window">
-        <span class="aperture-hero__shutter" aria-hidden="true"></span>
-        <div class="aperture-identity">
-          <p class="aperture-identity__register" lang="ja"><span>{heroCopy.identity}</span><span>{heroCopy.languages}</span></p>
-          <div class="aperture-identity__body">
-            <h2 lang="en">Moriium</h2>
-            <p lang="ja">{heroCopy.body}</p>
-          </div>
-          <a href={`/${lang}/writing/`} lang="ja"><span>{heroCopy.enter}</span><i aria-hidden="true">↗</i></a>
         </div>
-      </div>
-
-      <div class="aperture-hero__overprint" aria-hidden="true">
-        {heroTitle.map(({ line, glyphs }) => (
-          <span class={`aperture-hero__phrase aperture-hero__phrase--${line}`}>
-            {glyphs.map(([glyph, treatment], index) => (
-              <span class={`aperture-hero__glyph aperture-hero__glyph--${treatment} aperture-hero__glyph--${index + 1}`}>{glyph}</span>
-            ))}
-          </span>
-        ))}
       </div>
     </section>
 

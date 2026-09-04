@@ -110,6 +110,42 @@ test('production shell loads the public typography and editorial frame', async (
   assert.match(styles, /\.a-directory__stats div\s*{[^}]*padding-inline:\s*clamp\(1rem, 2vw, 1\.5rem\)/s);
 });
 
+test('the home hero ships a local Shippori Mincho subset that covers its own copy', async () => {
+  const [home, homeStyles, manifest, packageManifest] = await Promise.all([
+    read('src/pages/[lang]/index.astro'),
+    read('src/styles/public-home.css'),
+    read('scripts/hero-font-subset.json').then(JSON.parse),
+    read('package.json').then(JSON.parse),
+  ]);
+
+  // The face is a dev-time source for the subset, never a runtime dependency.
+  assert.equal(packageManifest.devDependencies['@fontsource/shippori-mincho'], '5.3.0');
+  assert.equal(packageManifest.dependencies['@fontsource/shippori-mincho'], undefined);
+
+  for (const weight of [400, 600]) {
+    assert.match(
+      homeStyles,
+      new RegExp(`font-weight: ${weight};[\\s\\S]{0,200}url\\("/fonts/shippori-mincho-hero-${weight}\\.woff2"\\) format\\("woff2"\\)`),
+    );
+  }
+  assert.doesNotMatch(homeStyles, /url\(["']?https?:\/\//);
+  assert.match(homeStyles, /--font-mincho: "Shippori Mincho", "Yu Mincho"/);
+  assert.equal(homeStyles.split('unicode-range: ').length - 1, 2);
+  assert(homeStyles.includes(`unicode-range: ${manifest.unicodeRange};`), 'CSS unicode-range must match the generated subset.');
+
+  // Every character the hero sets in the display Mincho must be in the subset,
+  // or it silently drops to a platform fallback and breaks the composition.
+  const heroCopy = [
+    ...[...home.matchAll(/char: '([^']+)'/g)].map((match) => match[1]),
+    ...[...home.matchAll(/leftNote: '([^']+)'/g)].map((match) => match[1]),
+    ...[...home.matchAll(/rightNote: '([^']+)'/g)].map((match) => match[1]),
+  ].join('');
+  assert(heroCopy.length > 0, 'Hero display copy was not found; the source shape changed.');
+  const covered = new Set(manifest.characters);
+  const missing = [...new Set(heroCopy)].filter((character) => !covered.has(character));
+  assert.deepEqual(missing, [], `Re-run scripts/subset-hero-font.mjs; uncovered: ${missing.join('')}`);
+});
+
 test('production home and writing index use the rebuilt editorial system with real content', async () => {
   const [layout, home, writing] = await Promise.all([
     read('src/layouts/BaseLayout.astro'),

@@ -1,45 +1,100 @@
+/* Home hero display Mincho. `scripts/subset-hero-font.mjs` cuts Shippori
+   Mincho down to the thirty-three characters the hero actually sets — 14 KB for
+   both weights instead of 2.8 MB — and emits the unicode-range below. Anything
+   outside the hero copy therefore falls straight through to the platform Mincho
+   fallbacks in `--font-mincho`. Regenerate after editing the hero's Japanese;
+   `tests/design-fonts.test.mjs` fails if the shipped subset stops covering it. */
+@font-face {
+  font-family: "Shippori Mincho";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/shippori-mincho-hero-400.woff2") format("woff2");
+  unicode-range: U+3001-3002, U+3044, U+3046, U+304B, U+3059, U+305F, U+3064, U+3067, U+306B, U+306E, U+307E, U+3081-3082, U+3088, U+308B-308C, U+3092, U+4E2D, U+5B8C, U+623B, U+62FE, U+65AD, U+65C5, U+6642, U+672A, U+6B8B, U+7247, U+898B, U+8A18, U+9332, U+9593, U+96C6;
+}
+
+@font-face {
+  font-family: "Shippori Mincho";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/shippori-mincho-hero-600.woff2") format("woff2");
+  unicode-range: U+3001-3002, U+3044, U+3046, U+304B, U+3059, U+305F, U+3064, U+3067, U+306B, U+306E, U+307E, U+3081-3082, U+3088, U+308B-308C, U+3092, U+4E2D, U+5B8C, U+623B, U+62FE, U+65AD, U+65C5, U+6642, U+672A, U+6B8B, U+7247, U+898B, U+8A18, U+9332, U+9593, U+96C6;
+}
+
 @layer components {
+  /* The outline stroke is a literal from the approved composition; dark mode
+     needs its own value or the hairline vanishes on the near-black canvas. */
+  :root[data-theme='dark'] .aperture-hero__stage {
+    --hero-outline: #6b7a99;
+  }
+
   .aperture-home {
     width: min(100%, var(--layout-wide));
     margin-inline: auto;
     padding-inline: var(--gutter);
   }
 
+  /* The hero is a fixed-proportion type field. Every offset inside the stage is
+     a percentage of that field, and every size is a container-query unit, so
+     the composition holds its geometry from 1200px to 1920px instead of
+     drifting with the viewport. The aperture panel and the overprint clip read
+     the same two custom properties, which is what keeps the outline glyphs
+     changing colour exactly on the panel edge. */
   .aperture-hero {
     position: relative;
-    display: grid;
-    grid-template-columns: repeat(12, minmax(0, 1fr));
-    grid-template-rows: auto minmax(44rem, 1fr);
-    min-height: min(54rem, calc(100svh - 3rem));
-    padding-block: clamp(2rem, 4vw, 3.5rem);
+    container-type: inline-size;
+    padding-block: clamp(1.25rem, 2.6vw, 2.25rem) 0;
+  }
+
+  .aperture-hero__stage {
+    /* The panel slides right as one piece: `--panel-start` gains exactly what
+       `--panel-end` loses, so its width is unchanged and everything inside it
+       travels with it. 4.74% of the 1349px stage is 64px.
+
+       The size of the move is set by the type, not by taste. 見たものを has to
+       finish outside the panel, and its last glyph's ink reached 75.9px past the
+       old edge — a 32px slide leaves 44px of that still inside. 64px here plus a
+       small pull on the one glyph closes it; going further right would be paid
+       for out of the right margin, which is only 87px as it is. */
+    --panel-start: 52.34%;
+    --panel-end: 6.46%;
+    --panel-top: 0%;
+    --type-size: clamp(3.4rem, 10.75cqw, 11rem);
+    --run-tilt: -8.5deg;
+    --glyph-italic: 10deg;
+    --line-tracking: -0.09em;
+    --hero-outline: #9aa7bd;
+    --note-size: clamp(0.85rem, 1.62cqw, 1.45rem);
+    --font-mincho: "Shippori Mincho", "Yu Mincho", "Hiragino Mincho ProN", "Noto Serif JP", "Songti SC", "SimSun", Georgia, serif;
+
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1660 / 960;
+    min-height: 26rem;
     isolation: isolate;
   }
 
-  .aperture-hero::after {
-    position: absolute;
-    z-index: -2;
-    inset: 0 0 auto;
-    height: 1px;
-    background: var(--line-soft);
-    content: "";
-  }
-
   .aperture-hero__register {
-    grid-column: 1 / 13;
-    grid-row: 1;
+    position: absolute;
+    z-index: 5;
+    top: 0;
+    right: 0;
+    left: 0;
     display: flex;
     justify-content: space-between;
+    gap: 1rem;
     color: var(--ink-faint);
     font-family: var(--font-data);
-    font-size: 0.6rem;
-    letter-spacing: 0.05em;
+    font-size: clamp(0.58rem, 0.78cqw, 0.74rem);
+    letter-spacing: 0.06em;
+    line-height: 1;
   }
 
   .aperture-hero__thesis {
-    position: relative;
-    z-index: 0;
-    grid-column: 1 / 13;
-    grid-row: 2;
+    position: absolute;
+    z-index: 1;
+    inset: 0;
     pointer-events: none;
   }
 
@@ -47,129 +102,103 @@
     position: absolute;
     inset: 0;
     margin: 0;
+    font-weight: inherit;
   }
 
+  /* A run is one line of type. It rotates as a whole; an inner wrapper shears as
+     a whole; the glyphs inside carry no transform of their own. That separation
+     is the point — the run's tilt and the letterform's lean are two different
+     things, and mixing them into one per-character transform is what made
+     earlier passes read as scattered characters instead of a line.
+
+     Because every glyph in a run shares one font-size and one line box, the
+     em-box top edges of a run lie on one straight line and the bottom edges on
+     another, exactly parallel. Give any single glyph its own size, `top` or
+     `rotate` and that guarantee is gone. */
   .aperture-hero__phrase {
     position: absolute;
-    display: flex;
-    align-items: baseline;
+    transform: rotate(var(--run-tilt));
+    transform-origin: 0 0;
     color: var(--ink);
-    font-family: "Yu Mincho", "Hiragino Mincho ProN", "Noto Serif JP", "Songti SC", Georgia, serif;
-    font-size: clamp(4.7rem, 7.1vw, 7.1rem);
-    font-weight: 500;
-    letter-spacing: -0.13em;
-    line-height: 0.72;
+    font-family: var(--font-mincho);
+    font-size: calc(var(--type-size) * var(--line-scale, 1));
+    font-weight: 400;
+    line-height: 1;
     white-space: nowrap;
   }
 
-  .aperture-hero__glyph {
+  /* The letterform's own lean. CJK Mincho has no true italic, so this is a
+     synthetic oblique; it is deliberately steeper than the run's tilt, and the
+     two must not be conflated. */
+  .aperture-hero__slant {
     display: inline-block;
-    transform-origin: 50% 75%;
+    transform: skewX(calc(var(--glyph-italic) * -1));
+    letter-spacing: var(--line-tracking);
   }
 
-  .aperture-hero__glyph--outline,
-  .aperture-hero__glyph--bridge {
+  /* The one per-glyph value, and it is horizontal only. `--line-tracking` sets
+     the run's rhythm; `--nudge` opens one specific pair wider than that rhythm,
+     because even spacing reads tighter on some pairs than others.
+
+     It is spent as a margin rather than a `translateX` on purpose. A margin is
+     layout: the character moves along the run's own axis inside the shared line
+     box, so both em-box edges stay exactly where they were and the run keeps its
+     zero-residual collinearity. A transform would need `display: inline-block`
+     here, which gives every glyph a box of its own — the thing this structure
+     exists to avoid. There is deliberately no vertical counterpart. */
+  .aperture-hero__glyph {
+    display: inline;
+    margin-left: calc(var(--nudge, 0) * 1em);
+  }
+
+  .aperture-hero__glyph--outline {
     color: transparent;
-    -webkit-text-stroke: 1px color-mix(in srgb, var(--ink) 64%, transparent);
+    opacity: 0.55;
+    -webkit-text-stroke: 1.2px var(--hero-outline);
   }
 
+  /* Run origins. All four share one tilt, so they are parallel by construction;
+     only their start points differ. An ascending run's origin is its floor. */
   .aperture-hero__phrase--primary {
-    top: 16%;
-    left: 4%;
+    top: 18.9%;
+    left: 2.2%;
   }
 
-  .aperture-hero__phrase--primary .aperture-hero__glyph--1 {
-    font-size: 1.48em;
-    transform: translateY(0.13em) rotate(-3deg);
-  }
+  /* The outline runs sit 30px lower and 45px right of where they were at
+     1536x1024, converted here against the stage box: 30/780.2 = 3.845% of its
+     height, 45/1349.1 = 3.335% of its width. That is what bites 記 into の and
+     残 into ま instead of leaving the two layers side by side. */
+  .aperture-hero__phrase--primary-echo {
+    --line-scale: 1.1;
 
-  .aperture-hero__phrase--primary .aperture-hero__glyph--2 {
-    font-size: 0.78em;
-    transform: translateY(-0.09em) rotate(3deg);
-  }
-
-  .aperture-hero__phrase--primary .aperture-hero__glyph--3 {
-    font-size: 0.9em;
-    transform: translateY(-0.16em) rotate(-2deg);
-  }
-
-  .aperture-hero__phrase--primary .aperture-hero__glyph--4 {
-    font-size: 1.03em;
-    transform: translateY(-0.23em) rotate(-5deg);
-  }
-
-  .aperture-hero__phrase--primary .aperture-hero__glyph--5 {
-    font-size: 0.93em;
-    transform: translateY(-0.14em) rotate(8deg);
-  }
-
-  .aperture-hero__phrase--primary .aperture-hero__glyph--6 {
-    font-size: 1.28em;
-    transform: translateY(0.12em) rotate(-4deg);
-  }
-
-  .aperture-hero__phrase--primary .aperture-hero__glyph--7 {
-    font-size: 0.88em;
-    transform: translateY(0.03em) rotate(5deg);
-  }
-
-  .aperture-hero__phrase--primary .aperture-hero__glyph--8 {
-    font-size: 0.48em;
-    transform: translate(0.06em, 0.26em) rotate(-2deg);
+    top: 31.45%;
+    left: 29.74%;
   }
 
   .aperture-hero__phrase--secondary {
-    top: 61%;
-    left: 4%;
+    top: 61.2%;
+    left: 2.2%;
   }
 
-  .aperture-hero__phrase--secondary .aperture-hero__glyph--1 {
-    font-size: 1.43em;
-    transform: translateY(0.12em) rotate(-5deg);
+  .aperture-hero__phrase--secondary-echo {
+    --line-scale: 1.1;
+
+    top: 73.65%;
+    left: 32.94%;
   }
 
-  .aperture-hero__phrase--secondary .aperture-hero__glyph--2 {
-    font-size: 1.26em;
-    transform: translateY(0.03em) rotate(2deg);
-  }
-
-  .aperture-hero__phrase--secondary .aperture-hero__glyph--3 {
-    font-size: 0.82em;
-    transform: translateY(-0.08em) rotate(-3deg);
-  }
-
-  .aperture-hero__phrase--secondary .aperture-hero__glyph--4 {
-    font-size: 0.92em;
-    transform: translateY(-0.16em) rotate(5deg);
-  }
-
-  .aperture-hero__phrase--secondary .aperture-hero__glyph--5 {
-    font-size: 1.02em;
-    transform: translateY(-0.23em) rotate(-4deg);
-  }
-
-  .aperture-hero__phrase--secondary .aperture-hero__glyph--6 {
-    font-size: 1.28em;
-    transform: translateY(0.04em) rotate(3deg);
-  }
-
-  .aperture-hero__phrase--secondary .aperture-hero__glyph--7 {
-    font-size: 0.86em;
-    transform: translateY(0.1em) rotate(-5deg);
-  }
-
-  .aperture-hero__phrase--secondary .aperture-hero__glyph--8 {
-    font-size: 0.5em;
-    transform: translate(0.08em, 0.29em) rotate(4deg);
-  }
-
+  /* Second pass over the same glyphs, clipped to the panel. Solid characters
+     stay hidden here so the panel really does cut them off; outline characters
+     are redrawn in the panel ink and continue across the edge.
+     `mix-blend-mode: difference` was tried in place of this and rejected: a
+     #9AA7BD hairline at 0.55 opacity differenced against the panel composites to
+     about #525861, roughly 2:1 against the panel itself, so the outline vanishes
+     exactly where it is supposed to turn light. Clipping keeps the ink exact. */
   .aperture-hero__overprint {
-    position: relative;
+    position: absolute;
     z-index: 3;
-    grid-column: 1 / 13;
-    grid-row: 2;
-    overflow: hidden;
-    clip-path: inset(0 16.666% 0 45%);
+    inset: 0;
+    clip-path: inset(var(--panel-top) var(--panel-end) 0 var(--panel-start));
     pointer-events: none;
   }
 
@@ -177,173 +206,261 @@
     visibility: hidden;
   }
 
-  .aperture-hero__overprint :is(.aperture-hero__glyph--outline, .aperture-hero__glyph--bridge) {
+  .aperture-hero__overprint .aperture-hero__glyph--outline {
     visibility: visible;
-    -webkit-text-stroke-color: color-mix(in srgb, var(--accent-field-ink) 62%, transparent);
+    opacity: 1;
+    -webkit-text-stroke-color: color-mix(in srgb, var(--accent-field-ink) 84%, transparent);
   }
 
   .aperture-hero__window {
-    position: relative;
+    position: absolute;
     z-index: 2;
-    grid-column: 6 / 11;
-    grid-row: 2;
-    display: flex;
-    min-height: 44rem;
-    margin-left: 8%;
-    align-items: flex-end;
-    overflow: hidden;
+    top: var(--panel-top);
+    right: var(--panel-end);
+    bottom: 0;
+    left: var(--panel-start);
+    container-type: size;
     background: var(--accent-field);
     color: var(--accent-field-ink);
   }
 
-  .aperture-hero__window::before,
-  .aperture-hero__window::after,
   .aperture-hero__shutter {
     position: absolute;
-    pointer-events: none;
-    content: "";
-  }
-
-  .aperture-hero__window::before {
-    inset: 0 auto 0 0;
-    width: 1px;
-    background: color-mix(in srgb, var(--accent-field-ink) 24%, transparent);
-  }
-
-  .aperture-hero__window::after {
-    right: 1rem;
-    top: 1rem;
-    width: 1.2rem;
-    height: 1.2rem;
-    border-top: 1px solid currentColor;
-    border-right: 1px solid currentColor;
-  }
-
-  .aperture-hero__shutter {
     top: 0;
     left: 50%;
     width: 1px;
-    height: 5.5rem;
-    background: color-mix(in srgb, var(--accent-field-ink) 45%, transparent);
+    height: 7.4cqh;
+    background: color-mix(in srgb, var(--accent-field-ink) 42%, transparent);
+  }
+
+  .aperture-hero__corner {
+    position: absolute;
+    top: 3.4cqh;
+    right: 3cqw;
+    width: 4.4cqw;
+    height: 4.4cqw;
+    border-top: 1px solid color-mix(in srgb, var(--accent-field-ink) 58%, transparent);
+    border-right: 1px solid color-mix(in srgb, var(--accent-field-ink) 58%, transparent);
   }
 
   .aperture-hero__note {
     position: absolute;
     z-index: 4;
-    top: 34%;
-    margin: 0;
     color: var(--ink-muted);
-    font-family: "Yu Mincho", "Hiragino Mincho ProN", "Noto Serif JP", "Songti SC", Georgia, serif;
-    font-size: 0.82rem;
+    font-family: var(--font-mincho);
+    font-size: var(--note-size);
     letter-spacing: 0.26em;
-    line-height: 1.8;
+    line-height: 1;
     writing-mode: vertical-rl;
   }
 
+  /* The notes and their rules hang 26px outside the stage box (1.927% of its
+     width at 1536), which is why these are negative. The stage does not clip, so
+     they sit in the page gutter rather than being cut; the widest of them still
+     lands well inside the viewport. */
   .aperture-hero__note--left {
-    left: 0.2%;
+    top: 31%;
+    left: -1.73%;
   }
 
   .aperture-hero__note--right {
-    right: 1.4%;
-    top: 38%;
+    top: 32.1%;
+    right: -1.73%;
+  }
+
+  .aperture-hero__rule {
+    position: absolute;
+    z-index: 4;
+    width: 1px;
+    background: color-mix(in srgb, var(--ink) 32%, transparent);
+  }
+
+  .aperture-hero__rule--left {
+    top: 4.5%;
+    left: -1.23%;
+    height: 9.4%;
+  }
+
+  .aperture-hero__rule--right {
+    top: 75.8%;
+    right: -1.23%;
+    height: 8.3%;
   }
 
   .aperture-hero__fragment {
     position: absolute;
-    z-index: -1;
-    color: color-mix(in srgb, var(--ink) 7%, transparent);
-    font-family: "Yu Mincho", "Hiragino Mincho ProN", "Noto Serif JP", "Songti SC", Georgia, serif;
+    z-index: 0;
+    top: calc(var(--y) * 1%);
+    left: calc(var(--x) * 1%);
+    color: color-mix(in srgb, var(--ink) calc(var(--ink-share) * 1%), transparent);
+    font-family: var(--font-mincho);
+    font-size: calc(var(--size) * 1cqw);
+    letter-spacing: 0.08em;
+    line-height: 1;
+    filter: blur(calc(var(--fuzz) * 1px));
     pointer-events: none;
     user-select: none;
     writing-mode: vertical-rl;
   }
 
-  .aperture-hero__fragment--one {
-    top: 11%;
-    left: 34%;
-    font-size: 1.1rem;
-    filter: blur(0.7px);
-  }
-
-  .aperture-hero__fragment--two {
-    top: 18%;
-    right: 5%;
-    font-size: 2.3rem;
-    filter: blur(1.2px);
-  }
-
-  .aperture-hero__fragment--three {
-    right: 4%;
-    bottom: 6%;
-    font-size: 0.9rem;
-    filter: blur(0.6px);
-  }
-
   .aperture-identity {
-    position: relative;
-    z-index: 4;
     display: grid;
-    width: 100%;
-    min-height: 44rem;
+    height: 100%;
     grid-template-rows: auto 1fr auto;
-    padding: clamp(1.5rem, 4vw, 4rem);
-    padding-top: clamp(7rem, 10vw, 9rem);
+    padding: 20cqh 11.5cqw 7cqh;
   }
 
   .aperture-identity__register {
     display: flex;
     justify-content: space-between;
     gap: 1rem;
-    padding-bottom: 1rem;
-    border-bottom: 1px solid color-mix(in srgb, var(--accent-field-ink) 32%, transparent);
-    color: color-mix(in srgb, var(--accent-field-ink) 68%, transparent);
+    padding-bottom: 1.8cqh;
+    border-bottom: 1px solid color-mix(in srgb, var(--accent-field-ink) 34%, transparent);
+    color: color-mix(in srgb, var(--accent-field-ink) 80%, transparent);
+    font-size: clamp(0.64rem, 2.5cqw, 0.88rem);
+    line-height: 1.2;
+  }
+
+  .aperture-identity__register span:last-child {
     font-family: var(--font-data);
-    font-size: 0.58rem;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
   }
 
   .aperture-identity__body {
     align-self: center;
-    padding-block: clamp(2rem, 5vw, 4rem);
+    /* The wordmark block sits below the optical centre of the panel, as the
+       approved composition places it. */
+    margin-bottom: -9cqh;
   }
 
   .aperture-identity h2 {
-    margin: 0;
     font-family: var(--font-wordmark);
-    font-size: clamp(4rem, 6.6vw, 6.6rem);
-    font-weight: 680;
-    letter-spacing: -0.085em;
-    line-height: 0.88;
+    font-size: clamp(2.2rem, 18.6cqw, 8rem);
+    font-weight: 700;
+    letter-spacing: -0.055em;
+    line-height: 0.9;
   }
 
   .aperture-identity__body p {
-    max-width: 25rem;
-    margin-top: 2rem;
-    color: color-mix(in srgb, var(--accent-field-ink) 72%, transparent);
-    font-family: var(--font-reading);
-    font-size: 0.88rem;
-    line-height: 1.95;
+    margin-top: 4.6cqh;
+    color: color-mix(in srgb, var(--accent-field-ink) 80%, transparent);
+    font-size: clamp(0.72rem, 2.85cqw, 1rem);
+    line-height: 2;
+  }
+
+  .aperture-identity__body p span {
+    display: block;
   }
 
   .aperture-identity > a {
+    position: relative;
     display: flex;
     min-height: 2.75rem;
     align-items: center;
     justify-content: space-between;
-    border-top: 1px solid color-mix(in srgb, var(--accent-field-ink) 32%, transparent);
-    font-size: 0.72rem;
+    padding-top: 2.2cqh;
+    font-size: clamp(0.7rem, 2.5cqw, 0.9rem);
     text-decoration: none;
   }
 
+  /* Rule, word, arrow. It stays a line of type: the rule grows left on hover
+     and the arrow steps out, and nothing ever becomes a filled button. */
+  .aperture-identity > a::before {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 9%;
+    height: 1px;
+    background: color-mix(in srgb, var(--accent-field-ink) 34%, transparent);
+    content: "";
+    transition: left var(--motion-medium) var(--motion-ease);
+  }
+
+  .aperture-identity > a:hover::before,
+  .aperture-identity > a:focus-visible::before {
+    left: 0;
+  }
+
   .aperture-identity > a i {
-    font-size: 1rem;
+    font-size: 1.15em;
     font-style: normal;
     transition: transform var(--motion-fast) var(--motion-ease);
   }
 
   .aperture-identity > a:hover i,
   .aperture-identity > a:focus-visible i {
-    transform: translate(0.35rem, -0.35rem);
+    transform: translate(0.3rem, -0.3rem);
+  }
+
+  @keyframes aperture-hero-rise {
+    from {
+      opacity: 0;
+      transform: translateY(1rem);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes aperture-hero-fade {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  .aperture-hero__register {
+    animation: aperture-hero-fade 700ms var(--motion-ease) both;
+  }
+
+  .aperture-hero__window {
+    animation: aperture-hero-rise 820ms 40ms var(--motion-ease) both;
+  }
+
+  /* Both layers run the same phrase animation at the same delay, so the outline
+     strokes never drift away from their clipped counterparts mid-flight. */
+  /* The runs already carry a transform, so the entrance fades only — animating
+     translate here would fight the container rotation. */
+  .aperture-hero__phrase--primary {
+    animation: aperture-hero-fade 900ms 140ms var(--motion-ease) both;
+  }
+
+  .aperture-hero__phrase--primary-echo {
+    animation: aperture-hero-fade 900ms 220ms var(--motion-ease) both;
+  }
+
+  .aperture-hero__phrase--secondary {
+    animation: aperture-hero-fade 900ms 300ms var(--motion-ease) both;
+  }
+
+  .aperture-hero__phrase--secondary-echo {
+    animation: aperture-hero-fade 900ms 380ms var(--motion-ease) both;
+  }
+
+  .aperture-hero__overprint {
+    animation: aperture-hero-fade 620ms 820ms var(--motion-ease) both;
+  }
+
+  .aperture-hero__note--left {
+    animation: aperture-hero-rise 800ms 520ms var(--motion-ease) both;
+  }
+
+  .aperture-hero__note--right {
+    animation: aperture-hero-rise 800ms 620ms var(--motion-ease) both;
+  }
+
+  .aperture-hero__rule {
+    animation: aperture-hero-fade 800ms 700ms var(--motion-ease) both;
+  }
+
+  .aperture-hero__fragment {
+    animation: aperture-hero-fade 1000ms 780ms var(--motion-ease) both;
   }
 
   .aperture-text-link {
@@ -716,32 +833,53 @@
 
 @media (max-width: 70rem) {
   @layer components {
-    .aperture-hero {
-      grid-template-rows: auto minmax(40rem, 1fr);
-      min-height: 50rem;
+    /* Tablet keeps the whole grammar — cut type, panel, one marginal note —
+       and only gives the panel more of the width back. */
+    .aperture-hero__stage {
+      /* The panel is flush to the stage's right edge here, and that is arithmetic
+         rather than a stylistic choice. 見たものを sets 412.7px of ink at this
+         size, there are only 389.2px between the stage edge and the old panel
+         start, and the run cannot move left because 見 already meets the vertical
+         note. So the whole shortfall has to come out of the right margin — and
+         the right note is `display: none` at this width, so nothing lives there
+         to lose. Width is unchanged: `--panel-start` gains what `--panel-end`
+         gives up. */
+      --panel-start: 48%;
+      --panel-end: 0%;
+      /* The panel gives the register line its own band here: it reaches
+         further right than on desktop, so it can no longer start level with it. */
+      --panel-top: 4%;
+      --type-size: clamp(2.6rem, 9.8cqw, 9rem);
+      --note-size: clamp(0.78rem, 1.85cqw, 1.2rem);
+
+      aspect-ratio: 1450 / 960;
     }
 
-    .aperture-hero__phrase {
-      font-size: clamp(3.8rem, 7.7vw, 5.6rem);
+    /* Re-derived from the desktop field: the solid run still stops just short of
+       the panel edge and the two lines keep their vertical centres. */
+    .aperture-hero__phrase--primary {
+      top: 18.9%;
+      left: 1%;
     }
 
-    .aperture-hero__overprint {
-      clip-path: inset(0 8.333% 0 41.666%);
+    .aperture-hero__phrase--primary-echo {
+      top: 27.6%;
+      left: 24%;
     }
 
-    .aperture-hero__window {
-      grid-column: 6 / 12;
-      min-height: 40rem;
-      margin-left: 0;
-      margin-top: 2rem;
+    .aperture-hero__phrase--secondary {
+      top: 62.5%;
+      left: 1%;
     }
 
-    .aperture-identity {
-      min-height: 40rem;
-      padding-top: clamp(5.5rem, 11vw, 7rem);
+    .aperture-hero__phrase--secondary-echo {
+      top: 71.1%;
+      left: 27%;
     }
 
-    .aperture-hero__note--right {
+    .aperture-hero__note--right,
+    .aperture-hero__rule--right,
+    .aperture-hero__fragment--wide {
       display: none;
     }
 
@@ -781,89 +919,91 @@
 
 @media (max-width: 48rem) {
   @layer components {
+    /* Phones get their own composition rather than a shrunken desktop one. The
+       panel bleeds off the right edge and carries the hero; the second line of
+       type runs under its top edge, so the solid glyphs are cut horizontally
+       and the outline glyphs continue across in the panel ink. The first line
+       runs off the right of the viewport on purpose. */
     .aperture-hero {
-      display: block;
-      min-height: 0;
-      padding-bottom: 0;
+      padding-block: clamp(0.75rem, 3vw, 1.25rem) 0;
+    }
+
+    .aperture-hero__stage {
+      --panel-start: 22%;
+      --panel-end: calc(var(--gutter) * -1);
+      --panel-top: 41%;
+      --type-size: clamp(3rem, 19cqw, 7.6rem);
+      --note-size: clamp(0.72rem, 3.2cqw, 0.98rem);
+
+      aspect-ratio: auto;
+      height: min(41rem, calc(100svh - 7rem));
+      min-height: 33rem;
     }
 
     .aperture-hero__register {
-      gap: 1rem;
-      font-size: 0.52rem;
+      gap: 0.75rem;
+      font-size: 0.56rem;
     }
 
-    .aperture-hero__thesis {
-      position: relative;
-      z-index: 0;
-      height: clamp(19rem, 78vw, 22rem);
-      margin-top: 1rem;
-    }
-
-    .aperture-hero__thesis h1 {
-      inset: 0;
-    }
-
-    .aperture-hero__phrase {
-      left: 0;
-      font-size: clamp(2.2rem, 10.7vw, 3.25rem);
-      letter-spacing: -0.16em;
-    }
-
+    /* An ascending run makes its FIRST character the low point, so these are the
+       runs' floors, not their tops — raise one and the whole run drops. */
     .aperture-hero__phrase--primary {
-      top: 8%;
+      top: 14%;
+      left: 0.5%;
+    }
+
+    .aperture-hero__phrase--primary-echo {
+      top: 24%;
+      left: 42%;
     }
 
     .aperture-hero__phrase--secondary {
-      top: 56%;
-      left: 2%;
+      top: 40%;
+      left: 0.5%;
     }
 
-    .aperture-hero__window {
-      min-height: 32rem;
-      margin: -7rem calc(var(--gutter) * -1) 0 12%;
+    /* Clears the panel's register line, which sits about 59% down the stage
+       at this width. */
+    .aperture-hero__phrase--secondary-echo {
+      top: 43%;
+      left: 45%;
     }
 
-    .aperture-hero__overprint {
-      position: absolute;
-      z-index: 3;
-      inset: 3.7rem 0 auto;
-      height: clamp(19rem, 78vw, 22rem);
-      clip-path: inset(68% 0 0 12%);
+    .aperture-hero__note--left {
+      top: 60%;
+      left: 1%;
     }
 
-    .aperture-identity {
-      min-height: 32rem;
-      padding: 4.8rem 1.5rem 1.5rem;
-    }
-
-    .aperture-identity__register {
-      font-size: 0.5rem;
-    }
-
-    .aperture-identity h2 {
-      font-size: clamp(3.25rem, 16vw, 5rem);
-    }
-
-    .aperture-identity__body p {
-      max-width: 20rem;
-      font-size: 0.8rem;
-    }
-
-    .aperture-hero__note {
-      top: 42%;
-      left: 0;
-      font-size: 0.67rem;
-      letter-spacing: 0.18em;
-    }
-
-    .aperture-hero__fragment--one,
-    .aperture-hero__fragment--two {
+    /* The second statement crosses the panel's top-right corner here, so the
+       corner mark would read as a collision rather than a register mark. */
+    .aperture-hero__note--right,
+    .aperture-hero__rule,
+    .aperture-hero__fragment,
+    .aperture-hero__corner {
       display: none;
     }
 
-    .aperture-hero__fragment--three {
-      right: 1%;
-      bottom: 3%;
+    /* The second outline run crosses well into the panel at this width, so the
+       register line starts below where 残す。 lands rather than under it. */
+    .aperture-identity {
+      padding: 30cqh 9cqw 5cqh;
+    }
+
+    .aperture-identity__register {
+      font-size: clamp(0.6rem, 4.1cqw, 0.8rem);
+    }
+
+    .aperture-identity h2 {
+      font-size: clamp(2.2rem, 21cqw, 4.4rem);
+    }
+
+    .aperture-identity__body p {
+      font-size: clamp(0.7rem, 4.4cqw, 0.9rem);
+      line-height: 1.9;
+    }
+
+    .aperture-identity > a {
+      font-size: clamp(0.68rem, 4cqw, 0.86rem);
     }
 
     .aperture-ways {
