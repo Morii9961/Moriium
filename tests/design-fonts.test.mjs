@@ -185,10 +185,20 @@ test('production copy removes prototype fillers and keeps the Moriium voice', as
   assert.match(home, /見たものを記す。未完のまま残す。/);
   assert.match(home, /時間の中で、拾い集める。/);
   assert.match(home, /いつか戻れるように。/);
-  assert.match(home, /文字と写真と旅の断片を、ここでゆっくりと整理していく。/);
+  // The display type stays Japanese in all three languages — it is read as form.
+  // The panel beside it is ordinary prose, so it follows the page language and
+  // no longer advertises the three languages as a label.
+  assert.match(home, /heroBody: \['文字と写真と旅の断片を、', 'ここでゆっくりと整理していく。'\]/);
+  assert.match(home, /heroBody: \['文字、照片与旅途的断片，'/);
+  assert.match(home, /heroBody: \['Fragments of writing, photographs'/);
+  assert.match(home, /\{c\.heroIdentity\}/);
+  assert.match(home, /\{c\.heroBody\.map/);
+  assert.doesNotMatch(home, /ZH · JA · EN|lang="ja"><span>\{heroCopy\.enter\}/);
   assert.doesNotMatch(home, /Morii's personal edition · Dalian|STATIC<br \/>FIRST|a-profile-panel__mark|在大连生活，持续记录/);
   assert.match(layout, /\{ui\.skip\}/);
   assert.match(layout, /aria-label=\{ui\.primaryNav\}/);
+  // The header mark is the wordmark alone; the tagline lives in the footer only.
+  assert.match(layout, /<a class="site-mark" href=\{`\/\$\{lang\}\/`\}><strong>\{SITE\.name\}<\/strong><\/a>/);
 
   assert.match(todo, /一次只拿一个待办/);
   assert.match(todo, /01　生产搜索/);

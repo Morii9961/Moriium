@@ -61,6 +61,10 @@
     --panel-end: 6.46%;
     --panel-top: 0%;
     --type-size: clamp(3.4rem, 10.75cqw, 11rem);
+    /* One curve for the whole entrance: a long tail that lets things settle
+       rather than arrive. Deliberately not the site's default, which is snappier
+       than this page wants. */
+    --enter-ease: cubic-bezier(0.22, 1, 0.36, 1);
     --run-tilt: -8.5deg;
     --glyph-italic: 10deg;
     --line-tracking: -0.09em;
@@ -73,22 +77,6 @@
     aspect-ratio: 1660 / 960;
     min-height: 26rem;
     isolation: isolate;
-  }
-
-  .aperture-hero__register {
-    position: absolute;
-    z-index: 5;
-    top: 0;
-    right: 0;
-    left: 0;
-    display: flex;
-    justify-content: space-between;
-    gap: 1rem;
-    color: var(--ink-faint);
-    font-family: var(--font-data);
-    font-size: clamp(0.58rem, 0.78cqw, 0.74rem);
-    letter-spacing: 0.06em;
-    line-height: 1;
   }
 
   .aperture-hero__thesis {
@@ -146,14 +134,34 @@
      zero-residual collinearity. A transform would need `display: inline-block`
      here, which gives every glyph a box of its own — the thing this structure
      exists to avoid. There is deliberately no vertical counterpart. */
+  /* `inline-block`, not `inline`, because transforms do not apply to inline
+     boxes and each character animates itself. That swap was measured before it
+     was adopted: advances, both em-box edge fits (-8.500 degrees, zero residual)
+     and every glyph's text box come back byte identical either way, so the
+     resting composition is untouched. Only the border box changes height, from
+     the font's content area to the line box, and nothing is drawn from it. */
   .aperture-hero__glyph {
-    display: inline;
+    --glyph-opacity: 1;
+
+    display: inline-block;
     margin-left: calc(var(--nudge, 0) * 1em);
+    opacity: var(--glyph-opacity);
+    animation-name: var(--enter-keys, aperture-hero-set-solid);
+    animation-duration: var(--run-dur, 880ms);
+    animation-delay: calc(var(--run-delay, 0ms) + var(--at, 0) * 1ms);
+    animation-timing-function: var(--enter-ease);
+    animation-fill-mode: both;
   }
 
+  /* The resting opacity is a custom property rather than a plain declaration
+     because the entrance animation has to land on it. An animation beats a
+     normal declaration, so a keyframe ending at a literal `opacity: 1` would
+     quietly promote every outline character to full strength the moment it
+     finished. */
   .aperture-hero__glyph--outline {
+    --glyph-opacity: 0.55;
+
     color: transparent;
-    opacity: 0.55;
     -webkit-text-stroke: 1.2px var(--hero-outline);
   }
 
@@ -207,8 +215,9 @@
   }
 
   .aperture-hero__overprint .aperture-hero__glyph--outline {
+    --glyph-opacity: 1;
+
     visibility: visible;
-    opacity: 1;
     -webkit-text-stroke-color: color-mix(in srgb, var(--accent-field-ink) 84%, transparent);
   }
 
@@ -321,12 +330,6 @@
     line-height: 1.2;
   }
 
-  .aperture-identity__register span:last-child {
-    font-family: var(--font-data);
-    letter-spacing: 0.06em;
-    white-space: nowrap;
-  }
-
   .aperture-identity__body {
     align-self: center;
     /* The wordmark block sits below the optical centre of the panel, as the
@@ -415,52 +418,181 @@
     }
   }
 
-  .aperture-hero__register {
-    animation: aperture-hero-fade 700ms var(--motion-ease) both;
-  }
-
+  /* The panel arrives early and as one piece, because it is what gives the page
+     its order; its contents then follow in reading order. Nothing here scales
+     and nothing blurs: a card that zooms turns an editorial page into a product
+     page. */
   .aperture-hero__window {
-    animation: aperture-hero-rise 820ms 40ms var(--motion-ease) both;
+    animation: aperture-hero-rise 900ms 120ms var(--enter-ease) both;
   }
 
-  /* Both layers run the same phrase animation at the same delay, so the outline
-     strokes never drift away from their clipped counterparts mid-flight. */
-  /* The runs already carry a transform, so the entrance fades only — animating
-     translate here would fight the container rotation. */
+  .aperture-identity__register {
+    animation: aperture-hero-settle 800ms 300ms var(--enter-ease) both;
+  }
+
+  .aperture-identity h2 {
+    animation: aperture-hero-settle 850ms 780ms var(--enter-ease) both;
+  }
+
+  .aperture-identity__body p {
+    animation: aperture-hero-settle 900ms 1180ms var(--enter-ease) both;
+  }
+
+  /* The call to action is three things, so it arrives as three: the words, then
+     the rule drawing itself out from the left, then the arrow. */
+  .aperture-identity > a span {
+    animation: aperture-hero-fade 700ms 1980ms var(--enter-ease) both;
+  }
+
+  @keyframes aperture-hero-draw {
+    from {
+      opacity: 0;
+      transform: scaleX(0);
+    }
+
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .aperture-identity > a::before {
+    transform-origin: left center;
+    animation: aperture-hero-draw 750ms 2080ms var(--enter-ease) both;
+  }
+
+  .aperture-identity > a i {
+    animation: aperture-hero-fade 550ms 2250ms var(--enter-ease) both;
+  }
+
+  /* The statement writes itself rather than fading in, and the shape of that is
+     two layers that stay independent. A run says when it starts (`--run-delay`),
+     how long each of its characters takes (`--run-dur`), how far they travel
+     (`--set-y`) and which of the two entrances it uses (`--enter-keys`). A glyph
+     says only when its own turn comes (`--at`) and how far sideways it comes
+     from (`--drift`).
+
+     Nothing animates the run element: it already carries the rotation, and a
+     transform there would fight it. Because both the h1 and the clipped
+     overprint render the same data through the same classes, a character and its
+     counterpart derive identical timing and cannot drift apart mid-flight.
+
+     All travel is in em, so the entrance scales with the type at every
+     breakpoint rather than looking violent on a phone. */
+  @keyframes aperture-hero-set-solid {
+    from {
+      opacity: 0;
+      transform: translate(calc(var(--drift, 0) * 1em), calc(var(--set-y, 0.12) * 1em));
+      filter: blur(0.014em);
+    }
+
+    to {
+      opacity: var(--glyph-opacity);
+      transform: none;
+      filter: blur(0);
+    }
+  }
+
+  /* The outline runs are a second layer of type, not a copy of the first, so
+     they arrive in two stages: the stroke surfaces to about four tenths of its
+     resting strength while still soft and slightly out of place, drifts through
+     a slow middle, and only then resolves. Stating the partial stage as a
+     fraction of `--glyph-opacity` is what keeps it from ever reading stronger
+     than the solid characters it sits behind. */
+  @keyframes aperture-hero-set-outline {
+    from {
+      opacity: 0;
+      transform: translate(calc(var(--drift, 0) * 1em), calc(var(--set-y, 0.08) * 1em));
+      filter: blur(0.02em);
+    }
+
+    36% {
+      opacity: calc(var(--glyph-opacity) * 0.4);
+      transform: translate(calc(var(--drift, 0) * 0.5em), calc(var(--set-y, 0.08) * 0.55em));
+      filter: blur(0.012em);
+    }
+
+    64% {
+      opacity: calc(var(--glyph-opacity) * 0.55);
+      filter: blur(0.006em);
+    }
+
+    to {
+      opacity: var(--glyph-opacity);
+      transform: none;
+      filter: blur(0);
+    }
+  }
+
   .aperture-hero__phrase--primary {
-    animation: aperture-hero-fade 900ms 140ms var(--motion-ease) both;
+    --run-delay: 250ms;
+    --run-dur: 880ms;
+    --set-y: 0.12;
   }
 
   .aperture-hero__phrase--primary-echo {
-    animation: aperture-hero-fade 900ms 220ms var(--motion-ease) both;
+    --enter-keys: aperture-hero-set-outline;
+    --run-delay: 720ms;
+    --run-dur: 1000ms;
+    --set-y: 0.08;
   }
 
+  /* Steadier than the first run on purpose: this is the second mass of type
+     settling into a field that already exists, not the opening gesture. */
   .aperture-hero__phrase--secondary {
-    animation: aperture-hero-fade 900ms 300ms var(--motion-ease) both;
+    --run-delay: 1120ms;
+    --run-dur: 860ms;
+    --set-y: 0.085;
   }
 
   .aperture-hero__phrase--secondary-echo {
-    animation: aperture-hero-fade 900ms 380ms var(--motion-ease) both;
+    --enter-keys: aperture-hero-set-outline;
+    --run-delay: 1600ms;
+    --run-dur: 950ms;
+    --set-y: 0.085;
   }
 
-  .aperture-hero__overprint {
-    animation: aperture-hero-fade 620ms 820ms var(--motion-ease) both;
+  /* No container-level fade here. The overprint's glyphs carry the same
+     per-character schedule as the h1's, so fading the wrapper would hide an
+     outline character that is already due: 見たものを's trailing character starts
+     at 585ms, well before any wrapper fade would have finished. */
+
+  /* The marginal notes are set as whole blocks, never per character. They are
+     the quiet layer that establishes the page before the display type arrives,
+     so they move less than anything else and take longer doing it. The left one
+     comes first and the right one last, which brackets the whole sequence. */
+  @keyframes aperture-hero-settle {
+    from {
+      opacity: 0;
+      transform: translateY(0.5rem);
+    }
+
+    to {
+      opacity: 1;
+      transform: none;
+    }
   }
 
   .aperture-hero__note--left {
-    animation: aperture-hero-rise 800ms 520ms var(--motion-ease) both;
+    animation: aperture-hero-settle 1250ms 140ms var(--enter-ease) both;
   }
 
   .aperture-hero__note--right {
-    animation: aperture-hero-rise 800ms 620ms var(--motion-ease) both;
+    animation: aperture-hero-settle 1100ms 1720ms var(--enter-ease) both;
   }
 
-  .aperture-hero__rule {
-    animation: aperture-hero-fade 800ms 700ms var(--motion-ease) both;
+  .aperture-hero__rule--left {
+    animation: aperture-hero-fade 900ms 200ms var(--enter-ease) both;
   }
 
+  .aperture-hero__rule--right {
+    animation: aperture-hero-fade 900ms 1780ms var(--enter-ease) both;
+  }
+
+  /* Background texture. It comes last and very softly, so it reads as the page
+     settling rather than as anything asking to be looked at. */
   .aperture-hero__fragment {
-    animation: aperture-hero-fade 1000ms 780ms var(--motion-ease) both;
+    animation: aperture-hero-fade 900ms 1850ms var(--enter-ease) both;
   }
 
   .aperture-text-link {
@@ -940,11 +1072,6 @@
       min-height: 33rem;
     }
 
-    .aperture-hero__register {
-      gap: 0.75rem;
-      font-size: 0.56rem;
-    }
-
     /* An ascending run makes its FIRST character the low point, so these are the
        runs' floors, not their tops — raise one and the whole run drops. */
     .aperture-hero__phrase--primary {
@@ -1088,6 +1215,40 @@
 
     .aperture-closing > div {
       margin-top: 2rem;
+    }
+  }
+}
+
+/* Reduced motion keeps the page arriving, just not moving: one short fade for
+   everything, no stagger, no travel, no blur. The site-wide rule in public.css
+   collapses duration and delay for every animation, so these selectors carry two
+   classes to outrank its single-class `*`, and the keyframe lands on
+   `--glyph-opacity` so outline characters still rest at their own strength
+   instead of being promoted to full. */
+@media (prefers-reduced-motion: reduce) {
+  @layer components {
+    @keyframes aperture-hero-quiet {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: var(--glyph-opacity, 1);
+      }
+    }
+
+    .public-site .aperture-hero__glyph,
+    .public-site .aperture-hero__note,
+    .public-site .aperture-hero__rule,
+    .public-site .aperture-hero__fragment,
+    .public-site .aperture-hero__window,
+    .public-site .aperture-identity__register,
+    .public-site .aperture-identity h2,
+    .public-site .aperture-identity__body p,
+    .public-site .aperture-identity > a span,
+    .public-site .aperture-identity > a::before,
+    .public-site .aperture-identity > a i {
+      animation: aperture-hero-quiet 320ms linear both !important;
     }
   }
 }

@@ -55,10 +55,7 @@ const languageLabels = { zh: '中', ja: '日', en: 'EN' } as const;
     <a class="skip-link" href="#main">{ui.skip}</a>
     <header class="site-header">
       <div class="site-shell site-header__inner">
-        <a class="site-mark" href={`/${lang}/`}>
-          <strong>{SITE.name}</strong>
-          <span>{ui.footer.description}</span>
-        </a>
+        <a class="site-mark" href={`/${lang}/`}><strong>{SITE.name}</strong></a>
         <nav class="site-nav" aria-label={ui.primaryNav}>
           <a href={`/${lang}/`} aria-current={pathname === `/${lang}/` ? 'page' : undefined}>{ui.nav.home}</a>
           <a href={`/${lang}/writing/`} aria-current={pathname.includes('/writing/') || pathname.includes('/posts/') || pathname.includes('/protected/') ? 'page' : undefined}>{ui.nav.writing}</a>

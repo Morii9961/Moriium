@@ -163,14 +163,6 @@
     line-height: 1;
   }
 
-  .public-site .site-mark span {
-    margin-top: 0.45rem;
-    color: var(--ink-faint);
-    font-family: var(--font-data);
-    font-size: 0.55rem;
-    letter-spacing: 0.04em;
-  }
-
   .public-site .site-nav {
     display: flex;
     align-items: center;
@@ -982,10 +974,6 @@
 
     .public-site .site-header__inner {
       gap: 0.75rem;
-    }
-
-    .public-site .site-mark span {
-      display: none;
     }
 
     .public-site .site-nav {

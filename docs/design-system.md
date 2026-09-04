@@ -63,6 +63,35 @@ Two rules keep `--nudge` from becoming the per-glyph positioning this structure 
 
 Sizes are per *run*: the outline runs are set `--line-scale: 1.1` against the solid runs' 145px.
 
+### The entrance
+
+The hero is written onto the page rather than faded in, and the order is the point: the quiet layer first, then the display type filling the field in four passes.
+
+| | starts | ends |
+| --- | --- | --- |
+| panel, left marginal note, left rule | 120 / 140 / 200ms | ~1.1s |
+| panel register · 見たものを | 300 / 250ms | 1.61s |
+| Moriium · 記す。 | 780 / 720ms | 2.05s |
+| panel body · 未完のまま | 1180 / 1120ms | 2.36s |
+| 残す。 · right note · right rule | 1600 / 1720 / 1780ms | 2.86s |
+| CTA words, rule, arrow · ghost text | 1980 / 2080 / 2250 / 1850ms | 2.83s |
+
+Two layers of timing, kept independent. A **run** declares when it starts (`--run-delay`), how long each of its characters takes (`--run-dur`), how far they travel (`--set-y`) and which entrance it uses (`--enter-keys`). A **glyph** declares only its own turn (`--at`) and a small sideways offset to arrive from (`--drift`). The delay is the sum. Nothing animates the run element itself — it carries the rotation, and a transform there would fight it.
+
+`at` and `drift` are authored, not derived from the glyph index, and the unevenness is not decoration. An even step reads as a machine counting off characters. The values group each phrase into the breaths it actually has — 見た | もの | を and 未完 | のまま — roughly 80ms between characters inside a group and 150-165ms of rest between groups, so the run reads as writing rather than as a list. 見 and 未 anchor their runs and do not drift at all; the kana after them do.
+
+The two outline runs use a different keyframe, because they are a second layer of type rather than a copy of the first. They arrive in two stages: the stroke surfaces to about four tenths of its resting strength while still soft and slightly out of place, drifts through a slow middle, then resolves. Stating that partial stage as `calc(var(--glyph-opacity) * 0.4)` is what keeps it from ever reading stronger than the solid characters it sits behind.
+
+Three things about it are load-bearing:
+
+- **The glyphs are `inline-block`, because transforms do not apply to inline boxes.** That swap was measured before it was adopted: advances, both em-box edge fits (−8.500°, zero residual) and every glyph's *text box* come back byte identical either way. Only the border box changes height, from the font's content area to the line box, and nothing is drawn from it.
+- **The resting opacity is a custom property, not a literal.** An animation beats a normal declaration, so a keyframe ending at `opacity: 1` would quietly promote every outline character to full strength the moment it finished. The keyframes land on `var(--glyph-opacity)` instead — 1 for solid, 0.55 for outline, 1 again for the outline's overprint copy.
+- **The overprint container must not fade as a block.** Its glyphs carry the same per-character schedule as the h1's; a wrapper fade would hide an outline character that is already due.
+
+Travel is in em so the entrance scales with the type, and blur stays at 1–2px at the display size. Blur is the one value worth watching: at three times that it stops reading as type resolving and starts reading as a web page's blur-in.
+
+Under `prefers-reduced-motion` a hero-specific rule replaces all of it with one 320ms fade — no stagger, no travel, no blur. It carries two classes so it outranks the site-wide `.public-site *` reset, and it lands on `--glyph-opacity` so the outline characters still rest at their own strength.
+
 Origins are reverse-solved from what the approved composition fixes, measured at 1536×1024: the solid runs begin hard against the left vertical note, which does not move, and the gap between the upper and lower groups is **15.6%** of the card height. The runs then run *to* the panel rather than through it — 見たものを's trailing `を` clears the panel edge by 5.8px and 未完のまま's trailing `ま` by 9.3px, close enough to graze it, far enough to stay out of it.
 
 Judging that needs real glyph outlines, not `getBoundingClientRect`. A CJK em box is mostly empty — `を` inks 0.69 of its em and `。` only 0.27 — so box geometry overstates an intrusion by tens of pixels and reports collisions that are not there. Measure with canvas `TextMetrics.actualBoundingBox*` and map the ink rect through the run's own transform.

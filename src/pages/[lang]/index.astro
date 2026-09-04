@@ -26,22 +26,28 @@ const tags = uniqueTaxonomy(posts, 'tags').slice(0, 8);
 // its own `top` or `rotate`, those two edges break and the run stops reading as
 // a line and starts reading as five decorations.
 //
-// `nudge` is the one exception, and it is deliberately narrow. It is horizontal
-// only, expressed in em against the run's own font-size so it scales with the
-// type, and the stylesheet spends it as `margin-left` — layout, not transform.
-// That matters: a margin moves the character along the run's own axis inside the
-// shared line box, so the two em-box edges stay exactly where they were. A
-// `translateX` would need `display: inline-block` on every glyph, which gives
-// each one a box of its own and gives up the guarantee.
+// Three per-glyph values, all deliberately narrow:
 //
-// The run's letter-spacing sets the rhythm; `nudge` opens one specific pair
-// wider than that rhythm. The first glyph of a run is always 0 — a margin there
-// would move the whole run rather than a gap inside it.
+// `nudge` is horizontal spacing, in em against the run's own font-size, spent as
+// `margin-left` — layout, not transform. A margin moves the character along the
+// run's own axis inside the shared line box, so the two em-box edges stay where
+// they were. A `translateX` would need each glyph to be its own box.
+//
+// `at` and `drift` belong to the entrance only and leave nothing behind: `at` is
+// when this character starts, in ms after its run begins, and `drift` is a tiny
+// sideways offset it travels in from, in em.
+//
+// The `at` values are uneven on purpose, and the unevenness is not decoration.
+// An even step reads as a machine counting off characters. These are grouped
+// into the breaths the phrase actually has — 見た | もの | を and 未完 | のまま —
+// with a short rest between groups and a tighter step inside one, so the run
+// reads as writing rather than as a list. 見 and 未 anchor their runs and do not
+// drift at all; the kana after them do.
 //
 // A glyph may otherwise differ from its neighbours in colour and stroke only.
 // `を` is set as an outline but still belongs to 見たもの's line box, so it keeps
 // that run's baseline rather than becoming a fifth object with a position of its
-// own.
+// own — and it enters on that run's schedule, not with the outline runs.
 //
 // The rest of the geometry lives in the stylesheet: the run rotates, an inner
 // wrapper shears. See `.aperture-hero__phrase` in public-home.css.
@@ -49,37 +55,37 @@ const heroTitle = [
   {
     line: 'primary',
     glyphs: [
-      { char: '見', treatment: 'solid', nudge: 0 },
-      { char: 'た', treatment: 'solid', nudge: 0.055 },
-      { char: 'も', treatment: 'solid', nudge: 0.045 },
-      { char: 'の', treatment: 'solid', nudge: 0.055 },
-      { char: 'を', treatment: 'outline', nudge: -0.055 },
+      { char: '見', treatment: 'solid', nudge: 0, at: 0, drift: 0 },
+      { char: 'た', treatment: 'solid', nudge: 0.055, at: 85, drift: -0.03 },
+      { char: 'も', treatment: 'solid', nudge: 0.045, at: 250, drift: 0.025 },
+      { char: 'の', treatment: 'solid', nudge: 0.055, at: 330, drift: -0.02 },
+      { char: 'を', treatment: 'outline', nudge: -0.055, at: 480, drift: 0.035 },
     ],
   },
   {
     line: 'primary-echo',
     glyphs: [
-      { char: '記', treatment: 'outline', nudge: 0 },
-      { char: 'す', treatment: 'outline', nudge: 0.041 },
-      { char: '。', treatment: 'outline', nudge: 0.025 },
+      { char: '記', treatment: 'outline', nudge: 0, at: 0, drift: 0.02 },
+      { char: 'す', treatment: 'outline', nudge: 0.041, at: 150, drift: -0.025 },
+      { char: '。', treatment: 'outline', nudge: 0.025, at: 330, drift: 0.03 },
     ],
   },
   {
     line: 'secondary',
     glyphs: [
-      { char: '未', treatment: 'solid', nudge: 0 },
-      { char: '完', treatment: 'solid', nudge: 0.055 },
-      { char: 'の', treatment: 'solid', nudge: 0.045 },
-      { char: 'ま', treatment: 'solid', nudge: 0.055 },
-      { char: 'ま', treatment: 'solid', nudge: 0.045 },
+      { char: '未', treatment: 'solid', nudge: 0, at: 0, drift: 0 },
+      { char: '完', treatment: 'solid', nudge: 0.055, at: 80, drift: 0.02 },
+      { char: 'の', treatment: 'solid', nudge: 0.045, at: 230, drift: -0.018 },
+      { char: 'ま', treatment: 'solid', nudge: 0.055, at: 305, drift: 0.022 },
+      { char: 'ま', treatment: 'solid', nudge: 0.045, at: 375, drift: -0.015 },
     ],
   },
   {
     line: 'secondary-echo',
     glyphs: [
-      { char: '残', treatment: 'outline', nudge: 0 },
-      { char: 'す', treatment: 'outline', nudge: 0.041 },
-      { char: '。', treatment: 'outline', nudge: 0.025 },
+      { char: '残', treatment: 'outline', nudge: 0, at: 0, drift: 0.02 },
+      { char: 'す', treatment: 'outline', nudge: 0.041, at: 140, drift: -0.025 },
+      { char: '。', treatment: 'outline', nudge: 0.025, at: 310, drift: 0.03 },
     ],
   },
 ] as const;
@@ -87,7 +93,7 @@ const heroTitle = [
 // Background texture only. `ink` is the percentage of ink mixed into the canvas,
 // so no fragment reaches a tenth of the page contrast.
 const heroFragments = [
-  { char: '残る', x: 36, y: -5, size: 3.1, ink: 7, fuzz: 0.7, tier: 'wide' },
+  { char: '残る', x: 36, y: -1.6, size: 3.1, ink: 7, fuzz: 0.7, tier: 'wide' },
   { char: '戻る', x: 95.1, y: 16, size: 3.5, ink: 11, fuzz: 0.4, tier: 'wide' },
   { char: '記録', x: 15, y: 44, size: 2.9, ink: 8, fuzz: 0.9, tier: 'core' },
   { char: '旅の断片', x: 98.5, y: 63, size: 1.4, ink: 6, fuzz: 0.7, tier: 'wide' },
@@ -96,22 +102,21 @@ const heroFragments = [
   { char: 'いつか戻る', x: 97.5, y: 88, size: 0.68, ink: 8, fuzz: 0.3, tier: 'wide' },
 ] as const;
 
+// The display type is Japanese in every language: it is the hero's image, read
+// as form rather than as a sentence, and `aria-label` on the h1 carries the
+// text for anyone not reading it visually. The panel's own copy is a different
+// thing — ordinary prose the reader is meant to read — so it is localised in
+// `copy` below and follows the page language.
 const heroCopy = {
-  register: 'Moriium / 個人アーカイブ',
   title: '見たものを記す。未完のまま残す。',
   leftNote: '時間の中で、拾い集める。',
   rightNote: 'いつか戻れるように。',
-  identity: '文字・写真・旅の記録',
-  languages: 'ZH · JA · EN',
-  body: '文字と写真と旅の断片を、ここでゆっくりと整理していく。',
-  enter: '記事を読む',
 } as const;
-
-// The panel copy breaks after the comma, as the approved composition sets it.
-const heroBodyLines = heroCopy.body.split(/(?<=、)/u);
 
 const copy = {
   zh: {
+    heroIdentity: '文字・照片・旅途的记录',
+    heroBody: ['文字、照片与旅途的断片，', '在这里慢慢地整理。'],
     routes: [
       ['Writing', '写下的', '全部公开文章'],
       ['Archive', '回看的', '按年份寻找'],
@@ -132,6 +137,8 @@ const copy = {
     archive: '打开归档', rss: '订阅 RSS', about: '关于这里',
   },
   ja: {
+    heroIdentity: '文字・写真・旅の記録',
+    heroBody: ['文字と写真と旅の断片を、', 'ここでゆっくりと整理していく。'],
     routes: [
       ['Writing', '書いたもの', '公開中の記事'],
       ['Archive', '振り返るもの', '年から探す'],
@@ -152,6 +159,8 @@ const copy = {
     archive: 'アーカイブを開く', rss: 'RSS を購読', about: 'この場所について',
   },
   en: {
+    heroIdentity: 'Words · Photographs · Travel',
+    heroBody: ['Fragments of writing, photographs', 'and travel, gathered here slowly.'],
     routes: [
       ['Writing', 'Things written', 'Every public post'],
       ['Archive', 'Things revisited', 'Find a year'],
@@ -180,8 +189,6 @@ const routeHrefs = [`/${lang}/writing/`, `/${lang}/archive/`, `/${lang}/categori
   <div class="aperture-home">
     <section class="aperture-hero" aria-labelledby="home-title">
       <div class="aperture-hero__stage">
-        <p class="aperture-hero__register" lang="ja">{heroCopy.register}</p>
-
         {heroFragments.map((fragment) => (
           <span
             class={`aperture-hero__fragment aperture-hero__fragment--${fragment.tier}`}
@@ -200,10 +207,10 @@ const routeHrefs = [`/${lang}/writing/`, `/${lang}/archive/`, `/${lang}/categori
             {heroTitle.map(({ line, glyphs }) => (
               <span class={`aperture-hero__phrase aperture-hero__phrase--${line}`} aria-hidden="true">
                 <span class="aperture-hero__slant">
-                  {glyphs.map(({ char, treatment, nudge }) => (
+                  {glyphs.map(({ char, treatment, nudge, at, drift }) => (
                     <span
                       class={`aperture-hero__glyph aperture-hero__glyph--${treatment}`}
-                      style={`--nudge:${nudge}`}
+                      style={`--nudge:${nudge};--at:${at};--drift:${drift}`}
                     >{char}</span>
                   ))}
                 </span>
@@ -216,12 +223,12 @@ const routeHrefs = [`/${lang}/writing/`, `/${lang}/archive/`, `/${lang}/categori
           <span class="aperture-hero__shutter" aria-hidden="true"></span>
           <span class="aperture-hero__corner" aria-hidden="true"></span>
           <div class="aperture-identity">
-            <p class="aperture-identity__register" lang="ja"><span>{heroCopy.identity}</span><span>{heroCopy.languages}</span></p>
+            <p class="aperture-identity__register">{c.heroIdentity}</p>
             <div class="aperture-identity__body">
               <h2 lang="en">Moriium</h2>
-              <p lang="ja">{heroBodyLines.map((piece) => <span>{piece}</span>)}</p>
+              <p>{c.heroBody.map((line) => <span>{line}</span>)}</p>
             </div>
-            <a href={`/${lang}/writing/`} lang="ja"><span>{heroCopy.enter}</span><i aria-hidden="true">↗</i></a>
+            <a href={`/${lang}/writing/`}><span>{ui.read}</span><i aria-hidden="true">↗</i></a>
           </div>
         </div>
 
@@ -229,10 +236,10 @@ const routeHrefs = [`/${lang}/writing/`, `/${lang}/archive/`, `/${lang}/categori
           {heroTitle.map(({ line, glyphs }) => (
             <span class={`aperture-hero__phrase aperture-hero__phrase--${line}`}>
               <span class="aperture-hero__slant">
-                {glyphs.map(({ char, treatment, nudge }) => (
+                {glyphs.map(({ char, treatment, nudge, at, drift }) => (
                   <span
                     class={`aperture-hero__glyph aperture-hero__glyph--${treatment}`}
-                    style={`--nudge:${nudge}`}
+                    style={`--nudge:${nudge};--at:${at};--drift:${drift}`}
                   >{char}</span>
                 ))}
               </span>
