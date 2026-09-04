@@ -17,3 +17,10 @@ artifacts/
 playwright-report/
 test-results/
 .astro-preview.*.log
+
+# Local agent state. `.claude/worktrees/` accumulates whole checkouts with their
+# own build output — tens of thousands of files — so a stray `git add -A` would
+# otherwise commit hundreds of megabytes that are impossible to remove from
+# history afterwards. Nothing in here is shared: `launch.json` names a Windows
+# `pnpm.cmd`, so it would not work for anyone on another platform anyway.
+.claude/
