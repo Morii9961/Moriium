@@ -49,10 +49,9 @@ const c = copy[lang];
 
     {tagEntries.length > 0 ? (
       <nav class="a-tag-field" aria-label={ui.nav.tags}>
-        {tagEntries.map(({ name, count }, index) => (
+        {tagEntries.map(({ name, count }) => (
           <a
             href={`/${lang}/tags/${encodeURIComponent(name)}/`}
-            style={`--tag-rank: ${index}`}
             aria-label={c.label(name, count)}
           >
             <span># {name}</span><small>{String(count).padStart(2, '0')}</small>

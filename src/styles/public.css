@@ -1249,13 +1249,18 @@
     border-top: 1px solid var(--ink);
   }
 
+  /* Every tag starts on the same left edge: the list is ordered by use, and a
+     per-rank indent staircased the words away from that shared line for no
+     reason a reader could act on. The row is inset from its own rule like the
+     category rows, so the word and the count sit inside the band rather than on
+     its edge once the row lights up. */
   .a-tag-field > a {
     display: flex;
     min-height: 7rem;
     align-items: center;
     justify-content: space-between;
     gap: 2rem;
-    padding-left: calc(var(--tag-rank, 0) * clamp(0.25rem, 1vw, 1.25rem));
+    padding-inline: 1.25rem;
     border-bottom: 1px solid var(--line);
     text-decoration: none;
     transition: padding-left var(--motion-medium) var(--motion-ease), background-color var(--motion-fast) ease;
@@ -1269,22 +1274,29 @@
     line-height: 1;
   }
 
+  /* The count is the only mark holding the right end of a seven-rem row, so it
+     is set to be found rather than to recede: muted ink instead of faint, and
+     tracked out at the size the category rows use for the same job. */
   .a-tag-field > a small {
-    color: var(--ink-faint);
+    color: var(--ink-muted);
     font-family: var(--font-data);
-    font-size: 0.62rem;
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
   }
 
   .a-tag-field > a:hover,
   .a-tag-field > a:focus-visible {
-    padding-left: clamp(1rem, 5vw, 5rem);
+    padding-left: clamp(2.25rem, 5vw, 5rem);
     background: var(--accent-field);
     color: var(--accent-field-ink);
   }
 
+  /* On the lit row the count stands on the accent field, where the resting ink
+     tokens have almost no contrast. It takes the field's own ink at the weight
+     the category rows use for the same mark. */
   .a-tag-field > a:hover small,
   .a-tag-field > a:focus-visible small {
-    color: color-mix(in srgb, var(--accent-field-ink) 70%, transparent);
+    color: color-mix(in srgb, var(--accent-field-ink) 82%, transparent);
   }
 
   /* Question and answer on one line: the lead-in stays supporting text and the
@@ -1600,7 +1612,7 @@
 
     .a-tag-field > a {
       min-height: 6rem;
-      padding-left: 0;
+      padding-inline: 0.6rem;
     }
 
     .a-about-page__statement {
@@ -1616,31 +1628,6 @@
       border-right: 0;
       border-bottom: 1px solid color-mix(in srgb, var(--accent-field-ink) 22%, transparent);
     }
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  @layer components {
-    .public-site *,
-    .public-site *::before,
-    .public-site *::after {
-      scroll-behavior: auto !important;
-      transition-duration: 0.01ms !important;
-      animation-delay: 0ms !important;
-      animation-duration: 0.01ms !important;
-      animation-iteration-count: 1 !important;
-    }
-
-    /* The colour still changes, so state stays legible. Only the travel goes;
-       the reset above only shortens it. */
-    .aperture-action:hover i,
-    .aperture-action:focus-visible i,
-    .aperture-action--back:hover i,
-    .aperture-action--back:focus-visible i {
-      transform: none;
-    }
-  }
-}
 
     /* One column: the heading, then the two controls under it. Ordered after
        the shared section-head rule above so it wins on equal specificity. */
@@ -1667,3 +1654,28 @@
       left: 0;
       width: min(17rem, calc(100vw - 2.2rem));
     }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @layer components {
+    .public-site *,
+    .public-site *::before,
+    .public-site *::after {
+      scroll-behavior: auto !important;
+      transition-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+    }
+
+    /* The colour still changes, so state stays legible. Only the travel goes;
+       the reset above only shortens it. */
+    .aperture-action:hover i,
+    .aperture-action:focus-visible i,
+    .aperture-action--back:hover i,
+    .aperture-action--back:focus-visible i {
+      transform: none;
+    }
+  }
+}

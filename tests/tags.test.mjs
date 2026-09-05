@@ -18,7 +18,7 @@ test('production tag directory uses the public editorial layout with frequency-r
   assert.match(tags, /\.sort\(\(a, b\) => b\.count - a\.count/);
   assert.match(tags, /tagEntries\.map/);
   assert.match(tags, /href=\{`\/\$\{lang\}\/tags\/\$\{encodeURIComponent\(name\)\}\/`\}/);
-  assert.match(tags, /style=\{`--tag-rank: \$\{index\}`\}/);
+  assert.doesNotMatch(tags, /--tag-rank/);
   assert.match(tags, /aria-label=\{c\.label\(name, count\)\}/);
   assert.doesNotMatch(tags, /taxonomy-grid|site-shell page-heading|client:/);
 });
@@ -35,8 +35,10 @@ test('production tag directory has localized empty states and responsive public 
   }
   assert.match(tags, /a-tag-field--quiet/);
   assert.match(styles, /\.a-tag-field\s*\{[^}]*display:\s*flex[^}]*flex-direction:\s*column/s);
-  assert.match(styles, /\.a-tag-field > a\s*\{[^}]*min-height:\s*7rem[^}]*padding-left:\s*calc\(var\(--tag-rank, 0\)/s);
-  assert.match(styles, /@media \(max-width: 48rem\)[\s\S]*\.a-tag-field > a\s*\{[^}]*min-height:\s*6rem[^}]*padding-left:\s*0/s);
+  assert.match(styles, /\.a-tag-field > a\s*\{[^}]*min-height:\s*7rem[^}]*padding-inline:\s*1\.25rem/s);
+  assert.doesNotMatch(styles, /--tag-rank/);
+  assert.match(styles, /\.a-tag-field > a small\s*\{[^}]*color:\s*var\(--ink-muted\)[^}]*font-size:\s*0\.7rem/s);
+  assert.match(styles, /@media \(max-width: 48rem\)[\s\S]*\.a-tag-field > a\s*\{[^}]*min-height:\s*6rem[^}]*padding-inline:\s*0\.6rem/s);
   assert.match(styles, /\.a-tag-field > a:focus-visible/);
 });
 
