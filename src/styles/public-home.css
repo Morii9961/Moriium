@@ -819,7 +819,10 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr) 1.5rem;
     gap: 0.7rem 2rem;
-    min-height: 10rem;
+    /* The three lines total about 122px, so 10rem left 19px of slack above and
+       below and read as the block sitting low in its row. 8.5rem keeps the row
+       comfortably taller than its content without the content floating in it. */
+    min-height: 8.5rem;
     align-content: center;
     text-decoration: none;
   }
@@ -1093,8 +1096,10 @@
     list-style: none;
   }
 
+  /* Two entries with no rule between them do not need a rule's worth of padding
+     either; 1.6rem on each put 91px between Morii's line and Enouia's name. */
   .aperture-colophon__people li {
-    padding-block: 1.6rem;
+    padding-block: 0.9rem;
   }
 
   .aperture-colophon__people h4 {
@@ -1180,8 +1185,10 @@
     border-radius: 50%;
   }
 
+  /* The rule was 16px under the last calendar row, close enough to read as
+     attached to the grid rather than as the head of the list below it. */
   .aperture-colophon__latest {
-    margin: 0;
+    margin: 1.75rem 0 0;
     padding: 0;
     list-style: none;
     border-top: 1px solid var(--line);
