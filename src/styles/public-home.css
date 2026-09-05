@@ -710,7 +710,7 @@
     grid-template-columns: minmax(0, 1.1fr) minmax(16rem, 0.75fr);
     column-gap: clamp(2rem, 5vw, 6rem);
     align-items: start;
-    margin-bottom: clamp(4rem, 8vw, 8rem);
+    margin-bottom: clamp(2.5rem, 4.5vw, 4.5rem);
   }
 
   .aperture-recent > header > p,
@@ -736,6 +736,20 @@
   .aperture-colophon > header > span {
     grid-column: 2;
     grid-row: 1 / 3;
+  }
+
+  /* The note sits down on the heading's last line rather than floating up beside
+     the kicker. `end` drops it to the bottom of the heading's row, but that
+     aligns boxes, not ink: the note's 1.8 leading and the display face's deeper
+     descent left its glyphs 15px high of the heading's. The pull is in `em` of
+     the note, whose size is fixed, so it holds across the heading's whole clamp
+     range — the heading's own half-leading varies by about a pixel end to end.
+     Excludes the ledger, whose header is block-stacked in a narrow column. */
+  .aperture-recent > header > span,
+  .aperture-field > header > span,
+  .aperture-colophon > header > span {
+    align-self: end;
+    margin-bottom: -1.26em;
   }
 
   .aperture-recent > header > p,
@@ -934,11 +948,14 @@
     text-decoration-color: currentColor;
   }
 
+  /* No section boundary rules. The ledger was the only one of the four that drew
+     them, which made the page's section grammar inconsistent, and its top rule
+     landed against the tint band `.aperture-field::before` leaves behind. Every
+     section is now separated by the same 192px of space and nothing else. */
   .aperture-ledger {
     display: grid;
     grid-template-columns: minmax(18rem, 0.8fr) minmax(0, 1.2fr);
     gap: clamp(4rem, 10vw, 12rem);
-    border-block: 1px solid var(--line);
   }
 
   .aperture-ledger > header {
@@ -964,13 +981,16 @@
     border-top: 1px solid var(--ink);
   }
 
+  .aperture-ledger__years li + li a {
+    border-top: 1px solid var(--line);
+  }
+
   .aperture-ledger__years a {
     display: flex;
     min-height: 6rem;
     align-items: center;
     justify-content: space-between;
     gap: 2rem;
-    border-bottom: 1px solid var(--line);
     text-decoration: none;
   }
 
@@ -998,13 +1018,23 @@
     margin: 3rem 0 0;
   }
 
+  /* Dividers between the facts, none trailing the last — the same rule the rest
+     of the page's lists follow, and it stops the section from ending on a line
+     with only the inter-section gap under it. */
+  .aperture-ledger__facts > div + div {
+    border-top: 1px solid var(--line);
+  }
+
+  /* Padding rather than `min-height`: baseline alignment parks the text at the
+     top of a min-height box, so the last row left 35px of dead space under the
+     section's final ink and made this gap read wider than the others. Symmetric
+     padding gives the same row height with the ink centred in it. */
   .aperture-ledger__facts > div {
     display: flex;
-    min-height: 3.4rem;
     align-items: baseline;
     justify-content: space-between;
     gap: 2rem;
-    border-bottom: 1px solid var(--line);
+    padding-block: 1.05rem;
   }
 
   .aperture-ledger__facts dt,
@@ -1023,20 +1053,11 @@
     font-size: 0.72rem;
   }
 
-  .aperture-colophon {
-    border-top: 1px solid var(--line);
-  }
-
-  /* Top rule only. The section used to close with a second one, but with the
-     closing block gone that rule became the last thing on the page before a
-     12rem gap — a line with nothing under it. The section now ends on its
-     content. */
   .aperture-colophon__body {
     display: grid;
     grid-template-columns: minmax(18rem, 1fr) minmax(16rem, 0.8fr);
     gap: clamp(3rem, 7vw, 8rem);
     padding-top: clamp(3rem, 6vw, 5rem);
-    border-top: 1px solid var(--line);
   }
 
   /* The author column runs the same head/body/link rhythm as the calendar
@@ -1070,12 +1091,6 @@
     margin: 0;
     padding: 0;
     list-style: none;
-  }
-
-  /* One rule between the two people, and none after the last of them: the space
-     below is what separates the pair from the actions. */
-  .aperture-colophon__people li + li {
-    border-top: 1px solid var(--line);
   }
 
   .aperture-colophon__people li {
