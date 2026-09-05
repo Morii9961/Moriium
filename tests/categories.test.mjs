@@ -58,7 +58,7 @@ test('production category detail uses the public layout with a static, localized
   }
   assert.doesNotMatch(category, /<PostList|site-shell page-heading|client:/);
 
-  assert.match(styles, /\.a-taxonomy-posts > li > a\s*{[^}]*grid-template-columns:\s*3rem minmax\(18rem, 1fr\) minmax\(8rem, 0\.4fr\) 8rem auto[^}]*min-height:\s*10rem/s);
-  assert.match(styles, /@media \(max-width: 48rem\)[\s\S]*\.a-taxonomy-posts > li > a\s*{[^}]*grid-template-columns:\s*2rem minmax\(0, 1fr\) auto[^}]*min-height:\s*9rem/s);
+  assert.match(styles, /\.a-taxonomy-posts > li > a\s*{[^}]*grid-template-columns:\s*5\.75rem minmax\(16rem, 1fr\) minmax\(8rem, 0\.4fr\) 8rem auto[^}]*min-height:\s*10rem[^}]*padding-inline:\s*1\.25rem/s);
+  assert.match(styles, /@media \(max-width: 48rem\)[\s\S]*\.a-taxonomy-posts > li > a\s*{[^}]*grid-template-columns:\s*1\.4rem minmax\(0, 1fr\) auto[^}]*min-height:\s*9rem[^}]*padding-inline:\s*0\.6rem/s);
   assert.match(styles, /\.a-taxonomy-posts > li > a:focus-visible::before/);
 });

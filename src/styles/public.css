@@ -467,6 +467,13 @@
     transform: translate(0.25rem, -0.25rem);
   }
 
+  /* A way back reads the other direction: its arrow leads the word and steps
+     the way it points. */
+  .aperture-action--back:hover i,
+  .aperture-action--back:focus-visible i {
+    transform: translateX(-0.25rem);
+  }
+
   .a-directory {
     padding-bottom: clamp(4rem, 9vw, 9rem);
   }
@@ -755,14 +762,20 @@
     display: none;
   }
 
+  /* Inset from the row's own rule, so the date and the tag line sit inside the
+     accent field rather than on its edge once the row lights up — the same
+     treatment the category directory takes. The date track is wide enough for a
+     written-out CJK date on one line; at 3rem every row broke "2026年6月12日"
+     across two lines mid-token. */
   .a-post-index .prototype-post > a,
   .a-taxonomy-posts > li > a {
     position: relative;
     display: grid;
-    grid-template-columns: 3rem minmax(18rem, 1fr) minmax(8rem, 0.4fr) 8rem auto;
-    gap: clamp(1rem, 3vw, 2.5rem);
+    grid-template-columns: 5.75rem minmax(16rem, 1fr) minmax(8rem, 0.4fr) 8rem auto;
+    gap: clamp(1rem, 3vw, 2rem);
     min-height: 10rem;
     align-items: center;
+    padding-inline: 1.25rem;
     isolation: isolate;
     text-decoration: none;
   }
@@ -800,14 +813,18 @@
     outline-offset: -4px;
   }
 
+  /* The date and the tag line are what a reader scans a list by, so they take
+     muted ink at a size the mono can carry rather than the faint grey that read
+     as decoration. */
   .a-post-index .prototype-post > a > span:first-child,
   .a-post-index time,
   .a-post-index .prototype-post > a > span:nth-last-child(2),
   .a-taxonomy-posts time,
   .a-taxonomy-posts__tags {
-    color: var(--ink-faint);
+    color: var(--ink-muted);
     font-family: var(--font-data);
-    font-size: 0.62rem;
+    font-size: 0.66rem;
+    letter-spacing: 0.04em;
   }
 
   .a-post-index h3,
@@ -834,6 +851,26 @@
   .a-category-directory > a:hover p,
   .a-category-directory > a:focus-visible p {
     color: color-mix(in srgb, var(--accent-field-ink) 70%, transparent);
+  }
+
+  /* On the lit row the marks step above the summary line, so the two ends of
+     the row still lead and the sentence between them still follows. Name the
+     index by position: `:is()` takes complex selectors, not relative ones, so a
+     `> span` argument is dropped rather than voiding the rule, and the index
+     would keep its resting muted ink on a field that all but erases it. */
+  .a-post-index a:hover :is(time, span:first-child),
+  .a-post-index a:focus-visible :is(time, span:first-child),
+  .a-taxonomy-posts a:hover :is(time, .a-taxonomy-posts__tags),
+  .a-taxonomy-posts a:focus-visible :is(time, .a-taxonomy-posts__tags) {
+    color: color-mix(in srgb, var(--accent-field-ink) 82%, transparent);
+  }
+
+  /* The arrow is the row's verb, so it keeps the field's ink outright rather
+     than the 70% the rule above hands every other span. The category rows
+     already read this way; these two now match. */
+  :is(.a-post-index, .a-taxonomy-posts) a:hover :is(.a-post-index__arrow, .a-taxonomy-posts__arrow),
+  :is(.a-post-index, .a-taxonomy-posts) a:focus-visible :is(.a-post-index__arrow, .a-taxonomy-posts__arrow) {
+    color: var(--accent-field-ink);
   }
 
   .a-post-index__arrow,
@@ -1172,7 +1209,7 @@
 
     .a-post-index .prototype-post > a,
     .a-taxonomy-posts > li > a {
-      grid-template-columns: 3rem minmax(0, 1fr) 7rem auto;
+      grid-template-columns: 5.75rem minmax(0, 1fr) 7rem auto;
     }
 
     .a-post-index .prototype-post > a > span:nth-last-child(2),
@@ -1265,9 +1302,10 @@
 
     .a-post-index .prototype-post > a,
     .a-taxonomy-posts > li > a {
-      grid-template-columns: 2rem minmax(0, 1fr) auto;
+      grid-template-columns: 1.4rem minmax(0, 1fr) auto;
       min-height: 9rem;
       padding-block: 1rem;
+      padding-inline: 0.6rem;
     }
 
     .a-post-index .prototype-post > a > div,
@@ -1353,7 +1391,9 @@
     /* The colour still changes, so state stays legible. Only the travel goes;
        the reset above only shortens it. */
     .aperture-action:hover i,
-    .aperture-action:focus-visible i {
+    .aperture-action:focus-visible i,
+    .aperture-action--back:hover i,
+    .aperture-action--back:focus-visible i {
       transform: none;
     }
   }

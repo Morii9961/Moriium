@@ -24,15 +24,15 @@ if (!latest) throw new Error(`Tag "${tag}" has no listed posts.`);
 const copy = {
   zh: {
     kicker: 'Index / Tag', intro: `带有“${tag}”标签的文章，按发布时间从新到旧排列。`, posts: '文章', updated: '最近更新',
-    entries: (count: number) => `${String(count).padStart(2, '0')} 篇`, back: '返回全部标签 ←', tags: '标签',
+    entries: (count: number) => `${String(count).padStart(2, '0')} 篇`, back: '返回全部标签', tags: '标签',
   },
   ja: {
     kicker: 'Index / Tag', intro: `「${tag}」タグの記事を、公開日の新しい順に並べています。`, posts: '記事', updated: '最終更新',
-    entries: (count: number) => `${String(count).padStart(2, '0')} 件`, back: 'タグ一覧へ戻る ←', tags: 'タグ',
+    entries: (count: number) => `${String(count).padStart(2, '0')} 件`, back: 'タグ一覧へ戻る', tags: 'タグ',
   },
   en: {
     kicker: 'Index / Tag', intro: `Posts tagged “${tag}”, ordered from newest to oldest.`, posts: 'Posts', updated: 'Latest update',
-    entries: (count: number) => `${String(count).padStart(2, '0')} ${count === 1 ? 'post' : 'posts'}`, back: 'Back to all tags ←', tags: 'Tags',
+    entries: (count: number) => `${String(count).padStart(2, '0')} ${count === 1 ? 'post' : 'posts'}`, back: 'Back to all tags', tags: 'Tags',
   },
 } as const;
 const c = copy[lang];
@@ -51,6 +51,6 @@ const c = copy[lang];
 
     <TaxonomyPostList posts={posts} lang={lang} heading={`# ${tag}`} countLabel={c.entries(posts.length)} tagsLabel={c.tags} />
 
-    <p class="a-directory__crosslink"><a href={`/${lang}/tags/`}>{c.back}</a></p>
+    <p class="a-directory__crosslink"><a class="aperture-action aperture-action--back" href={`/${lang}/tags/`}><i aria-hidden="true">←</i><span>{c.back}</span></a></p>
   </div>
 </BaseLayout>
