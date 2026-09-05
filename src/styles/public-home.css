@@ -595,14 +595,8 @@
     animation: aperture-hero-fade 900ms 1850ms var(--enter-ease) both;
   }
 
-  .aperture-text-link {
-    display: flex;
-    min-height: 2.75rem;
-    align-items: center;
-    justify-content: space-between;
+  .aperture-recent__more {
     margin-top: 1.5rem;
-    color: var(--accent);
-    font-size: 0.72rem;
   }
 
   .aperture-ways {
@@ -684,31 +678,64 @@
     color: color-mix(in srgb, var(--accent-field-ink) 68%, transparent);
   }
 
+  /* Half a section gap on each side, so two adjacent sections add up to one
+     192px rhythm rather than the 384px that a full `clamp(6rem, 12vw, 12rem)`
+     on both produced. Keeping it symmetric — rather than top-only — is what
+     gives the section boundary rules (`.aperture-ledger` draws one top and
+     bottom) clear air above and below instead of sitting against the text. */
   .aperture-recent,
   .aperture-field,
   .aperture-ledger,
   .aperture-colophon {
-    padding-block: clamp(6rem, 12vw, 12rem);
+    padding-block: clamp(3rem, 6vw, 6rem);
   }
 
-  /* The colophon is the last section on the page, and the footer already carries
-     the site's designed pre-footer gap (`margin-top: clamp(4rem, 10vw, 10rem)`
-     in public.css). Keeping the symmetric bottom padding here stacked a second
-     gap on that one — 282px of nothing between the last action and the footer.
-     The footer's own offset is the whole gap. */
+  /* Last section on the page: the footer carries the site's own pre-footer
+     offset (`margin-top: clamp(4rem, 10vw, 10rem)` in public.css), so a bottom
+     counterpart here would stack a second gap onto it. */
   .aperture-colophon {
     padding-bottom: 0;
   }
 
+  /* Kicker and heading stack on one left edge; the note takes the right column.
+     The heading used to sit in the middle column of three, which put it adrift
+     between a short kicker and a long note and read as a centring that had
+     missed. Nothing here was ever actually centred — every `text-align` is
+     `start` — so the fix is to remove the indent, not to add alignment. */
   .aperture-recent > header,
   .aperture-field > header,
   .aperture-ledger > header,
   .aperture-colophon > header {
     display: grid;
-    grid-template-columns: minmax(9rem, 0.3fr) minmax(18rem, 0.8fr) minmax(18rem, 0.9fr);
-    gap: clamp(2rem, 5vw, 6rem);
+    grid-template-columns: minmax(0, 1.1fr) minmax(16rem, 0.75fr);
+    column-gap: clamp(2rem, 5vw, 6rem);
     align-items: start;
     margin-bottom: clamp(4rem, 8vw, 8rem);
+  }
+
+  .aperture-recent > header > p,
+  .aperture-field > header > p,
+  .aperture-ledger > header > p,
+  .aperture-colophon > header > p {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .aperture-recent > header h2,
+  .aperture-field > header h2,
+  .aperture-ledger > header h2,
+  .aperture-colophon > header h2 {
+    grid-column: 1;
+    grid-row: 2;
+    margin-top: 1.25rem;
+  }
+
+  .aperture-recent > header > span,
+  .aperture-field > header > span,
+  .aperture-ledger > header > span,
+  .aperture-colophon > header > span {
+    grid-column: 2;
+    grid-row: 1 / 3;
   }
 
   .aperture-recent > header > p,
@@ -720,15 +747,21 @@
     font-size: 0.6rem;
   }
 
+  /* Sized for CJK, which these headings are in every locale that matters here.
+     At 7rem a five-character heading ran 560px and broke across two lines inside
+     a 454px column, orphaning the last glyph; the tracking and leading were tuned
+     for Latin display type and made the wrap collide besides. 4.5rem fits 存了些什么
+     on one line, and the looser values let a genuinely long heading — この場所に
+     ついて — wrap without the two lines touching. */
   .aperture-recent > header h2,
   .aperture-field > header h2,
   .aperture-ledger > header h2,
   .aperture-colophon > header h2 {
     font-family: var(--font-display);
-    font-size: clamp(3rem, 7vw, 7rem);
+    font-size: clamp(2.4rem, 4.6vw, 4.5rem);
     font-weight: 670;
-    letter-spacing: -0.085em;
-    line-height: 0.88;
+    letter-spacing: -0.04em;
+    line-height: 1.06;
   }
 
   .aperture-recent > header > span,
@@ -750,9 +783,11 @@
     list-style: none;
   }
 
+  /* Full width, flush left. `width: min(68rem, 86%); margin-left: auto` inset the
+     whole list 240px from the section edge, which — stacked on the row's own
+     9rem date column — left every title floating near the middle of the page. */
   .aperture-recent ol {
-    width: min(68rem, 86%);
-    margin-left: auto;
+    width: 100%;
   }
 
   .aperture-recent li {
@@ -763,39 +798,45 @@
     border-bottom: 1px solid var(--line);
   }
 
+  /* Date, title, summary all start on the section's own left edge; only the
+     arrow holds the right. The date used to occupy a 9rem leading column, which
+     pushed every title a further 176px in. */
   .aperture-recent li a {
     display: grid;
-    grid-template-columns: 9rem minmax(0, 1fr) 1.5rem;
-    gap: 2rem;
+    grid-template-columns: minmax(0, 1fr) 1.5rem;
+    gap: 0.7rem 2rem;
     min-height: 10rem;
-    align-items: center;
+    align-content: center;
     text-decoration: none;
   }
 
   .aperture-recent time {
+    grid-column: 1;
     color: var(--ink-faint);
     font-family: var(--font-data);
     font-size: 0.62rem;
   }
 
   .aperture-recent h3 {
+    grid-column: 1;
     font-family: var(--font-display);
-    font-size: clamp(1.8rem, 4vw, 3.8rem);
+    font-size: clamp(1.6rem, 3vw, 2.9rem);
     font-weight: 640;
-    letter-spacing: -0.06em;
-    line-height: 1;
+    letter-spacing: -0.035em;
+    line-height: 1.14;
   }
 
   .aperture-recent h3 + p {
-    grid-column: 2;
-    margin-top: -1.5rem;
+    grid-column: 1;
+    max-width: 44rem;
     color: var(--ink-muted);
     font-size: 0.78rem;
   }
 
   .aperture-recent i {
-    grid-column: 3;
-    grid-row: 1 / 3;
+    grid-column: 2;
+    grid-row: 1 / -1;
+    align-self: center;
     font-style: normal;
   }
 
@@ -835,9 +876,11 @@
     font-weight: 620;
   }
 
-  .aperture-field__label a {
-    color: var(--accent);
-    font-size: 0.68rem;
+  /* Sits inside a content-width flex row, so the action's `space-between` has no
+     slack to distribute and the label and arrow stay together on their own gap. */
+  .aperture-field__label .aperture-action {
+    min-height: 0;
+    gap: 0.55rem;
   }
 
   .aperture-field ol a {
@@ -1297,18 +1340,13 @@
       border-bottom: 1px solid var(--line);
     }
 
+    /* Column 1 carries the kicker and the heading here too, so it stays the wide
+       one. It was 0.35fr back when column 1 held only the kicker. */
     .aperture-recent > header,
     .aperture-field > header,
     .aperture-ledger > header,
     .aperture-colophon > header {
-      grid-template-columns: minmax(8rem, 0.35fr) minmax(0, 1fr);
-    }
-
-    .aperture-recent > header > span,
-    .aperture-field > header > span,
-    .aperture-ledger > header > span,
-    .aperture-colophon > header > span {
-      grid-column: 2;
+      grid-template-columns: minmax(0, 1fr) minmax(11rem, 0.55fr);
     }
   }
 }

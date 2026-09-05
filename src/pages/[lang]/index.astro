@@ -164,8 +164,7 @@ const copy = {
     allCategories: '全部分类', allTags: '全部标签',
     ledger: '存了些什么', ledgerNote: '按年份看，以及这个档案从什么时候开始。',
     ledgerYears: '年份', ledgerEntries: (count: number) => `${count} 篇`,
-    factStarted: '开始于', factPosts: '文章', factLanguages: '语言',
-    languageList: '中 / 日 / EN',
+    factStarted: '开始于', factPosts: '文章',
     colophon: '关于这里',
     colophonNote: '谁在写，什么时候更新过。',
     authorTitle: '维护者',
@@ -196,8 +195,7 @@ const copy = {
     allCategories: 'カテゴリー一覧', allTags: 'タグ一覧',
     ledger: '残っているもの', ledgerNote: '年ごとの記事と、このアーカイブが始まった時期。',
     ledgerYears: '年', ledgerEntries: (count: number) => `${count} 件`,
-    factStarted: '開始', factPosts: '記事', factLanguages: '言語',
-    languageList: '中 / 日 / EN',
+    factStarted: '開始', factPosts: '記事',
     colophon: 'この場所について',
     colophonNote: '誰が書いているか、いつ更新されたか。',
     authorTitle: '運営',
@@ -228,8 +226,7 @@ const copy = {
     allCategories: 'All categories', allTags: 'All tags',
     ledger: 'What is kept here', ledgerNote: 'By year, and when this archive starts from.',
     ledgerYears: 'Years', ledgerEntries: (count: number) => `${count} ${count === 1 ? 'entry' : 'entries'}`,
-    factStarted: 'Started', factPosts: 'Posts', factLanguages: 'Languages',
-    languageList: 'ZH / JA / EN',
+    factStarted: 'Started', factPosts: 'Posts',
     colophon: 'About this place',
     colophonNote: 'Who writes here, and when it was last updated.',
     authorTitle: 'Maintainers',
@@ -333,7 +330,9 @@ const routeHrefs = [`/${lang}/writing/`, `/${lang}/archive/`, `/${lang}/categori
             </a></li>
           ))}
         </ol>
-        <a class="aperture-text-link" href={`/${lang}/writing/`}>{c.all} →</a>
+        <a class="aperture-action aperture-recent__more" href={`/${lang}/writing/`}>
+          <span>{c.all}</span><i aria-hidden="true">↗</i>
+        </a>
       </section>
     )}
 
@@ -345,11 +344,11 @@ const routeHrefs = [`/${lang}/writing/`, `/${lang}/archive/`, `/${lang}/categori
       </header>
       <div class="aperture-field__body">
         <section aria-labelledby="home-categories-title">
-          <div class="aperture-field__label"><h3 id="home-categories-title">{c.category}</h3><a href={`/${lang}/categories/`}>{c.allCategories} ↗</a></div>
+          <div class="aperture-field__label"><h3 id="home-categories-title">{c.category}</h3><a class="aperture-action" href={`/${lang}/categories/`}><span>{c.allCategories}</span><i aria-hidden="true">↗</i></a></div>
           <ol>{categories.map((category) => <li><a href={`/${lang}/categories/${encodeURIComponent(category.name)}/`}><span>{category.name}</span><small>{c.posts(category.count)}</small></a></li>)}</ol>
         </section>
         <section class="aperture-field__tags" aria-labelledby="home-tags-title">
-          <div class="aperture-field__label"><h3 id="home-tags-title">{c.tags}</h3><a href={`/${lang}/tags/`}>{c.allTags} ↗</a></div>
+          <div class="aperture-field__label"><h3 id="home-tags-title">{c.tags}</h3><a class="aperture-action" href={`/${lang}/tags/`}><span>{c.allTags}</span><i aria-hidden="true">↗</i></a></div>
           <div>{tags.map((tag, index) => <a href={`/${lang}/tags/${encodeURIComponent(tag)}/`} style={`--tag-offset: ${index}`}># {tag}</a>)}</div>
         </section>
       </div>
@@ -373,7 +372,6 @@ const routeHrefs = [`/${lang}/writing/`, `/${lang}/archive/`, `/${lang}/categori
         <dl class="aperture-ledger__facts">
           <div><dt>{c.factStarted}</dt><dd>{startedLabel}</dd></div>
           <div><dt>{c.factPosts}</dt><dd>{c.ledgerEntries(posts.length)}</dd></div>
-          <div><dt>{c.factLanguages}</dt><dd>{c.languageList}</dd></div>
         </dl>
       </div>
     </section>
