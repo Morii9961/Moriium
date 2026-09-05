@@ -895,21 +895,29 @@
     transform: translate(0.25rem, -0.25rem);
   }
 
+  /* The archive is one chronological axis per year. The year is its masthead;
+     below it every date mark — month and day alike — stands in a single column
+     at the left edge, sized down step by step so the axis reads year, month,
+     day without ever handing the date back to the text column.
+     `--archive-rail` is the gap from the hairline to a month figure, and
+     `--archive-date` the whole date column, so the marks and the entry rows
+     stay aligned from one declaration. */
   .a-archive {
-    display: grid;
-    grid-template-columns: minmax(10rem, 0.35fr) minmax(0, 1fr);
-    gap: clamp(2rem, 8vw, 9rem);
-    padding-block: clamp(4rem, 8vw, 8rem);
+    --archive-rail: clamp(1rem, 1.8vw, 1.6rem);
+    --archive-date: clamp(5.75rem, 8vw, 7.25rem);
+
+    padding-block: clamp(3.5rem, 7vw, 7rem);
     border-bottom: 1px solid var(--line);
   }
 
   .a-archive__year {
     position: relative;
+    margin-bottom: clamp(2rem, 3.5vw, 3rem);
   }
 
   .a-archive__year h2 {
     font-family: var(--font-wordmark);
-    font-size: clamp(4rem, 9vw, 8rem);
+    font-size: clamp(3.5rem, 7vw, 6.5rem);
     font-weight: 650;
     letter-spacing: -0.09em;
     line-height: 0.78;
@@ -925,8 +933,7 @@
   }
 
   .a-archive__year p,
-  .a-archive time,
-  .a-archive li > span {
+  .a-archive__days > li > span {
     color: var(--ink-faint);
     font-family: var(--font-data);
     font-size: 0.62rem;
@@ -936,28 +943,107 @@
     margin-top: 1rem;
   }
 
-  .a-archive ol {
-    border-top: 1px solid var(--ink);
+  /* The axis itself: one hairline for the whole year, drawn rather than
+     bordered so the months and days keep their own box model against it. */
+  .a-archive__months {
+    position: relative;
   }
 
-  .a-archive li {
+  .a-archive__months::before {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 1px;
+    background: var(--line);
+    content: "";
+  }
+
+  .a-archive__month + .a-archive__month {
+    margin-top: clamp(2rem, 3.5vw, 3.25rem);
+  }
+
+  /* The tick that fixes a month to the axis. Heavier than a hairline, because
+     the month is the axis's second-order mark and has to be found at a glance.
+     It hangs off the figure rather than the month box, so `0.5em` keeps it on
+     the figure's centre at every step of the clamp. */
+  .a-archive__month-mark::before {
+    position: absolute;
+    top: calc(0.5em - 1px);
+    left: 0;
+    width: calc(var(--archive-rail) - 0.35rem);
+    height: 2px;
+    background: var(--accent);
+    content: "";
+  }
+
+  /* Second in the hierarchy: the wordmark face the year uses, a third of its
+     size, in full-strength ink. */
+  .a-archive__month-mark {
+    position: relative;
+    display: flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    padding-left: var(--archive-rail);
+    color: var(--ink);
+    font-family: var(--font-wordmark);
+    font-size: clamp(1.3rem, 2.2vw, 1.7rem);
+    font-variant-numeric: tabular-nums;
+    font-weight: 640;
+    letter-spacing: -0.045em;
+    line-height: 1;
+  }
+
+  .a-archive__month-mark small {
+    color: var(--ink-faint);
+    font-family: var(--font-data);
+    font-size: 0.7rem;
+    font-weight: 400;
+    letter-spacing: 0;
+  }
+
+  .a-archive__days {
+    margin-top: 1.1rem;
+    border-top: 1px solid var(--line);
+  }
+
+  .a-archive__days > li {
     display: grid;
-    grid-template-columns: 5rem minmax(0, 1fr) auto;
+    grid-template-columns: var(--archive-date) minmax(0, 1fr) auto;
     gap: 1.5rem;
-    min-height: 5.2rem;
+    min-height: 4.75rem;
     align-items: center;
     border-bottom: 1px solid var(--line);
   }
 
-  .a-archive li a {
+  /* Third in the hierarchy: the same face again, smaller and quieter, indented
+     under its month so the nesting is visible and not only implied. */
+  .a-archive__days time {
+    padding-left: calc(var(--archive-rail) + 0.9rem);
+    color: var(--ink-muted);
+    font-family: var(--font-wordmark);
+    font-size: clamp(0.9rem, 1.25vw, 1.05rem);
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    transition: color var(--motion-fast) ease;
+  }
+
+  /* Hovering a title lights its own day, so the row and the axis stay tied. */
+  .a-archive__days > li:has(a:hover) time,
+  .a-archive__days > li:has(a:focus-visible) time {
+    color: var(--accent);
+  }
+
+  .a-archive__days a {
     font-family: var(--font-display);
     font-size: 1.15rem;
     font-weight: 580;
     text-decoration-color: transparent;
   }
 
-  .a-archive li a:hover,
-  .a-archive li a:focus-visible {
+  .a-archive__days a:hover,
+  .a-archive__days a:focus-visible {
     color: var(--accent);
     text-decoration-color: currentColor;
   }
@@ -1344,17 +1430,23 @@
       font-size: clamp(1.7rem, 8vw, 2.5rem);
     }
 
+    /* The date column narrows but keeps its place at the left edge; the
+       category drops under the title, and the day holds its baseline against
+       the title's first line. */
     .a-archive {
-      grid-template-columns: 1fr;
-      gap: 2.5rem;
+      --archive-rail: 0.85rem;
+      --archive-date: 4.5rem;
     }
 
-    .a-archive li {
-      grid-template-columns: 4rem minmax(0, 1fr);
-      padding-block: 0.8rem;
+    .a-archive__days > li {
+      grid-template-columns: var(--archive-date) minmax(0, 1fr);
+      gap: 0.4rem 0.9rem;
+      min-height: 0;
+      align-items: baseline;
+      padding-block: 1rem;
     }
 
-    .a-archive li > span {
+    .a-archive__days > li > span {
       grid-column: 2;
     }
 
