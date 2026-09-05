@@ -43,15 +43,36 @@ const activeDays = new Set(
     })
     .map((p) => p.data.publishedAt.getDate()),
 );
-const calendarLabel = new Intl.DateTimeFormat(ui.locale, { year: 'numeric', month: 'long' }).format(
-  new Date(calendarYear, calendarMonth, 1),
-);
-const calendarRecentPosts = posts
-  .filter((p) => {
-    const d = p.data.publishedAt;
-    return d.getFullYear() === calendarYear && d.getMonth() === calendarMonth;
-  })
-  .slice(0, 3);
+// At most two links under the grid; a month with more gets an overflow action
+// instead of a longer list.
+const CALENDAR_LINK_LIMIT = 2;
+const calendarMonthPosts = posts.filter((p) => {
+  const d = p.data.publishedAt;
+  return d.getFullYear() === calendarYear && d.getMonth() === calendarMonth;
+});
+const calendarRecentPosts = calendarMonthPosts.slice(0, CALENDAR_LINK_LIMIT);
+const calendarOverflow = calendarMonthPosts.length - calendarRecentPosts.length;
+
+// The picker spans every year the archive covers, so a reader can walk back
+// through empty months as well as ones with posts.
+const archiveYears = yearGroups.map(([year]) => year);
+const newestYear = archiveYears[0] ?? calendarYear;
+const oldestYear = archiveYears.at(-1) ?? calendarYear;
+const calendarYears = Array.from({ length: newestYear - oldestYear + 1 }, (_, i) => newestYear - i);
+const monthNameFormatter = new Intl.DateTimeFormat(ui.locale, { month: 'long' });
+const calendarMonths = Array.from({ length: 12 }, (_, i) => ({
+  value: i,
+  label: monthNameFormatter.format(new Date(2026, i, 1)),
+}));
+
+// Every listed post as [ISO date, title, href], read by the calendar script to
+// re-render a month without a round trip. Compact tuples rather than objects:
+// this rides along in the HTML, so its weight is the reader's.
+const calendarData = posts.map((p) => [
+  `${p.data.publishedAt.getFullYear()}-${String(p.data.publishedAt.getMonth() + 1).padStart(2, '0')}-${String(p.data.publishedAt.getDate()).padStart(2, '0')}`,
+  p.data.title,
+  postPath(p),
+]);
 
 // Four runs, and each one is a single line of type — not a row of individually
 // placed characters. Every glyph in a run shares one font-size, one line box and
@@ -176,7 +197,10 @@ const copy = {
     authorAbout: '关于',
     calendarTitle: '更新日历',
     calendarWeekdays: ['日', '一', '二', '三', '四', '五', '六'],
-    calendarDayActive: (day: number) => `${day}日有文章更新`,
+    calendarDayActive: (day: number | string) => `${day}日有文章更新`,
+    calendarPickYear: '选择年份', calendarPickMonth: '选择月份',
+    calendarEmpty: '这个月没有更新。',
+    calendarMore: (count: number | string) => `这个月还有 ${count} 篇`,
     fullArchive: '完整归档',
     rss: '订阅 RSS', about: '关于 Moriium',
   },
@@ -207,7 +231,10 @@ const copy = {
     authorAbout: 'について',
     calendarTitle: '更新カレンダー',
     calendarWeekdays: ['日', '月', '火', '水', '木', '金', '土'],
-    calendarDayActive: (day: number) => `${day}日に記事が更新されました`,
+    calendarDayActive: (day: number | string) => `${day}日に記事が更新されました`,
+    calendarPickYear: '年を選ぶ', calendarPickMonth: '月を選ぶ',
+    calendarEmpty: 'この月の更新はありません。',
+    calendarMore: (count: number | string) => `この月はあと ${count} 件`,
     fullArchive: 'アーカイブ',
     rss: 'RSS を購読', about: 'Moriium について',
   },
@@ -238,7 +265,10 @@ const copy = {
     authorAbout: 'About',
     calendarTitle: 'Update calendar',
     calendarWeekdays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-    calendarDayActive: (day: number) => `Post updated on day ${day}`,
+    calendarDayActive: (day: number | string) => `Post updated on day ${day}`,
+    calendarPickYear: 'Choose a year', calendarPickMonth: 'Choose a month',
+    calendarEmpty: 'Nothing was published this month.',
+    calendarMore: (count: number | string) => `${count} more this month`,
     fullArchive: 'Full archive',
     rss: 'Subscribe by RSS', about: 'About Moriium',
   },
@@ -410,16 +440,40 @@ const routeHrefs = [`/${lang}/writing/`, `/${lang}/archive/`, `/${lang}/categori
           </nav>
         </div>
 
-        <div class="aperture-colophon__calendar">
+        <div
+          class="aperture-colophon__calendar"
+          data-calendar
+          data-year={calendarYear}
+          data-month={calendarMonth}
+          data-archive={`/${lang}/archive/`}
+          data-limit={CALENDAR_LINK_LIMIT}
+          data-day-title={c.calendarDayActive('{day}')}
+          data-more-template={c.calendarMore('{count}')}
+        >
           <div class="aperture-colophon__calendar-head">
             <h3>{c.calendarTitle}</h3>
-            <span>{calendarLabel}</span>
+            {/* Two native selects: they carry keyboard and screen-reader behaviour
+                for free, and the stylesheet strips the OS chrome back to type. */}
+            <div class="aperture-calendar__picker">
+              <label class="visually-hidden" for="calendar-year">{c.calendarPickYear}</label>
+              <select id="calendar-year" data-calendar-year>
+                {calendarYears.map((year) => (
+                  <option value={year} selected={year === calendarYear}>{year}</option>
+                ))}
+              </select>
+              <label class="visually-hidden" for="calendar-month">{c.calendarPickMonth}</label>
+              <select id="calendar-month" data-calendar-month>
+                {calendarMonths.map((month) => (
+                  <option value={month.value} selected={month.value === calendarMonth}>{month.label}</option>
+                ))}
+              </select>
+            </div>
           </div>
-          <div class="aperture-calendar" aria-label={`${c.calendarTitle}: ${calendarLabel}`}>
+          <div class="aperture-calendar" aria-label={c.calendarTitle}>
             <div class="aperture-calendar__week" aria-hidden="true">
               {c.calendarWeekdays.map((d) => <span>{d}</span>)}
             </div>
-            <div class="aperture-calendar__days">
+            <div class="aperture-calendar__days" data-calendar-days aria-live="polite">
               {Array.from({ length: firstWeekday }).map(() => <span aria-hidden="true"></span>)}
               {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) =>
                 activeDays.has(day)
@@ -428,16 +482,28 @@ const routeHrefs = [`/${lang}/writing/`, `/${lang}/archive/`, `/${lang}/categori
               )}
             </div>
           </div>
-          {calendarRecentPosts.length > 0 && (
-            <ol class="aperture-colophon__latest">
-              {calendarRecentPosts.map((post) => (
-                <li>
-                  <a href={postPath(post)}>{post.data.title}</a>
-                  <time>{`${String(calendarMonth + 1).padStart(2, '0')}/${String(post.data.publishedAt.getDate()).padStart(2, '0')}`}</time>
-                </li>
-              ))}
-            </ol>
-          )}
+
+          <ol class="aperture-colophon__latest" data-calendar-list hidden={calendarRecentPosts.length === 0}>
+            {calendarRecentPosts.map((post) => (
+              <li>
+                <a href={postPath(post)}>{post.data.title}</a>
+                <time>{`${String(calendarMonth + 1).padStart(2, '0')}/${String(post.data.publishedAt.getDate()).padStart(2, '0')}`}</time>
+              </li>
+            ))}
+          </ol>
+          <p class="aperture-calendar__empty" data-calendar-empty hidden={calendarRecentPosts.length > 0}>{c.calendarEmpty}</p>
+          <a
+            class="aperture-action aperture-calendar__more"
+            data-calendar-more
+            href={`/${lang}/archive/#archive-${calendarYear}`}
+            hidden={calendarOverflow <= 0}
+          >
+            <span data-calendar-more-label>{c.calendarMore(calendarOverflow)}</span><i aria-hidden="true">↗</i>
+          </a>
+
+          {/* Data, not code: `is:inline` keeps Astro from trying to bundle it, and
+              a JSON block carries no weight against the eager-script budget. */}
+          <script is:inline type="application/json" data-calendar-posts set:html={JSON.stringify(calendarData)}></script>
           <div class="aperture-colophon__actions aperture-colophon__actions--single">
             <a class="aperture-action" href={`/${lang}/archive/`}>
               <span>{c.fullArchive}</span><i aria-hidden="true">↗</i>
@@ -447,4 +513,96 @@ const routeHrefs = [`/${lang}/writing/`, `/${lang}/archive/`, `/${lang}/categori
       </div>
     </section>
   </div>
+
+  {/* The month rendered on the server is the one a reader without JavaScript
+      keeps: the selects only gain behaviour here, and everything they change is
+      re-derivable from the JSON above. */}
+  <script>
+    type Entry = [string, string, string];
+
+    const root = document.querySelector<HTMLElement>('[data-calendar]');
+    const yearSelect = root?.querySelector<HTMLSelectElement>('[data-calendar-year]');
+    const monthSelect = root?.querySelector<HTMLSelectElement>('[data-calendar-month]');
+    const grid = root?.querySelector<HTMLElement>('[data-calendar-days]');
+    const list = root?.querySelector<HTMLOListElement>('[data-calendar-list]');
+    const empty = root?.querySelector<HTMLElement>('[data-calendar-empty]');
+    const more = root?.querySelector<HTMLAnchorElement>('[data-calendar-more]');
+    const moreLabel = root?.querySelector<HTMLElement>('[data-calendar-more-label]');
+    const payload = root?.querySelector<HTMLScriptElement>('[data-calendar-posts]');
+
+    if (root && yearSelect && monthSelect && grid && list && empty && more && moreLabel && payload) {
+      let entries: Entry[] = [];
+      try {
+        entries = JSON.parse(payload.textContent || '[]') as Entry[];
+      } catch {
+        entries = [];
+      }
+
+      const limit = Number(root.dataset.limit) || 2;
+      const archive = root.dataset.archive || '';
+      const dayTitle = root.dataset.dayTitle || '';
+      const moreTemplate = root.dataset.moreTemplate || '';
+      const pad = (n: number) => String(n).padStart(2, '0');
+
+      const render = () => {
+        const year = Number(yearSelect.value);
+        const month = Number(monthSelect.value);
+        const prefix = `${year}-${pad(month + 1)}`;
+        const inMonth = entries.filter((e) => e[0].startsWith(prefix));
+        const active = new Set(inMonth.map((e) => Number(e[0].slice(8, 10))));
+
+        // Built with DOM calls rather than innerHTML, for two reasons: post
+        // titles reach this code as data and must not be parsed as markup, and
+        // an `href="..."` written as a template literal here would end up in the
+        // page source, where scripts/check-links.mjs reads it as a real link and
+        // reports the unresolved `${...}` as broken.
+        const el = <K extends keyof HTMLElementTagNameMap>(tag: K, attrs: Record<string, string> = {}, text?: string) => {
+          const node = document.createElement(tag);
+          for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, value);
+          if (text !== undefined) node.textContent = text;
+          return node;
+        };
+
+        // Grid. `new Date(y, m + 1, 0)` is the last day of the chosen month.
+        const days = new Date(year, month + 1, 0).getDate();
+        const lead = new Date(year, month, 1).getDay();
+        const cells = document.createDocumentFragment();
+        for (let i = 0; i < lead; i += 1) cells.append(el('span', { 'aria-hidden': 'true' }));
+        for (let day = 1; day <= days; day += 1) {
+          const stamp = `${prefix}-${pad(day)}`;
+          if (active.has(day)) {
+            const cell = el('time', { class: 'is-active', datetime: stamp, title: dayTitle.replace('{day}', String(day)) }, String(day));
+            cell.append(el('i', { 'aria-hidden': 'true' }));
+            cells.append(cell);
+          } else {
+            cells.append(el('time', { datetime: stamp }, String(day)));
+          }
+        }
+        grid.replaceChildren(cells);
+
+        // Links, capped. Anything past the cap becomes one action instead.
+        const shown = inMonth.slice(0, limit);
+        const items = document.createDocumentFragment();
+        for (const entry of shown) {
+          const item = el('li');
+          item.append(el('a', { href: entry[2] }, entry[1]));
+          item.append(el('time', {}, `${pad(month + 1)}/${entry[0].slice(8, 10)}`));
+          items.append(item);
+        }
+        list.replaceChildren(items);
+        list.hidden = shown.length === 0;
+        empty.hidden = shown.length > 0;
+
+        // The href tracks the year even while the action is hidden, so it can
+        // never be shown pointing at the previously selected one.
+        const overflow = inMonth.length - shown.length;
+        more.href = `${archive}#archive-${year}`;
+        more.hidden = overflow <= 0;
+        if (overflow > 0) moreLabel.textContent = moreTemplate.replace('{count}', String(overflow));
+      };
+
+      yearSelect.addEventListener('change', render);
+      monthSelect.addEventListener('change', render);
+    }
+  </script>
 </BaseLayout>

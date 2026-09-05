@@ -1139,6 +1139,52 @@
     font-size: 0.6rem;
   }
 
+  /* Native selects, stripped back to type. They keep the keyboard and
+     screen-reader behaviour a custom listbox would have to rebuild, and the
+     appearance reset takes away the OS chrome that would otherwise read as the
+     bordered control DESIGN.md rules out. */
+  .aperture-calendar__picker {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+  }
+
+  .aperture-calendar__picker select {
+    padding: 0.15rem 0.1rem;
+    border: 0;
+    border-bottom: 1px solid transparent;
+    border-radius: 0;
+    appearance: none;
+    background: transparent;
+    color: var(--ink-faint);
+    font-family: var(--font-data);
+    font-size: 0.6rem;
+    cursor: pointer;
+    transition:
+      color var(--motion-fast) var(--motion-ease),
+      border-color var(--motion-fast) var(--motion-ease);
+  }
+
+  .aperture-calendar__picker select:hover {
+    color: var(--ink);
+    border-bottom-color: var(--line);
+  }
+
+  /* The focus ring is the one place the control is allowed to draw a box: it is
+     state, not decoration, and removing it would strand keyboard users. */
+  .aperture-calendar__picker select:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+    color: var(--ink);
+  }
+
+  /* The option list itself is drawn by the OS, so it needs explicit colours to
+     stay legible against a dark page. */
+  .aperture-calendar__picker option {
+    background: var(--surface-raised);
+    color: var(--ink);
+  }
+
   .aperture-calendar {
     padding-block: 1rem;
   }
@@ -1185,10 +1231,12 @@
     border-radius: 50%;
   }
 
-  /* The rule was 16px under the last calendar row, close enough to read as
-     attached to the grid rather than as the head of the list below it. */
+  /* `.aperture-calendar`'s own 1rem of bottom padding is the whole separation
+     here. An extra 1.75rem margin was tried and taken back out — with the list
+     capped at two entries the block is short enough that the larger gap left a
+     hole in the middle of the column. */
   .aperture-colophon__latest {
-    margin: 1.75rem 0 0;
+    margin: 0;
     padding: 0;
     list-style: none;
     border-top: 1px solid var(--line);
@@ -1225,6 +1273,24 @@
     font-size: 0.62rem;
   }
 
+  /* Shown when the chosen month has nothing. It occupies the list's own top
+     rule so the column's structure does not jump as months change. */
+  .aperture-calendar__empty {
+    min-height: 2.8rem;
+    padding-top: 0.9rem;
+    border-top: 1px solid var(--line);
+    color: var(--ink-faint);
+    font-size: 0.75rem;
+  }
+
+  /* The overflow action replaces a third and fourth link rather than sitting
+     under them, so it takes the list's row rhythm instead of the actions'
+     larger spacing. */
+  .aperture-calendar__more {
+    min-height: 2.8rem;
+    border-top: 1px solid var(--line);
+  }
+
   .aperture-colophon__calendar {
     display: flex;
     flex-direction: column;
@@ -1248,6 +1314,13 @@
     font-size: 0.68rem;
     text-decoration: none;
     transition: color var(--motion-fast) var(--motion-ease);
+  }
+
+  /* `display: flex` above outranks the UA stylesheet's `[hidden] { display: none }`,
+     so an action toggled with the `hidden` attribute would otherwise stay on
+     screen. The calendar's overflow link is toggled that way. */
+  .aperture-action[hidden] {
+    display: none;
   }
 
   .aperture-action:hover,
