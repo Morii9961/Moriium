@@ -31,7 +31,7 @@ test('production archive has localized empty states and mobile-safe public style
   assert.match(archive, /yearGroups\.length > 0/);
   for (const text of ['还没有文章', '記事はまだありません', 'No posts yet']) assert.match(archive, new RegExp(text));
   assert.match(archive, /a-archive--quiet/);
-  assert.match(styles, /@media \(max-width: 48rem\)[\s\S]*\.a-archive\s*{[^}]*--archive-date:\s*4\.5rem/);
+  assert.match(styles, /@media \(max-width: 48rem\)[\s\S]*\.a-archive\s*{[^}]*--archive-date:\s*3\.5rem/);
   assert.match(styles, /@media \(max-width: 48rem\)[\s\S]*\.a-archive__days > li\s*{[^}]*grid-template-columns:\s*var\(--archive-date\) minmax\(0, 1fr\)/);
   assert.match(styles, /@media \(max-width: 48rem\)[\s\S]*\.a-archive__days > li > span\s*{[^}]*grid-column:\s*2/s);
   assert.match(styles, /\.a-archive__days > li\s*{[^}]*min-height:\s*4\.75rem/s);
@@ -50,14 +50,21 @@ test('the archive listing reads as one year-month-day axis', async () => {
   assert.match(archive, /datetime=\{`\$\{year\}-\$\{pad\(month \+ 1\)\}`\}/);
   assert.match(archive, /\{pad\(post\.data\.publishedAt\.getDate\(\)\)\}/);
 
-  // A single hairline carries the whole year, with each month marked on it.
-  assert.match(styles, /\.a-archive__months::before\s*{[^}]*background:\s*var\(--line\)/s);
-  assert.match(styles, /\.a-archive__month-mark::before\s*{[^}]*background:\s*var\(--accent\)/s);
+  // One hairline stands at the end of the date column, so it divides time from
+  // text rather than fencing the whole section.
+  assert.match(styles, /\.a-archive__months::before\s*{[^}]*left:\s*var\(--archive-date\)[^}]*background:\s*var\(--line\)/s);
 
-  // Every date mark stands in one left-hand column, stepping down in size from
-  // the year so the hierarchy survives without colour or indentation alone.
-  assert.match(styles, /\.a-archive__month-mark\s*{[^}]*padding-left:\s*var\(--archive-rail\)/s);
-  assert.match(styles, /\.a-archive__days time\s*{[^}]*padding-left:\s*calc\(var\(--archive-rail\)/s);
+  // An axis nothing touches is only a border: every entry is marked on the
+  // line, the month heavily in accent and the day as a quiet hairline.
+  assert.match(styles, /\.a-archive__month-mark::before\s*{[^}]*height:\s*2px[^}]*background:\s*var\(--accent\)/s);
+  assert.match(styles, /\.a-archive__days > li::before\s*{[^}]*left:\s*calc\(var\(--archive-date\)[^}]*background:\s*var\(--ink-faint\)/s);
+  assert.match(styles, /\.a-archive__days > li:has\(a:focus-visible\)::before\s*{[^}]*background:\s*var\(--accent\)/s);
+
+  // Both figures range right onto the axis, and the rules start past it so the
+  // line stays a spine instead of becoming the left edge of a table.
+  assert.match(styles, /\.a-archive__month-mark\s*{[^}]*width:\s*var\(--archive-date\)[^}]*padding-right:\s*0\.85rem/s);
+  assert.match(styles, /\.a-archive__days time\s*{[^}]*padding-right:\s*0\.85rem[^}]*text-align:\s*right/s);
+  assert.match(styles, /\.a-archive__days::before,\s*\.a-archive__days > li::after\s*{[^}]*left:\s*calc\(var\(--archive-date\) \+ var\(--archive-gap\)\)/s);
   assert.match(styles, /\.a-archive__days > li\s*{[^}]*grid-template-columns:\s*var\(--archive-date\)/s);
   for (const selector of ['.a-archive__year h2', '.a-archive__month-mark', '.a-archive__days time']) {
     const rule = styles.slice(styles.indexOf(`${selector} {`));

@@ -982,15 +982,17 @@
   }
 
   /* The archive is one chronological axis per year. The year is its masthead;
-     below it every date mark — month and day alike — stands in a single column
-     at the left edge, sized down step by step so the axis reads year, month,
-     day without ever handing the date back to the text column.
-     `--archive-rail` is the gap from the hairline to a month figure, and
-     `--archive-date` the whole date column, so the marks and the entry rows
-     stay aligned from one declaration. */
+     under it a hairline runs the length of the year with the dates ranged right
+     against it and the writing set out to its right, so the line divides time
+     from text instead of fencing the whole section. Every entry is marked on
+     that line — a heavy accent tick for a month, a quiet hairline for a day —
+     because an axis nothing touches is only a border.
+     `--archive-date` is the date column, `--archive-gap` the distance from the
+     line to the text, so the marks, the figures and the rules all follow one
+     pair of declarations. */
   .a-archive {
-    --archive-rail: clamp(1rem, 1.8vw, 1.6rem);
-    --archive-date: clamp(5.75rem, 8vw, 7.25rem);
+    --archive-date: clamp(4.5rem, 7vw, 6.5rem);
+    --archive-gap: clamp(1.25rem, 2.5vw, 2.25rem);
 
     padding-block: clamp(3.5rem, 7vw, 7rem);
     border-bottom: 1px solid var(--line);
@@ -1029,8 +1031,10 @@
     margin-top: 1rem;
   }
 
-  /* The axis itself: one hairline for the whole year, drawn rather than
-     bordered so the months and days keep their own box model against it. */
+  /* The axis: one hairline for the whole year, standing at the end of the date
+     column so the figures range up against it and the writing begins beyond it.
+     It is drawn rather than bordered because nothing owns it — the months and
+     days it carries are separate boxes on either side. */
   .a-archive__months {
     position: relative;
   }
@@ -1039,7 +1043,7 @@
     position: absolute;
     top: 0;
     bottom: 0;
-    left: 0;
+    left: var(--archive-date);
     width: 1px;
     background: var(--line);
     content: "";
@@ -1049,28 +1053,16 @@
     margin-top: clamp(2rem, 3.5vw, 3.25rem);
   }
 
-  /* The tick that fixes a month to the axis. Heavier than a hairline, because
-     the month is the axis's second-order mark and has to be found at a glance.
-     It hangs off the figure rather than the month box, so `0.5em` keeps it on
-     the figure's centre at every step of the clamp. */
-  .a-archive__month-mark::before {
-    position: absolute;
-    top: calc(0.5em - 1px);
-    left: 0;
-    width: calc(var(--archive-rail) - 0.35rem);
-    height: 2px;
-    background: var(--accent);
-    content: "";
-  }
-
   /* Second in the hierarchy: the wordmark face the year uses, a third of its
-     size, in full-strength ink. */
+     size, in full-strength ink, ranged right so its figures end on the axis. */
   .a-archive__month-mark {
     position: relative;
     display: flex;
+    justify-content: flex-end;
     align-items: baseline;
-    gap: 0.35rem;
-    padding-left: var(--archive-rail);
+    gap: 0.3rem;
+    width: var(--archive-date);
+    padding-right: 0.85rem;
     color: var(--ink);
     font-family: var(--font-wordmark);
     font-size: clamp(1.3rem, 2.2vw, 1.7rem);
@@ -1078,6 +1070,19 @@
     font-weight: 640;
     letter-spacing: -0.045em;
     line-height: 1;
+  }
+
+  /* The month's mark crosses the axis: two pixels of accent, the heaviest thing
+     on the line, so a month is found before any day is read. `0.5em` holds it
+     on the figure's centre at every step of the clamp. */
+  .a-archive__month-mark::before {
+    position: absolute;
+    top: calc(0.5em - 1px);
+    left: calc(100% - 0.5rem);
+    width: 1.1rem;
+    height: 2px;
+    background: var(--accent);
+    content: "";
   }
 
   .a-archive__month-mark small {
@@ -1088,37 +1093,80 @@
     letter-spacing: 0;
   }
 
+  /* Rules start past the axis, never across it, so the line stays a spine
+     rather than becoming the left edge of a table. */
   .a-archive__days {
+    position: relative;
     margin-top: 1.1rem;
-    border-top: 1px solid var(--line);
+  }
+
+  .a-archive__days::before,
+  .a-archive__days > li::after {
+    position: absolute;
+    left: calc(var(--archive-date) + var(--archive-gap));
+    right: 0;
+    height: 1px;
+    background: var(--line);
+    content: "";
+  }
+
+  .a-archive__days::before {
+    top: 0;
   }
 
   .a-archive__days > li {
+    position: relative;
     display: grid;
     grid-template-columns: var(--archive-date) minmax(0, 1fr) auto;
-    gap: 1.5rem;
+    column-gap: var(--archive-gap);
     min-height: 4.75rem;
     align-items: center;
-    border-bottom: 1px solid var(--line);
   }
 
-  /* Third in the hierarchy: the same face again, smaller and quieter, indented
-     under its month so the nesting is visible and not only implied. */
+  .a-archive__days > li::after {
+    bottom: 0;
+  }
+
+  /* The day's own mark. A day is the finest reading on the axis, so it is a
+     hairline rather than a rule; hovering the row lengthens it and takes the
+     accent, which is the only motion on the page and the only thing that says
+     which row the pointer is on. */
+  .a-archive__days > li::before {
+    position: absolute;
+    top: calc(50% - 0.5px);
+    left: calc(var(--archive-date) - 0.3rem);
+    width: 0.7rem;
+    height: 1px;
+    background: var(--ink-faint);
+    content: "";
+    transition: width var(--motion-fast) var(--motion-ease), background-color var(--motion-fast) ease;
+  }
+
+  /* Third in the hierarchy: the same face again, smaller and quieter, ranged
+     right onto the axis under its own month. */
   .a-archive__days time {
-    padding-left: calc(var(--archive-rail) + 0.9rem);
+    padding-right: 0.85rem;
     color: var(--ink-muted);
     font-family: var(--font-wordmark);
     font-size: clamp(0.9rem, 1.25vw, 1.05rem);
     font-variant-numeric: tabular-nums;
     font-weight: 600;
     letter-spacing: -0.02em;
+    text-align: right;
     transition: color var(--motion-fast) ease;
   }
 
-  /* Hovering a title lights its own day, so the row and the axis stay tied. */
+  /* Hovering a title lights its own day and its own mark, so the row, the date
+     and the axis stay one thing. */
   .a-archive__days > li:has(a:hover) time,
   .a-archive__days > li:has(a:focus-visible) time {
     color: var(--accent);
+  }
+
+  .a-archive__days > li:has(a:hover)::before,
+  .a-archive__days > li:has(a:focus-visible)::before {
+    width: 1.35rem;
+    background: var(--accent);
   }
 
   .a-archive__days a {
@@ -1516,20 +1564,24 @@
       font-size: clamp(1.7rem, 8vw, 2.5rem);
     }
 
-    /* The date column narrows but keeps its place at the left edge; the
-       category drops under the title, and the day holds its baseline against
-       the title's first line. */
+    /* The date column narrows but the axis keeps its place between date and
+       text. The category drops under the title, so the row is two lines and the
+       day's mark moves off centre onto the title's first line. */
     .a-archive {
-      --archive-rail: 0.85rem;
-      --archive-date: 4.5rem;
+      --archive-date: 3.5rem;
+      --archive-gap: 1rem;
     }
 
     .a-archive__days > li {
       grid-template-columns: var(--archive-date) minmax(0, 1fr);
-      gap: 0.4rem 0.9rem;
+      gap: 0.4rem var(--archive-gap);
       min-height: 0;
       align-items: baseline;
       padding-block: 1rem;
+    }
+
+    .a-archive__days > li::before {
+      top: 1.7rem;
     }
 
     .a-archive__days > li > span {
