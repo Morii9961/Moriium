@@ -32,7 +32,7 @@ test('production category directory has localized empty states and mobile-safe p
   }
   assert.match(categories, /a-category-directory--quiet/);
   assert.match(styles, /\.a-category-directory\s*{[^}]*border-top:\s*1px solid var\(--ink\)/s);
-  assert.match(styles, /@media \(max-width: 48rem\)[\s\S]*\.a-category-directory > a\s*{[^}]*grid-template-columns:\s*2rem minmax\(0, 1fr\) auto[^}]*min-height:\s*8rem/s);
+  assert.match(styles, /@media \(max-width: 48rem\)[\s\S]*\.a-category-directory > a\s*{[^}]*grid-template-columns:\s*1\.4rem minmax\(0, 1fr\) auto[^}]*min-height:\s*8rem[^}]*padding-inline:\s*0\.6rem/s);
   assert.match(styles, /\.a-category-directory > a:focus-visible::before/);
 });
 

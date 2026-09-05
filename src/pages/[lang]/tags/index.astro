@@ -17,19 +17,19 @@ const copy = {
   zh: {
     title: '标签', intro: '一些会在不同主题之间反复出现的词。按使用次数排列，也保留文章之间更细的联系。',
     tags: '标签', posts: '文章', emptyTitle: '还没有标签', empty: '这个语言版本暂时没有可以公开列出的标签。',
-    crosslink: '想从更稳定的主题进入？', categories: '转到分类 →',
+    crosslink: '想从更稳定的主题进入？', categories: '转到分类',
     label: (name: string, count: number) => `${name}，${count} 篇文章`,
   },
   ja: {
     title: 'タグ', intro: '異なるテーマのあいだに繰り返し現れる言葉です。使用数の多い順に、記事同士の細かなつながりをたどれます。',
     tags: 'タグ', posts: '記事', emptyTitle: 'タグはまだありません', empty: 'この言語で公開中のタグはまだありません。',
-    crosslink: 'より大きなテーマから探すなら', categories: 'カテゴリーへ →',
+    crosslink: 'より大きなテーマから探すなら', categories: 'カテゴリーへ',
     label: (name: string, count: number) => `${name}、${count} 件の記事`,
   },
   en: {
     title: 'Tags', intro: 'Words that recur across different subjects, ordered by use and tracing the finer links between posts.',
     tags: 'Tags', posts: 'Posts', emptyTitle: 'No tags yet', empty: 'There are no public tags in this language yet.',
-    crosslink: 'Prefer broader subjects?', categories: 'Browse categories →',
+    crosslink: 'Prefer broader subjects?', categories: 'Browse categories',
     label: (name: string, count: number) => `${name}, ${count} ${count === 1 ? 'post' : 'posts'}`,
   },
 } as const;
@@ -66,6 +66,6 @@ const c = copy[lang];
       </section>
     )}
 
-    <p class="a-directory__crosslink">{c.crosslink} <a href={`/${lang}/categories/`}>{c.categories}</a></p>
+    <p class="a-directory__crosslink"><span>{c.crosslink}</span><a class="aperture-action" href={`/${lang}/categories/`}><span>{c.categories}</span><i aria-hidden="true">↗</i></a></p>
   </div>
 </BaseLayout>

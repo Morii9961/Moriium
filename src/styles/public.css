@@ -426,6 +426,47 @@
     text-align: right;
   }
 
+  /* The site's one action grammar, shared by the home page and every index
+     below it: word and arrow, carried by the space around them rather than by a
+     rule or a box of their own. Colour and the stepping arrow are enough to
+     declare an action — and never a bordered box, which is DESIGN.md's "thin
+     gray borders and interchangeable cards" anti-goal. */
+  .aperture-action {
+    display: flex;
+    min-height: 2.75rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    color: var(--ink);
+    font-family: var(--font-data);
+    font-size: 0.68rem;
+    text-decoration: none;
+    transition: color var(--motion-fast) var(--motion-ease);
+  }
+
+  /* `display: flex` above outranks the UA stylesheet's `[hidden] { display: none }`,
+     so an action toggled with the `hidden` attribute would otherwise stay on
+     screen. The home calendar's overflow link is toggled that way. */
+  .aperture-action[hidden] {
+    display: none;
+  }
+
+  .aperture-action:hover,
+  .aperture-action:focus-visible {
+    color: var(--accent);
+  }
+
+  .aperture-action i {
+    font-size: 1.1em;
+    font-style: normal;
+    transition: transform var(--motion-fast) var(--motion-ease);
+  }
+
+  .aperture-action:hover i,
+  .aperture-action:focus-visible i {
+    transform: translate(0.25rem, -0.25rem);
+  }
+
   .a-directory {
     padding-bottom: clamp(4rem, 9vw, 9rem);
   }
@@ -734,24 +775,41 @@
     border-top: 1px solid var(--ink);
   }
 
+  /* The row is inset from its own rule so that the index and the count sit
+     inside the band rather than on its edge the moment the row lights up. The
+     inset comes out of the number's track, not out of the gap, so the heading
+     keeps the column it shares with the hero title above. */
   .a-category-directory > a {
     position: relative;
     display: grid;
-    grid-template-columns: 3rem minmax(0, 1fr) auto auto;
+    grid-template-columns: 1.75rem minmax(0, 1fr) auto auto;
     gap: clamp(1rem, 4vw, 4rem);
     min-height: 10rem;
     align-items: center;
+    padding-inline: 1.25rem;
     isolation: isolate;
     border-bottom: 1px solid var(--line);
     text-decoration: none;
   }
 
+  /* The index and the count are the only marks holding the two ends of a ten-rem
+     row together, so they are set to be found rather than to recede: muted ink
+     instead of faint, and tracked out at a size the mono can carry. */
   .a-category-directory__number,
   .a-category-directory strong {
-    color: var(--ink-faint);
+    color: var(--ink-muted);
     font-family: var(--font-data);
-    font-size: 0.62rem;
+    font-size: 0.7rem;
     font-weight: 400;
+    letter-spacing: 0.08em;
+  }
+
+  /* On the lit row they stand on the accent field, where the resting ink tokens
+     have almost no contrast. They take the field's own ink, held just under the
+     heading so the ends read as marks and not as a second title. */
+  .a-category-directory > a:hover :is(.a-category-directory__number, strong),
+  .a-category-directory > a:focus-visible :is(.a-category-directory__number, strong) {
+    color: color-mix(in srgb, var(--accent-field-ink) 82%, transparent);
   }
 
   .a-category-directory h2 {
@@ -818,13 +876,26 @@
     color: color-mix(in srgb, var(--accent-field-ink) 70%, transparent);
   }
 
+  /* Question and answer on one line: the lead-in stays supporting text and the
+     way out is an action like every other on the site. */
   .a-directory__crosslink {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 1.25rem;
     margin-top: 3rem;
     color: var(--ink-muted);
     font-size: 0.78rem;
   }
 
-  .a-directory__crosslink a {
+  /* The lead-in already sets the row's height, so the action asks for none of
+     its own and keeps its word and arrow on one gap instead of spreading. */
+  .a-directory__crosslink .aperture-action {
+    min-height: 0;
+    gap: 0.55rem;
+  }
+
+  .a-directory__crosslink a:not(.aperture-action) {
     color: var(--accent);
   }
 
@@ -1092,8 +1163,9 @@
     }
 
     .a-category-directory > a {
-      grid-template-columns: 2rem minmax(0, 1fr) auto;
+      grid-template-columns: 1.4rem minmax(0, 1fr) auto;
       min-height: 8rem;
+      padding-inline: 0.6rem;
     }
 
     .a-category-directory strong {
@@ -1131,6 +1203,13 @@
       animation-delay: 0ms !important;
       animation-duration: 0.01ms !important;
       animation-iteration-count: 1 !important;
+    }
+
+    /* The colour still changes, so state stays legible. Only the travel goes;
+       the reset above only shortens it. */
+    .aperture-action:hover i,
+    .aperture-action:focus-visible i {
+      transform: none;
     }
   }
 }
