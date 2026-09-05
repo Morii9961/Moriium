@@ -13,24 +13,29 @@ const posts = await getListedPosts(lang);
 const latest = posts[0]?.data.publishedAt;
 const copy = {
   zh: {
-    title: '文章', intro: '这里收着所有公开文章，新的排在前面。', count: '文章', updated: '最近更新', list: '全部文章', order: '新 → 旧',
+    title: '文章', intro: '这里收着所有公开文章，新的排在前面。', count: '文章', updated: '最近更新', list: '全部文章',
     unitOne: ' 篇', unitMany: ' 篇', filter: '筛选', all: '全部', categories: '分类', tags: '标签',
     filterHint: '按分类或标签筛选这个列表', search: '搜索',
+    searchHint: '在这一页里搜索', searchLabel: '输入标题、摘要、分类或标签', searchPlaceholder: '标题、分类或标签',
+    empty: '这一页里没有匹配的文章。',
   },
   ja: {
-    title: '記事', intro: '公開中の記事を新しい順に並べています。', count: '記事', updated: '最近の更新', list: 'すべての記事', order: '新 → 旧',
+    title: '記事', intro: '公開中の記事を新しい順に並べています。', count: '記事', updated: '最近の更新', list: 'すべての記事',
     unitOne: ' 件', unitMany: ' 件', filter: '絞り込み', all: 'すべて', categories: 'カテゴリー', tags: 'タグ',
     filterHint: 'カテゴリーやタグでこの一覧を絞り込む', search: '検索',
+    searchHint: 'この一覧を検索', searchLabel: 'タイトル、概要、カテゴリー、タグを入力', searchPlaceholder: 'タイトル、カテゴリー、タグ',
+    empty: 'この一覧に一致する記事はありません。',
   },
   en: {
-    title: 'Writing', intro: 'All public posts, newest first.', count: 'Posts', updated: 'Latest update', list: 'All posts', order: 'New → old',
+    title: 'Writing', intro: 'All public posts, newest first.', count: 'Posts', updated: 'Latest update', list: 'All posts',
     unitOne: ' post', unitMany: ' posts', filter: 'Filter', all: 'All', categories: 'Categories', tags: 'Tags',
     filterHint: 'Filter this list by category or tag', search: 'Search',
+    searchHint: 'Search this list', searchLabel: 'Enter a title, summary, category, or tag', searchPlaceholder: 'Title, category, or tag',
+    empty: 'Nothing on this page matched.',
   },
 } as const;
 const c = copy[lang];
 const number = (value: number) => String(value).padStart(2, '0');
-const counted = (value: number) => `${number(value)}${value === 1 ? c.unitOne : c.unitMany}`;
 const categories = uniqueTaxonomy(posts, 'category').map((name) => ({
   name,
   count: posts.filter((post) => post.data.category === name).length,
@@ -53,15 +58,13 @@ const tags = uniqueTaxonomy(posts, 'tags')
     <section class="a-directory__section" aria-labelledby="writing-list-title" data-writing-index>
       <header class="a-directory__section-head a-directory__section-head--controls">
         <h2 id="writing-list-title">{c.list}</h2>
-        <div class="a-writing-controls">
-          <p
-            class="a-writing-controls__state"
-            aria-live="polite"
-            data-writing-state
-            data-order={c.order}
-            data-unit-one={c.unitOne}
-            data-unit-many={c.unitMany}
-          >{c.order} · {counted(posts.length)}</p>
+        <div
+          class="a-writing-controls"
+          data-writing-controls
+          data-searching="false"
+          data-unit-one={c.unitOne}
+          data-unit-many={c.unitMany}
+        >
           <details class="a-writing-filter" data-writing-filter data-active="false">
             <summary title={c.filterHint}>
               <span class="a-writing-filter__label">{c.filter}</span>
@@ -99,10 +102,31 @@ const tags = uniqueTaxonomy(posts, 'tags')
               ))}
             </div>
           </details>
-          <button class="a-writing-controls__search" type="button" title={`${ui.search.open} (Ctrl/⌘ K)`} data-search-open>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.6"></circle><path d="m16 16 4.2 4.2"></path></svg>
-            <span>{c.search}</span>
-          </button>
+          <div class="a-writing-search">
+            <button
+              class="a-writing-search__toggle"
+              type="button"
+              aria-expanded="false"
+              aria-controls="writing-search"
+              aria-label={c.searchHint}
+              title={c.searchHint}
+              data-writing-search-toggle
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.6"></circle><path d="m16 16 4.2 4.2"></path></svg>
+              <span class="a-writing-search__label">{c.search}</span>
+            </button>
+            <label class="visually-hidden" for="writing-search">{c.searchLabel}</label>
+            <input
+              id="writing-search"
+              class="a-writing-search__input"
+              type="search"
+              inputmode="search"
+              autocomplete="off"
+              placeholder={c.searchPlaceholder}
+              data-writing-search-input
+            />
+          </div>
+          <p class="visually-hidden" aria-live="polite" data-writing-live></p>
         </div>
       </header>
       <ol class="prototype-posts a-post-index" data-writing-list>
@@ -116,59 +140,91 @@ const tags = uniqueTaxonomy(posts, 'tags')
           </a></li>
         ))}
       </ol>
+      <p class="a-writing-empty" data-writing-empty hidden>{c.empty}</p>
     </section>
   </div>
 
   <script>
-    // Progressive enhancement only. Without this module the control is still a
-    // disclosure holding real category and tag links, so the filter degrades
-    // into navigation rather than into nothing.
+    // Progressive enhancement only. Without this module the filter is still a
+    // disclosure holding real category and tag links, so it degrades into
+    // navigation rather than into nothing, and the list stays whole.
     const index = document.querySelector<HTMLElement>('[data-writing-index]');
+    const controls = index?.querySelector<HTMLElement>('[data-writing-controls]');
     const filter = index?.querySelector<HTMLDetailsElement>('[data-writing-filter]');
     const summary = filter?.querySelector('summary');
     const menu = filter?.querySelector<HTMLElement>('[data-writing-menu]');
     const label = filter?.querySelector<HTMLElement>('[data-writing-value]');
-    const state = index?.querySelector<HTMLElement>('[data-writing-state]');
+    const toggle = index?.querySelector<HTMLButtonElement>('[data-writing-search-toggle]');
+    const field = index?.querySelector<HTMLInputElement>('[data-writing-search-input]');
+    const live = index?.querySelector<HTMLElement>('[data-writing-live]');
+    const empty = index?.querySelector<HTMLElement>('[data-writing-empty]');
     const list = index?.querySelector<HTMLElement>('[data-writing-list]');
 
-    if (index && filter && summary && menu && label && state && list) {
+    if (index && controls && filter && summary && menu && label && toggle && field && live && empty && list) {
+      const locale = document.documentElement.lang || 'en';
+      const unitOne = controls.dataset.unitOne ?? '';
+      const unitMany = controls.dataset.unitMany ?? '';
       const options = Array.from(menu.querySelectorAll<HTMLAnchorElement>('[data-filter-kind]'));
-      const entries = Array.from(list.querySelectorAll<HTMLLIElement>('li')).map((item) => ({
-        item,
-        number: item.querySelector<HTMLElement>('[data-writing-number]'),
-        category: item.dataset.category ?? '',
-        tags: JSON.parse(item.dataset.tags ?? '[]') as string[],
-      }));
+      const fold = (value: string) => value.normalize('NFKC').toLocaleLowerCase(locale);
+      const entries = Array.from(list.querySelectorAll<HTMLLIElement>('li')).map((item) => {
+        const tags = JSON.parse(item.dataset.tags ?? '[]') as string[];
+        return {
+          item,
+          number: item.querySelector<HTMLElement>('[data-writing-number]'),
+          category: item.dataset.category ?? '',
+          tags,
+          // Title, summary, category and date already print inside the row. The
+          // tags are the only thing a reader can act on but not read off it, so
+          // they are appended rather than looked up again on every keystroke.
+          haystack: fold(`${item.textContent ?? ''} ${tags.join(' ')}`),
+        };
+      });
 
-      const apply = (option: HTMLAnchorElement, remember: boolean) => {
-        const kind = option.dataset.filterKind ?? 'all';
-        const wanted = option.dataset.filterValue ?? '';
+      let chosen = options[0];
+      let query = '';
+
+      // One pass for both narrowings: the dropdown decides which rows belong,
+      // the field decides which of those still match, and the ledger renumbers
+      // so a narrowed list still reads 01, 02, 03.
+      const render = (remember: boolean) => {
+        const needle = fold(query.trim());
+        const kind = chosen?.dataset.filterKind ?? 'all';
+        const wanted = chosen?.dataset.filterValue ?? '';
         let shown = 0;
 
         for (const entry of entries) {
-          const matches = kind === 'all'
+          const inFilter = kind === 'all'
             || (kind === 'category' && entry.category === wanted)
             || (kind === 'tag' && entry.tags.includes(wanted));
+          const matches = inFilter && (!needle || entry.haystack.includes(needle));
           entry.item.hidden = !matches;
           if (!matches) continue;
-          // The ledger renumbers, so a filtered list still reads 01, 02, 03.
           shown += 1;
           if (entry.number) entry.number.textContent = String(shown).padStart(2, '0');
         }
 
-        for (const other of options) other.removeAttribute('aria-current');
-        option.setAttribute('aria-current', 'true');
-        label.textContent = option.dataset.filterName ?? '';
-        filter.dataset.active = String(kind !== 'all');
-        const unit = (shown === 1 ? state.dataset.unitOne : state.dataset.unitMany) ?? '';
-        state.textContent = `${state.dataset.order ?? ''} · ${String(shown).padStart(2, '0')}${unit}`;
+        empty.hidden = shown > 0;
+        // The count the head used to print is gone, so the result stays
+        // announced even though nothing draws it any more.
+        live.textContent = `${String(shown).padStart(2, '0')}${shown === 1 ? unitOne : unitMany}`;
 
         if (!remember) return;
         const url = new URL(window.location.href);
         url.searchParams.delete('category');
         url.searchParams.delete('tag');
+        url.searchParams.delete('q');
         if (kind !== 'all') url.searchParams.set(kind, wanted);
+        if (query.trim()) url.searchParams.set('q', query.trim());
         history.replaceState(null, '', url);
+      };
+
+      const choose = (option: HTMLAnchorElement, remember: boolean) => {
+        chosen = option;
+        for (const other of options) other.removeAttribute('aria-current');
+        option.setAttribute('aria-current', 'true');
+        label.textContent = option.dataset.filterName ?? '';
+        filter.dataset.active = String((option.dataset.filterKind ?? 'all') !== 'all');
+        render(remember);
       };
 
       const close = (restore: boolean) => {
@@ -177,6 +233,43 @@ const tags = uniqueTaxonomy(posts, 'tags')
         if (restore) summary.focus();
       };
 
+      // Search opens in place rather than over the page. The filter folds away
+      // with it and its constraint goes too: a narrowing the reader can no
+      // longer see is one they cannot undo.
+      const setSearch = (open: boolean, moveFocus = true) => {
+        controls.dataset.searching = String(open);
+        toggle.setAttribute('aria-expanded', String(open));
+        if (open) {
+          close(false);
+          if ((chosen?.dataset.filterKind ?? 'all') !== 'all' && options[0]) choose(options[0], true);
+          field.focus();
+          return;
+        }
+        field.value = '';
+        query = '';
+        render(true);
+        if (moveFocus) toggle.focus();
+      };
+
+      toggle.addEventListener('click', () => setSearch(controls.dataset.searching !== 'true'));
+
+      field.addEventListener('input', () => {
+        query = field.value;
+        render(true);
+      });
+
+      field.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') setSearch(false);
+      });
+
+      // An empty field left behind puts the filter back rather than sitting open
+      // with the dropdown hidden. A blur towards the toggle is left alone,
+      // because the click that follows it closes the field itself.
+      field.addEventListener('blur', (event) => {
+        if (field.value || event.relatedTarget === toggle) return;
+        setSearch(false, false);
+      });
+
       menu.addEventListener('click', (event) => {
         // A modified click still belongs to the browser: it opens the real
         // category or tag page instead of filtering in place.
@@ -184,7 +277,7 @@ const tags = uniqueTaxonomy(posts, 'tags')
         const option = (event.target as HTMLElement).closest<HTMLAnchorElement>('[data-filter-kind]');
         if (!option) return;
         event.preventDefault();
-        apply(option, true);
+        choose(option, true);
         close(true);
       });
 
@@ -207,12 +300,24 @@ const tags = uniqueTaxonomy(posts, 'tags')
         close(false);
       });
 
+      // A shared link carries whichever narrowing produced it. `q` wins outright
+      // rather than stacking, so a restored view is always one the controls on
+      // screen can still express.
       const params = new URLSearchParams(window.location.search);
-      const restored = options.find((option) => {
-        const kind = option.dataset.filterKind ?? 'all';
-        return kind !== 'all' && params.get(kind) === option.dataset.filterValue;
-      });
-      if (restored) apply(restored, false);
+      const restoredQuery = params.get('q') ?? '';
+      if (restoredQuery) {
+        field.value = restoredQuery;
+        query = restoredQuery;
+        controls.dataset.searching = 'true';
+        toggle.setAttribute('aria-expanded', 'true');
+        render(false);
+      } else {
+        const restored = options.find((option) => {
+          const kind = option.dataset.filterKind ?? 'all';
+          return kind !== 'all' && params.get(kind) === option.dataset.filterValue;
+        });
+        if (restored) choose(restored, false);
+      }
     }
   </script>
 </BaseLayout>
