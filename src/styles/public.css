@@ -780,6 +780,15 @@
     text-decoration: none;
   }
 
+  /* The writing index row carries five cells — number, copy, category, date,
+     arrow — and the taxonomy row four, because the date leads it instead of a
+     number. Sharing the five-track list left the taxonomy arrow parked in the
+     date's track with a whole empty track and its gap to its right, so it hung
+     some 60px short of the edge every other list's arrow sits on. */
+  .a-taxonomy-posts > li > a {
+    grid-template-columns: 5.75rem minmax(16rem, 1fr) minmax(8rem, 0.4fr) auto;
+  }
+
   .a-post-index .prototype-post > a::before,
   .a-taxonomy-posts > li > a::before,
   .a-category-directory > a::before {
@@ -1210,6 +1219,10 @@
     .a-post-index .prototype-post > a,
     .a-taxonomy-posts > li > a {
       grid-template-columns: 5.75rem minmax(0, 1fr) 7rem auto;
+    }
+
+    .a-taxonomy-posts > li > a {
+      grid-template-columns: 5.75rem minmax(0, 1fr) auto;
     }
 
     .a-post-index .prototype-post > a > span:nth-last-child(2),

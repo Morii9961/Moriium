@@ -60,5 +60,9 @@ test('production category detail uses the public layout with a static, localized
 
   assert.match(styles, /\.a-taxonomy-posts > li > a\s*{[^}]*grid-template-columns:\s*5\.75rem minmax\(16rem, 1fr\) minmax\(8rem, 0\.4fr\) 8rem auto[^}]*min-height:\s*10rem[^}]*padding-inline:\s*1\.25rem/s);
   assert.match(styles, /@media \(max-width: 48rem\)[\s\S]*\.a-taxonomy-posts > li > a\s*{[^}]*grid-template-columns:\s*1\.4rem minmax\(0, 1fr\) auto[^}]*min-height:\s*9rem[^}]*padding-inline:\s*0\.6rem/s);
+  // Four cells, not the writing index's five: without its own track list the
+  // arrow parks in the date's track and hangs short of the row's edge.
+  assert.match(styles, /\.a-taxonomy-posts > li > a\s*{\s*grid-template-columns:\s*5\.75rem minmax\(16rem, 1fr\) minmax\(8rem, 0\.4fr\) auto;\s*}/s);
+  assert.match(styles, /@media \(max-width: 70rem\)[\s\S]*\.a-taxonomy-posts > li > a\s*{\s*grid-template-columns:\s*5\.75rem minmax\(0, 1fr\) auto;\s*}/s);
   assert.match(styles, /\.a-taxonomy-posts > li > a:focus-visible::before/);
 });
