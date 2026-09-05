@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import { SITE, UI, type Language } from '../../../data/site';
-import { formatDate, getListedPosts, postPath } from '../../../utils/content';
+import { formatDate, getListedPosts, postPath, uniqueTaxonomy } from '../../../utils/content';
 
 export function getStaticPaths() {
   return SITE.languages.map((lang) => ({ params: { lang }, props: { lang } }));
@@ -12,11 +12,32 @@ const ui = UI[lang];
 const posts = await getListedPosts(lang);
 const latest = posts[0]?.data.publishedAt;
 const copy = {
-  zh: { title: '文章', intro: '这里收着所有公开文章，新的排在前面。', count: '文章', updated: '最近更新', list: '全部文章', order: '新 → 旧' },
-  ja: { title: '記事', intro: '公開中の記事を新しい順に並べています。', count: '記事', updated: '最近の更新', list: 'すべての記事', order: '新 → 旧' },
-  en: { title: 'Writing', intro: 'All public posts, newest first.', count: 'Posts', updated: 'Latest update', list: 'All posts', order: 'New → old' },
+  zh: {
+    title: '文章', intro: '这里收着所有公开文章，新的排在前面。', count: '文章', updated: '最近更新', list: '全部文章', order: '新 → 旧',
+    unitOne: ' 篇', unitMany: ' 篇', filter: '筛选', all: '全部', categories: '分类', tags: '标签',
+    filterHint: '按分类或标签筛选这个列表', search: '搜索',
+  },
+  ja: {
+    title: '記事', intro: '公開中の記事を新しい順に並べています。', count: '記事', updated: '最近の更新', list: 'すべての記事', order: '新 → 旧',
+    unitOne: ' 件', unitMany: ' 件', filter: '絞り込み', all: 'すべて', categories: 'カテゴリー', tags: 'タグ',
+    filterHint: 'カテゴリーやタグでこの一覧を絞り込む', search: '検索',
+  },
+  en: {
+    title: 'Writing', intro: 'All public posts, newest first.', count: 'Posts', updated: 'Latest update', list: 'All posts', order: 'New → old',
+    unitOne: ' post', unitMany: ' posts', filter: 'Filter', all: 'All', categories: 'Categories', tags: 'Tags',
+    filterHint: 'Filter this list by category or tag', search: 'Search',
+  },
 } as const;
 const c = copy[lang];
+const number = (value: number) => String(value).padStart(2, '0');
+const counted = (value: number) => `${number(value)}${value === 1 ? c.unitOne : c.unitMany}`;
+const categories = uniqueTaxonomy(posts, 'category').map((name) => ({
+  name,
+  count: posts.filter((post) => post.data.category === name).length,
+}));
+const tags = uniqueTaxonomy(posts, 'tags')
+  .map((name) => ({ name, count: posts.filter((post) => post.data.tags.includes(name)).length }))
+  .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, ui.locale));
 ---
 
 <BaseLayout lang={lang} title={c.title}>
@@ -25,16 +46,69 @@ const c = copy[lang];
       <p class="prototype-kicker">Writing / Index</p>
       <div class="a-directory__title"><h1>{c.title}</h1><p>{c.intro}</p></div>
       <dl class="a-directory__stats">
-        <div><dt>{c.count}</dt><dd>{String(posts.length).padStart(2, '0')}</dd></div>
+        <div><dt>{c.count}</dt><dd>{number(posts.length)}</dd></div>
         <div><dt>{c.updated}</dt><dd>{latest ? new Intl.DateTimeFormat(ui.locale, { year: 'numeric', month: '2-digit' }).format(latest) : '—'}</dd></div>
       </dl>
     </header>
-    <section class="a-directory__section" aria-labelledby="writing-list-title">
-      <header class="a-directory__section-head"><h2 id="writing-list-title">{c.list}</h2><p>{c.order}</p></header>
-      <ol class="prototype-posts a-post-index">
+    <section class="a-directory__section" aria-labelledby="writing-list-title" data-writing-index>
+      <header class="a-directory__section-head a-directory__section-head--controls">
+        <h2 id="writing-list-title">{c.list}</h2>
+        <div class="a-writing-controls">
+          <p
+            class="a-writing-controls__state"
+            aria-live="polite"
+            data-writing-state
+            data-order={c.order}
+            data-unit-one={c.unitOne}
+            data-unit-many={c.unitMany}
+          >{c.order} · {counted(posts.length)}</p>
+          <details class="a-writing-filter" data-writing-filter data-active="false">
+            <summary title={c.filterHint}>
+              <span class="a-writing-filter__label">{c.filter}</span>
+              <span class="a-writing-filter__value" data-writing-value>{c.all}</span>
+              <svg class="a-writing-filter__caret" viewBox="0 0 24 24" aria-hidden="true"><path d="m5.5 9 6.5 6.5L18.5 9"></path></svg>
+            </summary>
+            <div class="a-writing-filter__menu" data-writing-menu>
+              <a
+                class="a-writing-filter__option"
+                href={`/${lang}/writing/`}
+                aria-current="true"
+                data-filter-kind="all"
+                data-filter-value=""
+                data-filter-name={c.all}
+              ><span>{c.all}</span><small>{number(posts.length)}</small></a>
+              {categories.length > 0 && <span class="a-writing-filter__group">{c.categories}</span>}
+              {categories.map(({ name, count }) => (
+                <a
+                  class="a-writing-filter__option"
+                  href={`/${lang}/categories/${encodeURIComponent(name)}/`}
+                  data-filter-kind="category"
+                  data-filter-value={name}
+                  data-filter-name={name}
+                ><span>{name}</span><small>{number(count)}</small></a>
+              ))}
+              {tags.length > 0 && <span class="a-writing-filter__group">{c.tags}</span>}
+              {tags.map(({ name, count }) => (
+                <a
+                  class="a-writing-filter__option"
+                  href={`/${lang}/tags/${encodeURIComponent(name)}/`}
+                  data-filter-kind="tag"
+                  data-filter-value={name}
+                  data-filter-name={`# ${name}`}
+                ><span># {name}</span><small>{number(count)}</small></a>
+              ))}
+            </div>
+          </details>
+          <button class="a-writing-controls__search" type="button" title={`${ui.search.open} (Ctrl/⌘ K)`} data-search-open>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.6"></circle><path d="m16 16 4.2 4.2"></path></svg>
+            <span>{c.search}</span>
+          </button>
+        </div>
+      </header>
+      <ol class="prototype-posts a-post-index" data-writing-list>
         {posts.map((post, index) => (
-          <li class="prototype-post"><a href={postPath(post)}>
-            <span>{String(index + 1).padStart(2, '0')}</span>
+          <li class="prototype-post" data-category={post.data.category} data-tags={JSON.stringify(post.data.tags)}><a href={postPath(post)}>
+            <span data-writing-number>{number(index + 1)}</span>
             <div><h3>{post.data.title}</h3><p>{post.data.summary}</p></div>
             <span>{post.data.category}</span>
             <time datetime={post.data.publishedAt.toISOString()}>{formatDate(post.data.publishedAt, ui.locale)}</time>
@@ -44,4 +118,101 @@ const c = copy[lang];
       </ol>
     </section>
   </div>
+
+  <script>
+    // Progressive enhancement only. Without this module the control is still a
+    // disclosure holding real category and tag links, so the filter degrades
+    // into navigation rather than into nothing.
+    const index = document.querySelector<HTMLElement>('[data-writing-index]');
+    const filter = index?.querySelector<HTMLDetailsElement>('[data-writing-filter]');
+    const summary = filter?.querySelector('summary');
+    const menu = filter?.querySelector<HTMLElement>('[data-writing-menu]');
+    const label = filter?.querySelector<HTMLElement>('[data-writing-value]');
+    const state = index?.querySelector<HTMLElement>('[data-writing-state]');
+    const list = index?.querySelector<HTMLElement>('[data-writing-list]');
+
+    if (index && filter && summary && menu && label && state && list) {
+      const options = Array.from(menu.querySelectorAll<HTMLAnchorElement>('[data-filter-kind]'));
+      const entries = Array.from(list.querySelectorAll<HTMLLIElement>('li')).map((item) => ({
+        item,
+        number: item.querySelector<HTMLElement>('[data-writing-number]'),
+        category: item.dataset.category ?? '',
+        tags: JSON.parse(item.dataset.tags ?? '[]') as string[],
+      }));
+
+      const apply = (option: HTMLAnchorElement, remember: boolean) => {
+        const kind = option.dataset.filterKind ?? 'all';
+        const wanted = option.dataset.filterValue ?? '';
+        let shown = 0;
+
+        for (const entry of entries) {
+          const matches = kind === 'all'
+            || (kind === 'category' && entry.category === wanted)
+            || (kind === 'tag' && entry.tags.includes(wanted));
+          entry.item.hidden = !matches;
+          if (!matches) continue;
+          // The ledger renumbers, so a filtered list still reads 01, 02, 03.
+          shown += 1;
+          if (entry.number) entry.number.textContent = String(shown).padStart(2, '0');
+        }
+
+        for (const other of options) other.removeAttribute('aria-current');
+        option.setAttribute('aria-current', 'true');
+        label.textContent = option.dataset.filterName ?? '';
+        filter.dataset.active = String(kind !== 'all');
+        const unit = (shown === 1 ? state.dataset.unitOne : state.dataset.unitMany) ?? '';
+        state.textContent = `${state.dataset.order ?? ''} · ${String(shown).padStart(2, '0')}${unit}`;
+
+        if (!remember) return;
+        const url = new URL(window.location.href);
+        url.searchParams.delete('category');
+        url.searchParams.delete('tag');
+        if (kind !== 'all') url.searchParams.set(kind, wanted);
+        history.replaceState(null, '', url);
+      };
+
+      const close = (restore: boolean) => {
+        if (!filter.open) return;
+        filter.open = false;
+        if (restore) summary.focus();
+      };
+
+      menu.addEventListener('click', (event) => {
+        // A modified click still belongs to the browser: it opens the real
+        // category or tag page instead of filtering in place.
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+        const option = (event.target as HTMLElement).closest<HTMLAnchorElement>('[data-filter-kind]');
+        if (!option) return;
+        event.preventDefault();
+        apply(option, true);
+        close(true);
+      });
+
+      filter.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          close(true);
+          return;
+        }
+        if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+        event.preventDefault();
+        filter.open = true;
+        const step = event.key === 'ArrowDown' ? 1 : -1;
+        const current = options.indexOf(document.activeElement as HTMLAnchorElement);
+        const next = current < 0 ? (step > 0 ? 0 : options.length - 1) : (current + step + options.length) % options.length;
+        options[next]?.focus();
+      });
+
+      document.addEventListener('click', (event) => {
+        if (filter.contains(event.target as Node)) return;
+        close(false);
+      });
+
+      const params = new URLSearchParams(window.location.search);
+      const restored = options.find((option) => {
+        const kind = option.dataset.filterKind ?? 'all';
+        return kind !== 'all' && params.get(kind) === option.dataset.filterValue;
+      });
+      if (restored) apply(restored, false);
+    }
+  </script>
 </BaseLayout>

@@ -596,6 +596,147 @@
     text-align: right;
   }
 
+  /* Writing index controls. Both read as a line of type over a hairline rule,
+     the same grammar the rest of the site uses for an action, so a filter and
+     a search entry never turn the section head into a row of buttons. */
+  .a-writing-controls {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: clamp(1rem, 2.5vw, 2rem);
+  }
+
+  .a-writing-filter {
+    position: relative;
+  }
+
+  .a-writing-filter > summary,
+  .a-writing-controls__search {
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0;
+    border: 0;
+    border-bottom: 1px solid var(--line);
+    background: transparent;
+    color: var(--ink-muted);
+    cursor: pointer;
+    font-family: var(--font-data);
+    font-size: 0.62rem;
+    list-style: none;
+    transition: color var(--motion-fast) ease, border-color var(--motion-fast) ease;
+  }
+
+  .a-writing-filter > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .a-writing-filter > summary:hover,
+  .a-writing-filter[open] > summary,
+  .a-writing-controls__search:hover {
+    border-bottom-color: var(--accent-field);
+    color: var(--ink);
+  }
+
+  .a-writing-filter__value {
+    color: var(--ink);
+  }
+
+  .a-writing-filter[data-active='true'] .a-writing-filter__value {
+    color: var(--accent);
+  }
+
+  .a-writing-filter__caret,
+  .a-writing-controls__search svg {
+    width: 0.85rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-width: 1.7;
+  }
+
+  .a-writing-filter__caret {
+    width: 0.72rem;
+    transition: transform var(--motion-fast) var(--motion-ease);
+  }
+
+  .a-writing-filter[open] .a-writing-filter__caret {
+    transform: rotate(180deg);
+  }
+
+  .a-writing-filter__menu {
+    position: absolute;
+    z-index: 15;
+    top: calc(100% + 0.4rem);
+    right: 0;
+    width: max(15rem, 100%);
+    max-height: min(26rem, 60vh);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    padding-block: 0.35rem;
+    border: 1px solid var(--line);
+    background: var(--surface-raised);
+    box-shadow: 0 1rem 2.5rem rgb(4 9 22 / 14%);
+    animation: a-writing-filter-open var(--motion-fast) var(--motion-ease) both;
+  }
+
+  @keyframes a-writing-filter-open {
+    from {
+      opacity: 0;
+      transform: translateY(-0.35rem);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .a-writing-filter__group {
+    display: block;
+    padding: 0.9rem 1rem 0.35rem;
+    color: var(--ink-faint);
+    font-family: var(--font-data);
+    font-size: 0.58rem;
+    letter-spacing: 0.04em;
+  }
+
+  .a-writing-filter__option {
+    display: flex;
+    min-height: 2.75rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding-inline: 1rem;
+    color: var(--ink);
+    font-size: 0.76rem;
+    text-decoration: none;
+    transition: background-color var(--motion-fast) ease, color var(--motion-fast) ease;
+  }
+
+  .a-writing-filter__option small {
+    color: var(--ink-faint);
+    font-family: var(--font-data);
+    font-size: 0.58rem;
+  }
+
+  .a-writing-filter__option[aria-current='true'] {
+    box-shadow: inset 3px 0 0 var(--accent);
+  }
+
+  .a-writing-filter__option:hover,
+  .a-writing-filter__option:focus-visible {
+    background: var(--accent-field);
+    color: var(--accent-field-ink);
+    outline-offset: -4px;
+  }
+
+  .a-writing-filter__option:hover small,
+  .a-writing-filter__option:focus-visible small {
+    color: color-mix(in srgb, var(--accent-field-ink) 70%, transparent);
+  }
+
   .prototype-posts,
   .a-archive ol,
   .a-taxonomy-posts,
@@ -608,6 +749,10 @@
   .a-post-index .prototype-post,
   .a-taxonomy-posts > li {
     border-bottom: 1px solid var(--line);
+  }
+
+  .a-post-index .prototype-post[hidden] {
+    display: none;
   }
 
   .a-post-index .prototype-post > a,
@@ -1213,3 +1358,31 @@
     }
   }
 }
+
+    /* One column: the heading, then the two controls, then the state line the
+       controls change. Ordered after the shared section-head rule above so it
+       wins on equal specificity. */
+    .a-directory__section-head--controls {
+      grid-template-columns: minmax(0, 1fr);
+      min-height: 0;
+      gap: 1.1rem;
+      padding-block: 1.5rem;
+    }
+
+    .a-writing-controls {
+      flex-wrap: wrap;
+      justify-content: flex-start;
+      gap: 0.4rem 1.6rem;
+    }
+
+    .a-directory__section-head .a-writing-controls__state {
+      order: 3;
+      flex: 1 0 100%;
+      text-align: left;
+    }
+
+    .a-writing-filter__menu {
+      right: auto;
+      left: 0;
+      width: min(17rem, calc(100vw - 2.2rem));
+    }

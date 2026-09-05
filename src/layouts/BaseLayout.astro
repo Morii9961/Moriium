@@ -150,20 +150,22 @@ const languageLabels = { zh: '中', ja: '日', en: 'EN' } as const;
         window.dispatchEvent(new CustomEvent('moriium:theme', { detail: next }));
       });
 
-      const searchOpen = document.querySelector<HTMLButtonElement>('[data-search-open]');
+      // A page may add its own opener, so every trigger is bound and the one
+      // that was used is the one focus returns to.
+      const searchOpeners = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-search-open]'));
       const searchDialog = document.querySelector<HTMLDialogElement>('[data-search-dialog]');
-      const showSearch = async () => {
+      const showSearch = async (trigger: HTMLElement | null) => {
         if (!searchDialog) return;
         const { openSearch } = await import('../scripts/search');
-        await openSearch(searchDialog, searchOpen);
+        await openSearch(searchDialog, trigger);
       };
-      searchOpen?.addEventListener('click', showSearch);
+      for (const opener of searchOpeners) opener.addEventListener('click', () => void showSearch(opener));
       document.addEventListener('keydown', (event) => {
         const target = event.target;
         const editing = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || (target instanceof HTMLElement && target.isContentEditable);
         if (editing || event.altKey || event.shiftKey || event.key.toLocaleLowerCase() !== 'k' || (!event.ctrlKey && !event.metaKey)) return;
         event.preventDefault();
-        void showSearch();
+        void showSearch(searchOpeners[0] ?? null);
       });
     </script>
   </body>
