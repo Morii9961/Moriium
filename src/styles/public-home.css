@@ -850,11 +850,18 @@
     font-size: 0.78rem;
   }
 
+  /* The arrow spans all three rows, and Chromium charges a spanning item's size
+     to the first track it covers. At the inherited 1.65 line-height its 16px
+     glyph made a 26.4px box, which stretched the 16.4px date row by 10px and
+     opened a gap under the date that nothing occupied. Holding the arrow to its
+     own line closes that gap; the row keeps its 8.5rem height, so the section
+     rhythm is unchanged. */
   .aperture-recent i {
     grid-column: 2;
     grid-row: 1 / -1;
     align-self: center;
     font-style: normal;
+    line-height: 1;
   }
 
   .aperture-field {
@@ -1149,25 +1156,53 @@
     gap: 0.75rem;
   }
 
+  /* The affordance, borrowed from `.a-writing-filter` on the writing index: a
+     standing hairline under the control and a caret beside it. Without both, a
+     select stripped of its OS chrome is indistinguishable from a label. */
+  .aperture-calendar__field {
+    position: relative;
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    border-bottom: 1px solid var(--line);
+    transition: border-color var(--motion-fast) var(--motion-ease);
+  }
+
+  .aperture-calendar__field:hover,
+  .aperture-calendar__field:focus-within {
+    border-bottom-color: var(--accent-field);
+  }
+
   .aperture-calendar__picker select {
-    padding: 0.15rem 0.1rem;
+    /* Room for the caret, which overlays the select's right edge rather than
+       sitting beside it, so a click anywhere on the control still opens it. */
+    padding: 0.15rem 1.05rem 0.15rem 0.1rem;
     border: 0;
-    border-bottom: 1px solid transparent;
     border-radius: 0;
     appearance: none;
     background: transparent;
-    color: var(--ink-faint);
+    color: var(--ink);
     font-family: var(--font-data);
-    font-size: 0.6rem;
+    font-size: 0.62rem;
     cursor: pointer;
-    transition:
-      color var(--motion-fast) var(--motion-ease),
-      border-color var(--motion-fast) var(--motion-ease);
+    transition: color var(--motion-fast) var(--motion-ease);
   }
 
-  .aperture-calendar__picker select:hover {
-    color: var(--ink);
-    border-bottom-color: var(--line);
+  .aperture-calendar__caret {
+    position: absolute;
+    right: 0;
+    width: 0.72rem;
+    fill: none;
+    stroke: var(--ink-muted);
+    stroke-linecap: round;
+    stroke-width: 1.7;
+    pointer-events: none;
+    transition: stroke var(--motion-fast) var(--motion-ease);
+  }
+
+  .aperture-calendar__field:hover .aperture-calendar__caret,
+  .aperture-calendar__field:focus-within .aperture-calendar__caret {
+    stroke: var(--ink);
   }
 
   /* The focus ring is the one place the control is allowed to draw a box: it is
@@ -1175,7 +1210,6 @@
   .aperture-calendar__picker select:focus-visible {
     outline: 2px solid var(--focus);
     outline-offset: 2px;
-    color: var(--ink);
   }
 
   /* The option list itself is drawn by the OS, so it needs explicit colours to
@@ -1296,49 +1330,6 @@
     flex-direction: column;
   }
 
-
-  /* Word and arrow, carried by the space above them rather than by a rule of
-     their own. The hero's entry link earns its hairline because it sits alone in
-     a panel; here the lists above already end in one, and adding a second put
-     five rules within a hand's width. Colour and the stepping arrow are enough
-     to declare an action — and never a bordered box, which is DESIGN.md's
-     "thin gray borders and interchangeable cards" anti-goal. */
-  .aperture-action {
-    display: flex;
-    min-height: 2.75rem;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1.5rem;
-    color: var(--ink);
-    font-family: var(--font-data);
-    font-size: 0.68rem;
-    text-decoration: none;
-    transition: color var(--motion-fast) var(--motion-ease);
-  }
-
-  /* `display: flex` above outranks the UA stylesheet's `[hidden] { display: none }`,
-     so an action toggled with the `hidden` attribute would otherwise stay on
-     screen. The calendar's overflow link is toggled that way. */
-  .aperture-action[hidden] {
-    display: none;
-  }
-
-  .aperture-action:hover,
-  .aperture-action:focus-visible {
-    color: var(--accent);
-  }
-
-  .aperture-action i {
-    font-size: 1.1em;
-    font-style: normal;
-    transition: transform var(--motion-fast) var(--motion-ease);
-  }
-
-  .aperture-action:hover i,
-  .aperture-action:focus-visible i {
-    transform: translate(0.25rem, -0.25rem);
-  }
-
   /* Three peers sharing the column rhythm of the ways nav, set well clear of the
      list above so the separation is space rather than another line. Both columns
      of the colophon use this wrapper — the calendar's lone action included — so
@@ -1354,20 +1345,6 @@
 
   .aperture-colophon__actions--single {
     grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  @layer components {
-    /* The colour still changes, so state stays legible. Only the travel goes. */
-    .aperture-action i {
-      transition: none;
-    }
-
-    .aperture-action:hover i,
-    .aperture-action:focus-visible i {
-      transform: none;
-    }
   }
 }
 

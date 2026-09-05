@@ -46,12 +46,18 @@ const activeDays = new Set(
 // At most two links under the grid; a month with more gets an overflow action
 // instead of a longer list.
 const CALENDAR_LINK_LIMIT = 2;
+// The overflow action belongs to a month that actually ran long, so it appears
+// only from the third post on. Deriving it from the link cap alone would make
+// the rule an accident of that cap: at a cap of one, a two-post month would
+// start advertising a remainder.
+const CALENDAR_MORE_MIN = 3;
 const calendarMonthPosts = posts.filter((p) => {
   const d = p.data.publishedAt;
   return d.getFullYear() === calendarYear && d.getMonth() === calendarMonth;
 });
 const calendarRecentPosts = calendarMonthPosts.slice(0, CALENDAR_LINK_LIMIT);
 const calendarOverflow = calendarMonthPosts.length - calendarRecentPosts.length;
+const calendarShowMore = calendarMonthPosts.length >= CALENDAR_MORE_MIN && calendarOverflow > 0;
 
 // The picker spans every year the archive covers, so a reader can walk back
 // through empty months as well as ones with posts.
@@ -447,6 +453,7 @@ const routeHrefs = [`/${lang}/writing/`, `/${lang}/archive/`, `/${lang}/categori
           data-month={calendarMonth}
           data-archive={`/${lang}/archive/`}
           data-limit={CALENDAR_LINK_LIMIT}
+          data-more-min={CALENDAR_MORE_MIN}
           data-day-title={c.calendarDayActive('{day}')}
           data-more-template={c.calendarMore('{count}')}
         >
@@ -454,19 +461,28 @@ const routeHrefs = [`/${lang}/writing/`, `/${lang}/archive/`, `/${lang}/categori
             <h3>{c.calendarTitle}</h3>
             {/* Two native selects: they carry keyboard and screen-reader behaviour
                 for free, and the stylesheet strips the OS chrome back to type. */}
+            {/* Underline plus caret, the same affordance the writing index's
+                filter uses. A bare styled select reads as a label, not a
+                control — the hairline and the chevron are what say it opens. */}
             <div class="aperture-calendar__picker">
               <label class="visually-hidden" for="calendar-year">{c.calendarPickYear}</label>
-              <select id="calendar-year" data-calendar-year>
-                {calendarYears.map((year) => (
-                  <option value={year} selected={year === calendarYear}>{year}</option>
-                ))}
-              </select>
+              <span class="aperture-calendar__field">
+                <select id="calendar-year" data-calendar-year>
+                  {calendarYears.map((year) => (
+                    <option value={year} selected={year === calendarYear}>{year}</option>
+                  ))}
+                </select>
+                <svg class="aperture-calendar__caret" viewBox="0 0 24 24" aria-hidden="true"><path d="m5.5 9 6.5 6.5L18.5 9"></path></svg>
+              </span>
               <label class="visually-hidden" for="calendar-month">{c.calendarPickMonth}</label>
-              <select id="calendar-month" data-calendar-month>
-                {calendarMonths.map((month) => (
-                  <option value={month.value} selected={month.value === calendarMonth}>{month.label}</option>
-                ))}
-              </select>
+              <span class="aperture-calendar__field">
+                <select id="calendar-month" data-calendar-month>
+                  {calendarMonths.map((month) => (
+                    <option value={month.value} selected={month.value === calendarMonth}>{month.label}</option>
+                  ))}
+                </select>
+                <svg class="aperture-calendar__caret" viewBox="0 0 24 24" aria-hidden="true"><path d="m5.5 9 6.5 6.5L18.5 9"></path></svg>
+              </span>
             </div>
           </div>
           <div class="aperture-calendar" aria-label={c.calendarTitle}>
@@ -496,7 +512,7 @@ const routeHrefs = [`/${lang}/writing/`, `/${lang}/archive/`, `/${lang}/categori
             class="aperture-action aperture-calendar__more"
             data-calendar-more
             href={`/${lang}/archive/#archive-${calendarYear}`}
-            hidden={calendarOverflow <= 0}
+            hidden={!calendarShowMore}
           >
             <span data-calendar-more-label>{c.calendarMore(calendarOverflow)}</span><i aria-hidden="true">↗</i>
           </a>
@@ -539,6 +555,7 @@ const routeHrefs = [`/${lang}/writing/`, `/${lang}/archive/`, `/${lang}/categori
       }
 
       const limit = Number(root.dataset.limit) || 2;
+      const moreMin = Number(root.dataset.moreMin) || 3;
       const archive = root.dataset.archive || '';
       const dayTitle = root.dataset.dayTitle || '';
       const moreTemplate = root.dataset.moreTemplate || '';
@@ -595,10 +612,13 @@ const routeHrefs = [`/${lang}/writing/`, `/${lang}/archive/`, `/${lang}/categori
 
         // The href tracks the year even while the action is hidden, so it can
         // never be shown pointing at the previously selected one.
+        // Same rule as the server render: a month advertises a remainder only
+        // once it has reached the third post.
         const overflow = inMonth.length - shown.length;
+        const showMore = inMonth.length >= moreMin && overflow > 0;
         more.href = `${archive}#archive-${year}`;
-        more.hidden = overflow <= 0;
-        if (overflow > 0) moreLabel.textContent = moreTemplate.replace('{count}', String(overflow));
+        more.hidden = !showMore;
+        if (showMore) moreLabel.textContent = moreTemplate.replace('{count}', String(overflow));
       };
 
       yearSelect.addEventListener('change', render);
