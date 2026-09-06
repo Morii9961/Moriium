@@ -10,7 +10,7 @@ const { lang } = Astro.props as { lang: Language };
 const copy = {
   zh: {
     title: '关于 Moriium', intro: 'Moriium 是 Morii 的个人博客。这里放文章、摄影笔记、旅行记录和技术随笔。',
-    author: '作者', languages: '语言', languageValue: '中 · 日 · EN', place: 'This place',
+    place: 'This place',
     statement: '把值得保留的东西，放在一个可以慢慢阅读的地方。',
     body: [
       '这里不追赶即时动态，也不要求所有内容长成同一种样子。照片可以展开，代码需要清楚；其他时候，页面只安静地承载文字。',
@@ -27,7 +27,7 @@ const copy = {
   },
   ja: {
     title: 'Moriium について', intro: 'Moriium は Morii の個人ブログです。文章、写真のメモ、旅の記録、技術ノートを置いています。',
-    author: '作者', languages: '言語', languageValue: '中 · 日 · EN', place: 'This place',
+    place: 'This place',
     statement: '残しておきたいものを、ゆっくり読める場所へ。',
     body: [
       'ここは短い近況を追いかける場所ではなく、すべてを同じ形にも揃えません。写真は大きく開き、コードは読みやすくする。それ以外のときは、文章を静かに載せます。',
@@ -44,7 +44,7 @@ const copy = {
   },
   en: {
     title: 'About Moriium', intro: "Moriium is Morii's personal blog for essays, photography notes, travel records, and technical writing.",
-    author: 'Author', languages: 'Languages', languageValue: 'ZH · JA · EN', place: 'This place',
+    place: 'This place',
     statement: 'A place to keep what matters and read it slowly.',
     body: [
       'This is not a feed of passing updates, and every piece need not take the same shape. Photographs can open wide, code stays legible, and plain pages carry the rest.',
@@ -68,10 +68,6 @@ const c = copy[lang];
     <header class="a-directory__hero">
       <p class="prototype-kicker">Moriium / About</p>
       <div class="a-directory__title"><h1>{c.title}</h1><p>{c.intro}</p></div>
-      <dl class="a-directory__stats">
-        <div><dt>{c.author}</dt><dd>{SITE.author}</dd></div>
-        <div><dt>{c.languages}</dt><dd>{c.languageValue}</dd></div>
-      </dl>
     </header>
 
     <section class="a-about-page__statement" aria-labelledby="about-statement">
