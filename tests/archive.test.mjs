@@ -66,6 +66,18 @@ test('the archive listing reads as one year-month-day axis', async () => {
   assert.match(styles, /\.a-archive__days time\s*{[^}]*padding-right:\s*0\.85rem[^}]*text-align:\s*right/s);
   assert.match(styles, /\.a-archive__days::before,\s*\.a-archive__days > li::after\s*{[^}]*left:\s*calc\(var\(--archive-date\) \+ var\(--archive-gap\)\)/s);
   assert.match(styles, /\.a-archive__days > li\s*{[^}]*grid-template-columns:\s*var\(--archive-date\)/s);
+  // A rule separates two years and closes nothing, so the last year is not
+  // underlined and the whitespace below it stays open.
+  assert.match(styles, /\.a-archive \+ \.a-archive\s*{[^}]*border-top:\s*1px solid var\(--line\)/s);
+  const section = styles.slice(styles.indexOf('.a-archive {'));
+  assert.doesNotMatch(section.slice(0, section.indexOf('}')), /border-bottom/);
+
+  // Hovering a row moves every one of its marks at once: the title and the day
+  // take the accent, the day's tick extends, and the row's own rule sweeps.
+  assert.match(styles, /\.a-archive__days a\s*{[^}]*text-decoration:\s*none[^}]*transition:\s*color var\(--motion-fast\)/s);
+  assert.match(styles, /\.a-archive__days > li::after\s*{[^}]*background-size:\s*0 100%[^}]*transition:\s*background-size var\(--motion-medium\) var\(--motion-ease\)/s);
+  assert.match(styles, /\.a-archive__days > li:has\(a:focus-visible\)::after\s*{[^}]*background-size:\s*100% 100%/s);
+
   for (const selector of ['.a-archive__year h2', '.a-archive__month-mark', '.a-archive__days time']) {
     const rule = styles.slice(styles.indexOf(`${selector} {`));
     assert.match(rule.slice(0, rule.indexOf('}')), /font-family:\s*var\(--font-wordmark\)/);

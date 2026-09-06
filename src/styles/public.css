@@ -995,7 +995,12 @@
     --archive-gap: clamp(1.25rem, 2.5vw, 2.25rem);
 
     padding-block: clamp(3.5rem, 7vw, 7rem);
-    border-bottom: 1px solid var(--line);
+  }
+
+  /* A rule between two years and nowhere else. Closing the last one drew a line
+     under the whole archive, which separates the listing from nothing. */
+  .a-archive + .a-archive {
+    border-top: 1px solid var(--line);
   }
 
   .a-archive__year {
@@ -1123,8 +1128,22 @@
     align-items: center;
   }
 
+  /* The row's own rule doubles as its hover state: an accent gradient sweeps
+     across the resting hairline from the left, the same wipe the writing and
+     taxonomy rows use for their accent field, at hairline weight because the
+     archive is the denser list. Travel is long, so it takes the medium
+     duration while the day's short tick keeps the fast one. */
   .a-archive__days > li::after {
     bottom: 0;
+    background-image: linear-gradient(var(--accent), var(--accent));
+    background-repeat: no-repeat;
+    background-size: 0 100%;
+    transition: background-size var(--motion-medium) var(--motion-ease);
+  }
+
+  .a-archive__days > li:has(a:hover)::after,
+  .a-archive__days > li:has(a:focus-visible)::after {
+    background-size: 100% 100%;
   }
 
   /* The day's own mark. A day is the finest reading on the axis, so it is a
@@ -1169,17 +1188,21 @@
     background: var(--accent);
   }
 
+  /* The title's own underline is gone: the row rule beneath it now carries the
+     hover, and two rules under one line of type is noise. The colour is given
+     a duration so the title arrives with the mark and the figure rather than
+     snapping ahead of them. */
   .a-archive__days a {
     font-family: var(--font-display);
     font-size: 1.15rem;
     font-weight: 580;
-    text-decoration-color: transparent;
+    text-decoration: none;
+    transition: color var(--motion-fast) ease;
   }
 
   .a-archive__days a:hover,
   .a-archive__days a:focus-visible {
     color: var(--accent);
-    text-decoration-color: currentColor;
   }
 
   .a-category-directory {
