@@ -825,12 +825,13 @@
        comfortably taller than its content without the content floating in it. */
     min-height: 8.5rem;
     align-content: center;
-    /* The lit panel bleeds past the text on both sides, but the text itself
-       stays on the section's left edge — the margin gives back exactly what the
-       padding takes. Both are cut from the gutter, so the panel can never reach
-       past it and open a horizontal scrollbar at narrow widths. */
-    margin-inline: calc(var(--gutter) * -0.4);
-    padding-inline: calc(var(--gutter) * 0.4);
+    /* Inset from the row's own rule, which stays on the `li` at the list's full
+       width. The panel therefore lights up *inside* the hairline instead of
+       overhanging it, and the text and arrow sit within the field rather than on
+       its edges — the same 1.25rem the writing index, the archive and the
+       taxonomy rows use. An earlier pass bled the panel outward instead, which
+       left it visibly wider than the divider above and below it. */
+    padding-inline: 1.25rem;
     isolation: isolate;
     text-decoration: none;
   }
@@ -920,6 +921,15 @@
     align-self: center;
     font-style: normal;
     line-height: 1;
+    transition: transform var(--motion-fast) var(--motion-ease);
+  }
+
+  /* The arrow steps the way it points, exactly as the writing index and taxonomy
+     arrows do. It keeps the field's ink outright rather than the 70% the other
+     marks take: it is the row's verb, not its metadata. */
+  .aperture-recent li a:hover i,
+  .aperture-recent li a:focus-visible i {
+    transform: translate(0.25rem, -0.25rem);
   }
 
   .aperture-field {
@@ -965,6 +975,13 @@
     gap: 0.55rem;
   }
 
+  /* The divider belongs to the row, not to the link inside it: on the `li` it
+     spans the column exactly like the label's rule above, so the two run to the
+     same length. On the link it inherited the link's inset and came up short. */
+  .aperture-field ol li {
+    border-bottom: 1px solid var(--line);
+  }
+
   .aperture-field ol a {
     position: relative;
     display: flex;
@@ -972,9 +989,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 2rem;
-    margin-inline: calc(var(--gutter) * -0.4);
-    padding-inline: calc(var(--gutter) * 0.4);
-    border-bottom: 1px solid var(--line);
+    padding-inline: 1.25rem;
     isolation: isolate;
     text-decoration: none;
   }
@@ -1000,10 +1015,12 @@
     padding-top: 2rem;
   }
 
-  /* Tags are set as flowing type, not rows, so they keep the colour change
-     rather than taking the panel — a lit block behind a ragged line of tags
-     would fight the column beside it. They gain the transition they were
-     missing, on the same curve as the rows. */
+  /* Tags are set as type on their own lines, not as rows, so a panel behind a
+     ragged edge would fight the column beside it. They take the tags
+     directory's gesture instead — a hovered tag slides along its own axis —
+     which is motion in the same family without needing a box. The transform
+     applies because these are flex items of the column above, not inline
+     boxes, which would have ignored it. */
   .aperture-field__tags > div:last-child a {
     margin-left: calc((var(--tag-offset, 0) % 3) * clamp(0rem, 3vw, 3rem));
     color: var(--ink-muted);
@@ -1013,12 +1030,14 @@
     line-height: 1.6;
     text-decoration-color: transparent;
     transition:
+      transform var(--motion-medium) var(--motion-ease),
       color var(--motion-fast) var(--motion-ease),
       text-decoration-color var(--motion-fast) var(--motion-ease);
   }
 
   .aperture-field__tags > div:last-child a:hover,
   .aperture-field__tags > div:last-child a:focus-visible {
+    transform: translateX(0.4rem);
     color: var(--accent);
     text-decoration-color: currentColor;
   }
@@ -1056,7 +1075,7 @@
     border-top: 1px solid var(--ink);
   }
 
-  .aperture-ledger__years li + li a {
+  .aperture-ledger__years li + li {
     border-top: 1px solid var(--line);
   }
 
@@ -1067,8 +1086,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 2rem;
-    margin-inline: calc(var(--gutter) * -0.4);
-    padding-inline: calc(var(--gutter) * 0.4);
+    padding-inline: 1.25rem;
     isolation: isolate;
     text-decoration: none;
   }
