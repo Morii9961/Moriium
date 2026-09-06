@@ -816,6 +816,7 @@
      arrow holds the right. The date used to occupy a 9rem leading column, which
      pushed every title a further 176px in. */
   .aperture-recent li a {
+    position: relative;
     display: grid;
     grid-template-columns: minmax(0, 1fr) 1.5rem;
     gap: 0.7rem 2rem;
@@ -824,7 +825,64 @@
        comfortably taller than its content without the content floating in it. */
     min-height: 8.5rem;
     align-content: center;
+    /* The lit panel bleeds past the text on both sides, but the text itself
+       stays on the section's left edge — the margin gives back exactly what the
+       padding takes. Both are cut from the gutter, so the panel can never reach
+       past it and open a horizontal scrollbar at narrow widths. */
+    margin-inline: calc(var(--gutter) * -0.4);
+    padding-inline: calc(var(--gutter) * 0.4);
+    isolation: isolate;
     text-decoration: none;
+  }
+
+  /* One gesture for every list row on the site. The panel is parked at zero
+     width against the row's right edge, grows from the left on hover, and
+     retreats the way it came — the same `::before` the writing index, the
+     archive and the taxonomy pages use in public.css. Before this, the home's
+     rows were the only ones that changed colour instantly or, in the case of
+     the post rows, did not respond at all. */
+  .aperture-recent li a::before,
+  .aperture-field ol a::before,
+  .aperture-ledger__years a::before {
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    background: var(--accent-field);
+    content: "";
+    transform: scaleX(0);
+    transform-origin: right center;
+    transition: transform var(--motion-medium) var(--motion-ease);
+  }
+
+  .aperture-recent li a:hover::before,
+  .aperture-recent li a:focus-visible::before,
+  .aperture-field ol a:hover::before,
+  .aperture-field ol a:focus-visible::before,
+  .aperture-ledger__years a:hover::before,
+  .aperture-ledger__years a:focus-visible::before {
+    transform: scaleX(1);
+    transform-origin: left center;
+  }
+
+  .aperture-recent li a:hover,
+  .aperture-recent li a:focus-visible,
+  .aperture-field ol a:hover,
+  .aperture-field ol a:focus-visible,
+  .aperture-ledger__years a:hover,
+  .aperture-ledger__years a:focus-visible {
+    color: var(--accent-field-ink);
+    outline-offset: -4px;
+  }
+
+  /* The metadata on a lit row keeps its rank: it steps up to the field's ink
+     but stays under the title, exactly as the other pages' rows do. */
+  .aperture-recent li a:hover :is(time, p),
+  .aperture-recent li a:focus-visible :is(time, p),
+  .aperture-field ol a:hover small,
+  .aperture-field ol a:focus-visible small,
+  .aperture-ledger__years a:hover small,
+  .aperture-ledger__years a:focus-visible small {
+    color: color-mix(in srgb, var(--accent-field-ink) 70%, transparent);
   }
 
   .aperture-recent time {
@@ -908,12 +966,16 @@
   }
 
   .aperture-field ol a {
+    position: relative;
     display: flex;
     min-height: 6rem;
     align-items: center;
     justify-content: space-between;
     gap: 2rem;
+    margin-inline: calc(var(--gutter) * -0.4);
+    padding-inline: calc(var(--gutter) * 0.4);
     border-bottom: 1px solid var(--line);
+    isolation: isolate;
     text-decoration: none;
   }
 
@@ -930,10 +992,6 @@
     font-size: 0.6rem;
   }
 
-  .aperture-field ol a:hover span,
-  .aperture-field ol a:focus-visible span {
-    color: var(--accent);
-  }
 
   .aperture-field__tags > div:last-child {
     display: flex;
@@ -942,6 +1000,10 @@
     padding-top: 2rem;
   }
 
+  /* Tags are set as flowing type, not rows, so they keep the colour change
+     rather than taking the panel — a lit block behind a ragged line of tags
+     would fight the column beside it. They gain the transition they were
+     missing, on the same curve as the rows. */
   .aperture-field__tags > div:last-child a {
     margin-left: calc((var(--tag-offset, 0) % 3) * clamp(0rem, 3vw, 3rem));
     color: var(--ink-muted);
@@ -950,6 +1012,9 @@
     font-weight: 560;
     line-height: 1.6;
     text-decoration-color: transparent;
+    transition:
+      color var(--motion-fast) var(--motion-ease),
+      text-decoration-color var(--motion-fast) var(--motion-ease);
   }
 
   .aperture-field__tags > div:last-child a:hover,
@@ -996,11 +1061,15 @@
   }
 
   .aperture-ledger__years a {
+    position: relative;
     display: flex;
     min-height: 6rem;
     align-items: center;
     justify-content: space-between;
     gap: 2rem;
+    margin-inline: calc(var(--gutter) * -0.4);
+    padding-inline: calc(var(--gutter) * 0.4);
+    isolation: isolate;
     text-decoration: none;
   }
 
@@ -1017,10 +1086,6 @@
     font-size: 0.6rem;
   }
 
-  .aperture-ledger__years a:hover span,
-  .aperture-ledger__years a:focus-visible span {
-    color: var(--accent);
-  }
 
   /* Facts, not a scoreboard: each row states one thing about the archive and
      reads the same whether the count is 1 or 400. */
