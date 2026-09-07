@@ -65,6 +65,20 @@ Two rules keep `--nudge` from becoming the per-glyph positioning this structure 
 
 Sizes are per *run*: the outline runs are set `--line-scale: 1.1` against the solid runs' 145px.
 
+### The article page
+
+The opening is sized by what it holds. It used to be pinned to 48rem tall because the study it came from always put a 76rem photograph directly under the title; with no cover that reserved height held nothing, and on a 900px screen the first paragraph began 137px below the fold. It now ends where the facts end, and the first two paragraphs are on the opening screen.
+
+Han glyphs fill their em box, so the title's old 0.84 line height stacked the second line of a Chinese headline 21px into the first. Titles set at 1.12 with −0.02em; `:lang(en)` keeps 0.98 and −0.05em, because Latin letterforms carry their own side bearings. Body text runs at 1.75 with `letter-spacing: 0.02em` on Chinese and Japanese, reset on `code`, `kbd`, `abbr`, `time`, `.katex` and anything carrying its own `lang`.
+
+The reading grid is three tracks holding two things: the prose sits in the middle column so it is centred on the page, and the outline hangs in the left margin as a sticky marginal note. The right margin holds nothing, deliberately. The rule that used to run down the middle of the prose is gone — it was positioned at 42% of a grid measured for three rails, which at 1440px put it 264px inside the text column, through the figures and the code.
+
+**A layer-order trap worth knowing about.** A layer's position in the cascade is fixed by the first `@layer` statement the browser sees. The article page's bundle begins with this stylesheet, so `components` was being registered before `base`, and `.public-site p { margin: 0 }` in `base` outranked every margin the reading stylesheet declared — which is why the summary sat flush against the title. `public-reading.css` now restates the canonical order at the top. Any future page-specific stylesheet that can lead a bundle needs the same line.
+
+Everything the Markdown pipeline can emit is covered: tables in a focusable scroll wrapper, footnotes, task lists, nested lists, `hr`, `details`, `h4`–`h6`, `kbd`, `mark`, `abbr`, `sub`, `sup`, `del`, `ins`, figures with captions, and `.katex-display` overflow. remark hard-codes `.sr-only` on the heading above a footnote section; undefined, that heading was rendering at full article-h2 size, in English, with the accent rule above it, in the middle of a Chinese post.
+
+The outline marks the section the reader is in through an IntersectionObserver band, in an 809-byte inline module. Without it the outline is still a list of working anchor links.
+
 ### The entrance
 
 The hero is written onto the page rather than faded in, and the order is the point: the quiet layer first, then the display type filling the field in four passes.

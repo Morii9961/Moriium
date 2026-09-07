@@ -1,15 +1,31 @@
+/* The canonical cascade order, restated here because a layer's position is
+   fixed by the first `@layer` statement the browser sees, and this file can be
+   the first stylesheet in the article page's bundle. Without it `components`
+   was registered before `base`, so `.public-site p { margin: 0 }` in `base`
+   outranked every margin this file declares — which is why the summary sat
+   flush against the title. Restating the same order is idempotent. */
+@layer reset, tokens, base, components, utilities;
+
 @layer components {
+  /* The article is the container for its own width tiers. `cqi` is measured on
+     this element's content box, so a tier can be clamped to the page without
+     `100vw`, which on Windows counts the scrollbar and would overflow. */
   .a-article {
+    container-type: inline-size;
     padding-bottom: clamp(5rem, 10vw, 10rem);
   }
 
+  /* ---------------------------------------------------------------- opening */
+
+  /* The opening is sized by what it holds. It used to be pinned to 48rem tall
+     because the prototype it came from always put a 76rem photograph directly
+     underneath; with no cover that reserved height held nothing, and the first
+     paragraph started below the fold on a 900px screen. */
   .a-article__hero {
     position: relative;
     display: grid;
     grid-template-columns: repeat(12, minmax(0, 1fr));
-    grid-template-rows: auto 1fr auto;
-    min-height: min(48rem, calc(100vh - 6rem));
-    padding-block: 3rem 4rem;
+    padding-block: 2.5rem 0;
     isolation: isolate;
     border-bottom: 1px solid var(--line);
   }
@@ -37,19 +53,37 @@
     content: "";
   }
 
+  /* The placement belongs to the element the grid actually sees. It used to sit
+     on the list inside the nav, which left the nav auto-placed in a single
+     twelfth of the row and broke the category across two lines. */
   .a-article__breadcrumb {
     grid-column: 1 / 8;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.6rem;
     align-self: start;
     color: var(--ink-faint);
     font-family: var(--font-data);
-    font-size: 0.58rem;
+    font-size: 0.62rem;
+  }
+
+  .a-article__breadcrumb ol {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .a-article__breadcrumb li {
+    display: inline;
+  }
+
+  /* The separator belongs to the list, not to the words, so it can never be
+     read out or copied as part of a title. */
+  .a-article__breadcrumb li + li::before {
+    margin-inline: 0.6rem;
+    content: "/";
   }
 
   .a-article__breadcrumb a {
     text-decoration-color: transparent;
+    transition: color var(--motion-fast) ease, text-decoration-color var(--motion-fast) ease;
   }
 
   .a-article__breadcrumb a:hover,
@@ -61,43 +95,53 @@
   .a-article__title {
     grid-column: 1 / 8;
     grid-row: 2;
-    align-self: center;
-    padding-block: 4rem;
+    padding-block: 3.5rem;
   }
 
+  /* A Han glyph fills its em box, so a line height under 1 makes two lines of
+     Chinese overlap rather than sit tight: at 129.6px the old 0.84 stacked the
+     second line 21px into the first. 1.12 keeps the setting dense without the
+     collision, and −0.02em is as far as the tracking can close before the
+     strokes of adjacent characters start to touch. */
   .a-article__title h1 {
     max-width: 9ch;
-    margin-top: 1.25rem;
     font-family: var(--font-display);
-    font-size: clamp(4rem, 9vw, 9rem);
+    font-size: clamp(3.4rem, 8vw, 8rem);
     font-weight: 680;
-    letter-spacing: -0.09em;
-    line-height: 0.84;
-    overflow-wrap: anywhere;
+    letter-spacing: -0.02em;
+    line-height: 1.12;
+    overflow-wrap: break-word;
   }
 
-  .a-article__title .prototype-article__lead {
-    max-width: 38rem;
+  .a-article__title h1:lang(en) {
+    max-width: 16ch;
+    letter-spacing: -0.05em;
+    line-height: 0.98;
+  }
+
+  .a-article__lead {
+    max-width: 34rem;
     margin-top: 2rem;
     color: var(--ink-muted);
     font-family: var(--font-reading);
-    font-size: clamp(1rem, 1.5vw, 1.15rem);
-    line-height: 1.85;
+    font-size: clamp(1rem, 1.4vw, 1.12rem);
+    line-height: 1.8;
+    text-wrap: pretty;
   }
 
   .a-article__facts {
     z-index: 1;
     grid-column: 10 / 13;
-    grid-row: 2 / 4;
+    grid-row: 2;
     align-self: end;
-    margin: 0;
+    margin: 0 0 3.5rem;
     padding: 1rem 1.25rem;
     background: var(--surface);
   }
 
   .a-article__facts div {
     display: flex;
-    min-height: 3.7rem;
+    min-height: 3.4rem;
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
@@ -112,7 +156,7 @@
   .a-article__facts dd {
     margin: 0;
     font-family: var(--font-data);
-    font-size: 0.6rem;
+    font-size: 0.64rem;
   }
 
   .a-article__facts dt {
@@ -127,9 +171,11 @@
     color: var(--accent);
   }
 
+  /* The cover is the one place the article reaches gallery width. It is the
+     page's width contrast: 76rem of photograph against a 48rem column. */
   .a-article__cover {
     width: min(100%, var(--layout-gallery));
-    margin: clamp(4rem, 9vw, 9rem) auto 0;
+    margin: clamp(2.5rem, 4vw, 4rem) auto 0;
   }
 
   .a-article__cover img {
@@ -145,54 +191,61 @@
     padding-top: 0.8rem;
     color: var(--ink-faint);
     font-family: var(--font-data);
-    font-size: 0.58rem;
+    font-size: 0.62rem;
   }
 
+  /* ----------------------------------------------------------- reading grid */
+
+  /* Three tracks, but only two things in them: the prose sits in the middle so
+     it is centred on the page, and the outline hangs in the left margin as a
+     marginal note. The right margin is left empty on purpose — it is the only
+     part of the page that is allowed to hold nothing. */
   .a-reading-grid {
-    position: relative;
     display: grid;
-    grid-template-columns: minmax(9rem, 0.42fr) minmax(0, var(--layout-reading)) minmax(10rem, 0.48fr);
-    gap: clamp(2rem, 5vw, 5rem);
+    grid-template-columns: minmax(0, 1fr) min(var(--layout-reading), 100%) minmax(0, 1fr);
     align-items: start;
-    margin-top: clamp(6rem, 12vw, 12rem);
+    margin-top: clamp(3rem, 5vw, 5rem);
   }
 
-  .a-reading-grid::before {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: calc(42% - clamp(1rem, 2vw, 2rem));
-    width: 0.45rem;
-    background: var(--accent-field);
-    content: "";
+  .a-article__cover + .a-reading-grid {
+    margin-top: clamp(3.5rem, 6vw, 6rem);
   }
 
-  .a-article__outline,
-  .a-article__context {
+  /* Sticky works here because the item is start-aligned inside a grid area
+     that is as tall as the whole article: one row, and the prose sets its
+     height. */
+  .a-article__outline {
     position: sticky;
     top: 2rem;
+    grid-column: 1;
+    justify-self: end;
+    width: min(13rem, 100%);
+    padding-right: clamp(1.5rem, 3vw, 3rem);
     color: var(--ink-muted);
-    font-size: 0.7rem;
+    font-size: 0.72rem;
   }
 
-  .a-article__outline > p,
-  .a-article__context section > p {
+  .a-article__outline > p {
     margin-bottom: 1rem;
     color: var(--ink-faint);
     font-family: var(--font-data);
-    font-size: 0.58rem;
+    font-size: 0.6rem;
   }
 
   .a-article__outline nav {
     display: grid;
-    gap: 0.75rem;
+    gap: 0.15rem;
   }
 
   .a-article__outline nav a {
+    position: relative;
     display: grid;
     grid-template-columns: 1.7rem minmax(0, 1fr);
-    gap: 0.6rem;
+    gap: 0.5rem;
+    padding-block: 0.4rem;
+    color: var(--ink-muted);
     text-decoration: none;
+    transition: color var(--motion-fast) ease;
   }
 
   .a-article__outline nav a[data-depth='3'] {
@@ -202,12 +255,30 @@
   .a-article__outline nav a span {
     color: var(--ink-faint);
     font-family: var(--font-data);
-    font-size: 0.55rem;
+    font-size: 0.56rem;
+    transition: color var(--motion-fast) ease;
   }
 
   .a-article__outline nav a:hover,
   .a-article__outline nav a:focus-visible {
     color: var(--accent);
+  }
+
+  /* The section a reader is actually in. The mark sits on the rail's own edge
+     rather than beside the word, so the list keeps one left edge. */
+  .a-article__outline nav a[aria-current='true'],
+  .a-article__outline nav a[aria-current='true'] span {
+    color: var(--accent);
+  }
+
+  .a-article__outline nav a[aria-current='true']::before {
+    position: absolute;
+    top: 0.75rem;
+    left: -0.75rem;
+    width: 0.3rem;
+    height: 0.3rem;
+    background: var(--accent);
+    content: "";
   }
 
   .a-article__back {
@@ -216,165 +287,520 @@
     align-items: center;
     margin-top: 2rem;
     color: var(--accent);
-    font-size: 0.65rem;
+    font-size: 0.68rem;
   }
+
+  /* With no sections to list, the rail is just the way back. */
+  .a-article__back:first-child {
+    margin-top: 0;
+  }
+
+  /* ------------------------------------------------------------------ prose */
 
   .a-article__body,
   .public-site .article-body {
-    width: min(100%, var(--layout-reading));
+    grid-column: 2;
+    width: 100%;
     max-width: none;
     margin: 0;
+    padding: 0;
     font-family: var(--font-reading);
-    font-size: clamp(1.05rem, 1.3vw, 1.18rem);
-    line-height: 1.82;
+    font-size: clamp(1.05rem, 1.3vw, 1.15rem);
+    line-height: 1.75;
+    overflow-wrap: break-word;
   }
 
-  .public-site .article-body > * + * {
-    margin-top: 1.05em;
+  /* Han characters are set solid, so a little tracking is what keeps a screen
+     line from reading as one dense band. Latin runs already carry their own
+     side bearings and get none — the reset below covers the inline elements
+     that are almost always Latin inside a Chinese line. */
+  .public-site .article-body:lang(zh),
+  .public-site .article-body:lang(ja) {
+    letter-spacing: 0.02em;
   }
 
-  .public-site .article-body h2,
-  .public-site .article-body h3 {
-    font-family: var(--font-display);
-    font-weight: 640;
-    letter-spacing: -0.045em;
-    line-height: 1.2;
+  .public-site .article-body :is(code, kbd, samp, var, abbr, time, .katex, [lang]) {
+    letter-spacing: normal;
   }
 
-  .public-site .article-body h2 {
-    margin-top: 4.8rem;
-    padding-top: 1.5rem;
-    border-top: 0.45rem solid var(--accent-field);
-    font-size: clamp(2rem, 4.2vw, 3.8rem);
+  /* Spacing is declared per element rather than by one `* + *` rule, because a
+     table, a figure and a paragraph do not want the same air. Every block
+     states only its bottom margin; the first and last child close the ends. */
+  .public-site .article-body > * {
+    margin-block: 0 1.4em;
   }
 
-  .public-site .article-body h3 {
-    margin-top: 3.4rem;
-    font-size: clamp(1.45rem, 2.7vw, 2.3rem);
+  .public-site .article-body > :last-child {
+    margin-bottom: 0;
   }
 
   .public-site .article-body p {
     text-wrap: pretty;
   }
 
+  /* Headings ------------------------------------------------------------- */
+
+  .public-site .article-body :is(h2, h3, h4, h5, h6) {
+    font-family: var(--font-display);
+    scroll-margin-top: 5rem;
+    text-wrap: balance;
+  }
+
+  /* A hairline with a short accent mark on it, not a 7mm slab of brand colour.
+     The rule says "new section"; the mark says whose section it is. */
+  .public-site .article-body > h2 {
+    position: relative;
+    margin-block: clamp(3rem, 5vw, 4.5rem) 1.25rem;
+    padding-top: 1.4rem;
+    border-top: 1px solid var(--line);
+    font-size: clamp(1.5rem, 2.4vw, 2rem);
+    font-weight: 640;
+    letter-spacing: -0.02em;
+    line-height: 1.3;
+  }
+
+  .public-site .article-body > h2::before {
+    position: absolute;
+    top: -1px;
+    left: 0;
+    width: 2.5rem;
+    height: 3px;
+    background: var(--accent-field);
+    content: "";
+  }
+
+  .public-site .article-body > h3 {
+    margin-block: clamp(2.25rem, 3.5vw, 3rem) 0.9rem;
+    font-size: clamp(1.25rem, 1.8vw, 1.5rem);
+    font-weight: 640;
+    letter-spacing: -0.015em;
+    line-height: 1.35;
+  }
+
+  /* Below h3 there is no size left to spend, and Chinese has no case or italic
+     to fall back on, so the ladder continues in weight, colour and face. */
+  .public-site .article-body > h4 {
+    margin-block: 2rem 0.7rem;
+    font-size: 1.2rem;
+    font-weight: 640;
+    line-height: 1.45;
+  }
+
+  .public-site .article-body > h5 {
+    margin-block: 1.75rem 0.6rem;
+    color: var(--ink-muted);
+    font-size: 1.05rem;
+    font-weight: 640;
+    line-height: 1.5;
+  }
+
+  .public-site .article-body > h6 {
+    margin-block: 1.75rem 0.6rem;
+    color: var(--ink-faint);
+    font-family: var(--font-data);
+    font-size: 0.72rem;
+    font-weight: 400;
+    letter-spacing: 0.08em;
+    line-height: 1.6;
+  }
+
+  /* A heading never wants the full block gap under it; it belongs to what
+     follows. */
+  .public-site .article-body > :is(h2, h3, h4, h5, h6) + * {
+    margin-top: 0;
+  }
+
+  /* Links and inline ----------------------------------------------------- */
+
   .public-site .article-body a {
     color: var(--accent);
     text-decoration-style: dotted;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.25em;
+    transition: text-decoration-style var(--motion-fast) ease;
   }
 
+  .public-site .article-body a:hover,
+  .public-site .article-body a:focus-visible {
+    text-decoration-style: solid;
+  }
+
+  /* Chinese has no true italic; a browser can only shear the glyph, which
+     ruins the stroke weights. Emphasis is carried by weight instead, and the
+     two levels stay distinguishable because strong also takes the ink. */
+  .public-site .article-body :is(em, i):lang(zh),
+  .public-site .article-body :is(em, i):lang(ja) {
+    font-style: normal;
+    font-weight: 600;
+  }
+
+  .public-site .article-body strong {
+    font-weight: 700;
+  }
+
+  .public-site .article-body :is(del, s) {
+    color: var(--ink-faint);
+  }
+
+  .public-site .article-body ins {
+    text-decoration: none;
+    border-bottom: 1px solid var(--accent);
+  }
+
+  .public-site .article-body mark {
+    padding: 0.1em 0.25em;
+    background: color-mix(in srgb, var(--accent-field) 22%, transparent);
+    color: inherit;
+  }
+
+  :root[data-theme='dark'] .public-site .article-body mark {
+    background: color-mix(in srgb, var(--moriium-blue-mid) 42%, transparent);
+  }
+
+  .public-site .article-body kbd {
+    padding: 0.15em 0.45em;
+    border: 1px solid var(--line);
+    border-bottom-width: 2px;
+    background: var(--surface-raised);
+    font-family: var(--font-data);
+    font-size: 0.8em;
+    white-space: nowrap;
+  }
+
+  .public-site .article-body abbr[title] {
+    text-decoration: underline dotted;
+    text-underline-offset: 0.25em;
+    cursor: help;
+  }
+
+  /* Superscripts must not open the line they sit in. */
+  .public-site .article-body :is(sub, sup) {
+    position: relative;
+    font-size: 0.72em;
+    line-height: 0;
+    vertical-align: baseline;
+  }
+
+  .public-site .article-body sup {
+    top: -0.5em;
+  }
+
+  .public-site .article-body sub {
+    bottom: -0.25em;
+  }
+
+  .public-site .article-body small {
+    color: var(--ink-muted);
+    font-size: 0.85em;
+  }
+
+  /* Lists ---------------------------------------------------------------- */
+
+  .public-site .article-body :is(ul, ol) {
+    padding-left: 1.6em;
+  }
+
+  .public-site .article-body li {
+    margin-block: 0.35em;
+  }
+
+  .public-site .article-body li::marker {
+    color: var(--ink-faint);
+  }
+
+  .public-site .article-body :is(ul, ol) :is(ul, ol) {
+    margin-block: 0.35em 0;
+  }
+
+  .public-site .article-body li > p {
+    margin-block: 0 0.6em;
+  }
+
+  .public-site .article-body li > p:last-child {
+    margin-bottom: 0;
+  }
+
+  /* A task list is a list of states, not of bullets. */
+  .public-site .article-body ul.contains-task-list {
+    padding-left: 0;
+    list-style: none;
+  }
+
+  .public-site .article-body li.task-list-item {
+    display: grid;
+    grid-template-columns: 1.2em minmax(0, 1fr);
+    gap: 0.6em;
+    align-items: baseline;
+  }
+
+  .public-site .article-body li.task-list-item input[type='checkbox'] {
+    width: 0.85em;
+    height: 0.85em;
+    margin: 0;
+    accent-color: var(--accent);
+  }
+
+  /* Quotation ------------------------------------------------------------ */
+
+  /* Set at reading size rather than as a display banner: a pulled-out quote at
+     three times the body size stops being part of the argument. */
   .public-site .article-body blockquote {
-    width: min(52rem, calc(100% + clamp(2rem, 8vw, 8rem)));
-    margin: 3.5rem 0 3.5rem clamp(-4rem, -4vw, -2rem);
-    padding: 1.5rem 0 1.5rem clamp(1.5rem, 4vw, 4rem);
-    border-left: 0.7rem solid var(--accent-field);
-    color: var(--ink);
-    font-size: clamp(1.35rem, 2.6vw, 2.2rem);
-    line-height: 1.55;
+    margin-block: 2.5rem;
+    padding: 0.4rem 0 0.4rem clamp(1.25rem, 3vw, 2rem);
+    border-left: 3px solid var(--accent-field);
+    color: var(--ink-muted);
+    font-size: 1.02em;
+  }
+
+  .public-site .article-body blockquote > * {
+    margin-block: 0 0.9em;
+  }
+
+  .public-site .article-body blockquote > :last-child {
+    margin-bottom: 0;
+  }
+
+  /* Rules and separators -------------------------------------------------- */
+
+  .public-site .article-body hr {
+    width: 6rem;
+    height: 1px;
+    margin: clamp(3rem, 5vw, 4rem) auto;
+    border: 0;
+    background: var(--line);
+  }
+
+  /* Figures --------------------------------------------------------------- */
+
+  /* The image keeps its own size up to the measure instead of being stretched
+     to fill it, so a small diagram stays a small diagram. */
+  .public-site .article-body .article-figure {
+    margin-block: clamp(2rem, 3.5vw, 3rem);
+  }
+
+  /* Only the link shrink-wraps. `width: fit-content` on the image itself
+     collapsed it to nothing: the two boxes were each sizing to the other. */
+  .public-site .article-body .article-figure .article-image-link {
+    display: block;
+    width: fit-content;
+    max-width: 100%;
+    margin-inline: auto;
+  }
+
+  .public-site .article-body .article-figure img {
+    display: block;
+    max-width: 100%;
+    margin-inline: auto;
   }
 
   .public-site .article-body :is(img, video) {
     height: auto;
   }
 
-  .a-article__context section {
-    padding-block: 1.5rem;
-    border-top: 1px solid var(--line);
-  }
-
-  .a-article__context section:last-child {
-    border-bottom: 1px solid var(--line);
-  }
-
-  .a-article__context ul {
-    margin: 0;
-    padding: 0;
-    list-style: none;
-  }
-
-  .a-article__context li {
-    display: flex;
-    min-height: 2rem;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 1rem;
-  }
-
-  .a-article__context li small {
+  .public-site .article-body figcaption {
+    margin-top: 0.8rem;
     color: var(--ink-faint);
     font-family: var(--font-data);
-    font-size: 0.52rem;
-  }
-
-  .a-article__context section > div {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem 0.8rem;
-  }
-
-  .a-article__context section > div a,
-  .a-article__context section > div span,
-  .a-article__context section > span {
-    color: var(--ink-muted);
     font-size: 0.66rem;
+    line-height: 1.7;
   }
 
-  .a-article__context a {
-    color: var(--accent);
+  .public-site .article-body .article-image-link {
+    cursor: zoom-in;
   }
 
-  .a-article__end {
-    width: min(100%, var(--layout-gallery));
-    margin: clamp(7rem, 14vw, 14rem) auto 0;
-    padding: clamp(2rem, 5vw, 5rem);
-    background: var(--accent-field);
-    color: var(--accent-field-ink);
+  /* Tables ---------------------------------------------------------------- */
+
+  /* Wrapped rather than allowed to stretch the column: the wrapper scrolls and
+     is focusable, so a wide table is reachable from the keyboard instead of
+     pushing the whole page sideways. */
+  .public-site .article-body .article-table {
+    overflow-x: auto;
+    scrollbar-width: thin;
   }
 
-  .a-article__end > p {
-    color: color-mix(in srgb, var(--accent-field-ink) 60%, transparent);
+  .public-site .article-body .article-table:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  .public-site .article-body table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.86em;
+    line-height: 1.6;
+  }
+
+  .public-site .article-body :is(th, td) {
+    padding: 0.7em 1em 0.7em 0;
+    border-bottom: 1px solid var(--line-soft);
+    vertical-align: top;
+  }
+
+  /* `| ---: |` reaches the page as an `align` attribute, which is only a
+     presentational hint and loses to any author rule. Cells the author did not
+     align get the default; the ones they did keep it. */
+  .public-site .article-body :is(th, td):not([align]) {
+    text-align: start;
+  }
+
+  .public-site .article-body th {
+    color: var(--ink);
     font-family: var(--font-data);
-    font-size: 0.58rem;
+    font-size: 0.85em;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
   }
 
-  .a-article__end nav {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1px;
-    margin-top: 3rem;
-    background: color-mix(in srgb, var(--accent-field-ink) 22%, transparent);
+  .public-site .article-body thead th {
+    border-bottom-color: var(--ink);
   }
 
-  .a-article__end nav a {
-    display: grid;
-    min-height: 10rem;
-    align-content: space-between;
-    padding: 1.5rem;
-    background: var(--accent-field);
+  .public-site .article-body :is(th, td):last-child {
+    padding-right: 0;
+  }
+
+  .public-site .article-body tbody tr:last-child :is(th, td) {
+    border-bottom: 0;
+  }
+
+  .public-site .article-body caption {
+    padding-bottom: 0.8rem;
+    color: var(--ink-faint);
+    font-family: var(--font-data);
+    font-size: 0.66rem;
+    text-align: left;
+  }
+
+  /* Disclosure ------------------------------------------------------------ */
+
+  .public-site .article-body details {
+    padding: 0.9rem 1.1rem;
+    border: 1px solid var(--line-soft);
+    background: var(--surface-raised);
+  }
+
+  .public-site .article-body summary {
+    color: var(--ink);
+    cursor: pointer;
+    font-family: var(--font-display);
+    font-weight: 620;
+  }
+
+  .public-site .article-body details[open] summary {
+    margin-bottom: 0.8rem;
+    padding-bottom: 0.8rem;
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  .public-site .article-body details > :not(summary) {
+    margin-block: 0 0.9em;
+  }
+
+  .public-site .article-body details > :last-child {
+    margin-bottom: 0;
+  }
+
+  /* Code and mathematics --------------------------------------------------- */
+
+  .public-site .article-body :not(pre) > code {
+    /* clreq 2.1.3: no more than a quarter of a Han character between Han text
+       and the Western text set into it. The same gap keeps inline code, and
+       inline mathematics below, from sitting flush against a Chinese glyph. */
+    margin-inline: 0.25em;
+    padding: 0.15em 0.4em;
+    background: color-mix(in srgb, var(--line) 30%, transparent);
+    font-family: var(--font-data);
+    font-size: 0.85em;
+    word-break: break-all;
+  }
+
+  .public-site .article-body .expressive-code {
+    margin-block: clamp(1.75rem, 3vw, 2.5rem);
+  }
+
+  .public-site .article-body :is(.katex-display, mjx-container) {
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-block: 0.4rem;
+    scrollbar-width: thin;
+  }
+
+  .public-site .article-body :not(.katex-display) > .katex {
+    margin-inline: 0.25em;
+  }
+
+  /* Footnotes --------------------------------------------------------------- */
+
+  /* remark names this section and gives it a heading marked `.sr-only`, which
+     is defined in the utilities layer so the English label stays for assistive
+     technology. The visible label is set here instead, in the page's own
+     language, because the pipeline has no language to give it. */
+  .public-site .article-body .footnotes {
+    margin-top: clamp(3.5rem, 6vw, 5rem);
+    padding-top: 1.4rem;
+    border-top: 1px solid var(--line);
+    color: var(--ink-muted);
+    font-size: 0.86em;
+  }
+
+  .public-site .article-body .footnotes::before {
+    display: block;
+    margin-bottom: 1rem;
+    color: var(--ink-faint);
+    content: "Notes";
+    font-family: var(--font-data);
+    font-size: 0.62rem;
+    letter-spacing: 0.04em;
+  }
+
+  :root:lang(zh) .public-site .article-body .footnotes::before {
+    content: "注释";
+  }
+
+  :root:lang(ja) .public-site .article-body .footnotes::before {
+    content: "注釈";
+  }
+
+  .public-site .article-body .footnotes li {
+    margin-block: 0.5em;
+  }
+
+  .public-site .article-body .data-footnote-backref {
+    margin-left: 0.4em;
     text-decoration: none;
   }
 
-  .a-article__end nav a span {
-    color: color-mix(in srgb, var(--accent-field-ink) 58%, transparent);
-    font-family: var(--font-data);
-    font-size: 0.56rem;
+  /* Landing on a footnote, or coming back from one, should be visible. */
+  .public-site .article-body :is(li, sup):target {
+    background: color-mix(in srgb, var(--accent-field) 20%, transparent);
+    box-shadow: 0 0 0 0.35rem color-mix(in srgb, var(--accent-field) 20%, transparent);
   }
 
-  .a-article__end nav a strong {
+  /* Content blocks -------------------------------------------------------- */
+
+  .public-site .article-body .admonition {
+    padding: 1rem 1.2rem;
+    border: 0;
+    border-left: 3px solid var(--accent-field);
+    background: var(--surface-raised);
+  }
+
+  .public-site .article-body .admonition__title {
+    margin-bottom: 0.5rem;
+    color: var(--ink);
     font-family: var(--font-display);
-    font-size: clamp(1.4rem, 3vw, 2.6rem);
-    font-weight: 620;
-    letter-spacing: -0.05em;
-    line-height: 1;
+    font-size: 0.9em;
+    font-weight: 640;
   }
 
-  .a-article__end nav a:hover strong,
-  .a-article__end nav a:focus-visible strong {
-    text-decoration: underline;
-    text-underline-offset: 0.2em;
+  .public-site .article-body .admonition > :last-child {
+    margin-bottom: 0;
   }
 
-  .a-article__next {
-    text-align: right;
+  .public-site .article-body :is(.admonition--warning, .admonition--caution) {
+    border-left-color: var(--danger);
   }
 
   .public-site .protected-post__gate,
@@ -389,6 +815,93 @@
     border-radius: 0;
     background: var(--accent-field);
     color: var(--accent-field-ink);
+  }
+
+  /* -------------------------------------------------------------------- end */
+
+  .a-article__end {
+    width: min(100%, var(--layout-gallery));
+    margin: clamp(6rem, 12vw, 12rem) auto 0;
+    padding: clamp(2rem, 5vw, 4rem);
+    background: var(--accent-field);
+    color: var(--accent-field-ink);
+  }
+
+  /* The first post in a language has nothing before or after it, and a full
+     field of blue holding one tag reads as a mistake rather than as an ending. */
+  .a-article__end:not(:has(nav)) {
+    padding-block: clamp(1.5rem, 3vw, 2.25rem);
+  }
+
+  /* The tags moved here from a rail that tracked the reader down the whole
+     article. They are what someone reaches for having finished, so they sit
+     where finishing happens. */
+  .a-article__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem 1.6rem;
+    align-items: baseline;
+  }
+
+  .a-article__tags > p {
+    color: color-mix(in srgb, var(--accent-field-ink) 58%, transparent);
+    font-family: var(--font-data);
+    font-size: 0.6rem;
+  }
+
+  .a-article__tags a,
+  .a-article__tags span {
+    color: color-mix(in srgb, var(--accent-field-ink) 82%, transparent);
+    font-size: 0.72rem;
+    text-decoration-color: transparent;
+    transition: color var(--motion-fast) ease, text-decoration-color var(--motion-fast) ease;
+  }
+
+  .a-article__tags a:hover,
+  .a-article__tags a:focus-visible {
+    color: var(--accent-field-ink);
+    text-decoration-color: currentColor;
+  }
+
+  .a-article__end nav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1px;
+    margin-top: 2.5rem;
+    background: color-mix(in srgb, var(--accent-field-ink) 22%, transparent);
+  }
+
+  .a-article__end nav a {
+    display: grid;
+    min-height: 9rem;
+    align-content: space-between;
+    padding: 1.4rem;
+    background: var(--accent-field);
+    text-decoration: none;
+  }
+
+  .a-article__end nav a span {
+    color: color-mix(in srgb, var(--accent-field-ink) 58%, transparent);
+    font-family: var(--font-data);
+    font-size: 0.58rem;
+  }
+
+  .a-article__end nav a strong {
+    font-family: var(--font-display);
+    font-size: clamp(1.3rem, 2.6vw, 2.2rem);
+    font-weight: 620;
+    letter-spacing: -0.03em;
+    line-height: 1.2;
+  }
+
+  .a-article__end nav a:hover strong,
+  .a-article__end nav a:focus-visible strong {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  .a-article__next {
+    text-align: right;
   }
 }
 
@@ -406,19 +919,33 @@
       grid-column: 9 / 13;
     }
 
+    /* One column, and the outline becomes a header for the reading area rather
+       than a note beside it. */
     .a-reading-grid {
       grid-template-columns: minmax(0, var(--layout-reading));
       justify-content: center;
     }
 
-    .a-reading-grid::before {
-      left: calc(50% - min(50%, var(--layout-reading) / 2) - 1.5rem);
+    .a-article__outline,
+    .a-article__body,
+    .public-site .article-body {
+      grid-column: 1;
     }
 
-    .a-article__outline,
-    .a-article__context {
+    .a-article__outline {
       position: static;
       width: 100%;
+      margin-bottom: 3.5rem;
+      padding-right: 0;
+      padding-left: 1.25rem;
+      border-left: 3px solid var(--accent-field);
+    }
+
+    /* An accent rule beside a single back link is a marker for nothing. */
+    .a-article__outline:not(:has(nav)) {
+      margin-bottom: 2rem;
+      padding-left: 0;
+      border-left: 0;
     }
 
     .a-article__outline nav {
@@ -426,14 +953,8 @@
       column-gap: 2rem;
     }
 
-    .a-article__context {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 2rem;
-    }
-
-    .a-article__context section:last-child {
-      border-bottom: 0;
+    .a-article__outline nav a[aria-current='true']::before {
+      display: none;
     }
   }
 }
@@ -442,8 +963,16 @@
   @layer components {
     .a-article__hero {
       display: block;
-      min-height: 42rem;
       padding-top: 2rem;
+    }
+
+    /* One column here, so the band cannot run beside the title the way it does
+       on desktop — full height put it straight through the headline. It sits
+       under the facts instead: they carry the page surface as their own
+       background and mask its middle, which is the same relationship the two
+       have on desktop. */
+    .a-article__hero {
+      padding-bottom: 2.5rem;
     }
 
     .a-article__hero::before {
@@ -451,8 +980,8 @@
       bottom: 0;
       left: auto;
       right: 0;
-      width: 34%;
-      height: 45%;
+      width: 30%;
+      height: min(16rem, 44%);
     }
 
     .a-article__hero::after {
@@ -460,18 +989,19 @@
     }
 
     .a-article__title {
-      padding-block: 5rem 3rem;
+      padding-block: 3rem 2.5rem;
     }
 
+    /* 13vw set seven Han characters into 341px of a 345px column. */
     .a-article__title h1 {
-      font-size: clamp(3.8rem, 19vw, 6.5rem);
+      max-width: none;
+      font-size: clamp(2.4rem, 11.5vw, 4rem);
     }
 
     .a-article__facts {
-      position: absolute;
-      right: 0;
-      bottom: 2rem;
-      width: min(16rem, 68%);
+      width: min(18rem, 78%);
+      margin: 0 0 0 auto;
+      padding-inline: 1rem;
     }
 
     .a-article__cover {
@@ -479,36 +1009,16 @@
       margin-inline: calc(var(--gutter) * -1);
     }
 
-    .a-reading-grid {
-      display: block;
-    }
-
-    .a-reading-grid::before {
-      display: none;
-    }
-
-    .a-article__outline {
-      margin-bottom: 4rem;
-      padding-left: 1.25rem;
-      border-left: 0.45rem solid var(--accent-field);
-    }
-
-    .a-article__outline nav,
-    .a-article__context {
+    .a-article__outline nav {
       grid-template-columns: 1fr;
     }
 
-    .a-article__body {
-      font-size: 1.06rem;
+    .public-site .article-body {
+      font-size: 1.05rem;
     }
 
-    .public-site .article-body blockquote {
-      width: auto;
-      margin-inline: 0;
-    }
-
-    .a-article__context {
-      margin-top: 5rem;
+    .public-site .article-body > h2 {
+      font-size: 1.45rem;
     }
 
     .a-article__end {
@@ -531,10 +1041,9 @@
     .public-site .site-header,
     .public-site .site-footer,
     .a-article__outline,
-    .a-article__context,
     .a-article__end,
     .a-article__hero::before,
-    .a-reading-grid::before {
+    .a-article__hero::after {
       display: none;
     }
 
@@ -542,6 +1051,7 @@
     .a-reading-grid,
     .a-article__body,
     .public-site .article-body {
+      display: block;
       width: 100%;
       max-width: none;
       margin: 0;
@@ -550,8 +1060,64 @@
 
     .a-article__hero {
       display: block;
-      min-height: 0;
-      padding-block: 0 2rem;
+      padding-block: 0 1.5rem;
+    }
+
+    .a-article__title {
+      padding-block: 0 1rem;
+    }
+
+    .a-article__title h1 {
+      max-width: none;
+      font-size: 2rem;
+    }
+
+    .a-article__facts {
+      margin: 0;
+      padding: 0;
+    }
+
+    /* On paper a link's destination is the only part of it that survives, so
+       the URL is printed once, after the text. Internal anchors and links whose
+       text is already the URL are skipped — both would only repeat themselves. */
+    .public-site .article-body a[href^='http']::after {
+      content: " (" attr(href) ")";
+      font-family: var(--font-data);
+      font-size: 0.75em;
+      word-break: break-all;
+    }
+
+    .public-site .article-body a[href^='http'][href$=''][data-print-bare]::after {
+      content: "";
+    }
+
+    /* Nothing that has to be read as one object may be split across a page. */
+    .public-site .article-body :is(figure, blockquote, table, pre, .expressive-code, .admonition) {
+      break-inside: avoid;
+    }
+
+    .public-site .article-body :is(h2, h3, h4, h5, h6) {
+      break-after: avoid;
+    }
+
+    .public-site .article-body p {
+      orphans: 3;
+      widows: 3;
+    }
+
+    /* A code block that scrolls on screen has nowhere to scroll on paper. */
+    .public-site .article-body :is(pre, .expressive-code pre, .article-table) {
+      overflow: visible;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @layer components {
+    .a-article__outline {
+      position: static;
     }
   }
 }

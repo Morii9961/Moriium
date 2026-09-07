@@ -4,8 +4,7 @@ import { resolve } from 'node:path';
 import { unified } from '@astrojs/markdown-remark';
 import sitemap from '@astrojs/sitemap';
 import expressiveCode from 'astro-expressive-code';
-import { pluginCollapsibleSections } from '@expressive-code/plugin-collapsible-sections';
-import { pluginLineNumbers } from '@expressive-code/plugin-line-numbers';
+import { expressiveCodeOptions } from './src/markdown/expressive-code.mjs';
 import remarkDirective from 'remark-directive';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
@@ -42,16 +41,7 @@ export default defineConfig({
     format: 'directory',
   },
   integrations: [
-    expressiveCode({
-      plugins: [pluginLineNumbers(), pluginCollapsibleSections()],
-      defaultProps: {
-        wrap: true,
-        showLineNumbers: false,
-      },
-      themes: ['github-light', 'github-dark'],
-      themeCssSelector: (theme) =>
-        theme.name === 'github-dark' ? '[data-theme="dark"]' : '[data-theme="light"]',
-    }),
+    expressiveCode(expressiveCodeOptions),
     sitemap({
       filter: (page) => !page.includes('/design/'),
       i18n: {

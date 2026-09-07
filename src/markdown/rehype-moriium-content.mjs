@@ -155,6 +155,48 @@ function transformMusic(node) {
   ];
 }
 
+function blank(node) {
+  return node.type === 'text' && node.value.trim() === '';
+}
+
+function transformImage(node, parent, index) {
+  const src = String(node.properties?.src ?? '');
+  if (!src) return;
+  const alt = String(node.properties?.alt ?? '');
+  const title = String(node.properties?.title ?? '');
+  node.properties = { ...(node.properties ?? {}), loading: 'lazy', decoding: 'async' };
+  const link = element(
+    'a',
+    {
+      href: src,
+      className: ['article-image-link'],
+      dataLightbox: '',
+      ariaLabel: `Open image: ${alt || 'article image'}`,
+    },
+    [node],
+  );
+  parent.children[index] = link;
+
+  // A paragraph that holds nothing but an image is a figure, and the Markdown
+  // title on that image is its caption. `markdown-reference.md` has documented
+  // that title as "Optional caption" all along; until now it was dropped into a
+  // hover tooltip, which is invisible on touch and to a screen reader.
+  if (parent.tagName !== 'p' || parent.children.filter((child) => !blank(child)).length !== 1) return;
+  parent.tagName = 'figure';
+  parent.properties = { className: ['article-figure'] };
+  parent.children = [link];
+  if (!title) return;
+  delete node.properties.title;
+  parent.children.push(element('figcaption', {}, [text(title)]));
+}
+
+// A table wider than the reading measure has to scroll inside its own box; the
+// alternative is a table that widens the column and takes the whole page with
+// it. The wrapper is focusable so the scroll is reachable without a pointer.
+function wrapTable(node, parent, index) {
+  parent.children[index] = element('div', { className: ['article-table'], tabIndex: 0 }, [node]);
+}
+
 export function rehypeMoriiumContent() {
   const githubCache = readGitHubCache();
 
@@ -163,20 +205,12 @@ export function rehypeMoriiumContent() {
       if (node.type !== 'element') return;
 
       if (node.tagName === 'img' && parent && parent.tagName !== 'a') {
-        const src = String(node.properties?.src ?? '');
-        if (!src) return;
-        node.properties = { ...(node.properties ?? {}), loading: 'lazy', decoding: 'async' };
-        parent.children[index] = element(
-          'a',
-          {
-            href: src,
-            className: ['article-image-link'],
-            dataLightbox: '',
-            ariaLabel: `Open image: ${String(node.properties.alt ?? 'article image')}`,
-          },
-          [node],
-        );
+        transformImage(node, parent, index);
         return;
+      }
+
+      if (node.tagName === 'table' && parent && !parent.properties?.className?.includes?.('article-table')) {
+        wrapTable(node, parent, index);
       }
 
       if (property(node, 'data-github', 'dataGithub') !== undefined) transformGitHub(node, githubCache);
