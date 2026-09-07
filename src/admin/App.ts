@@ -2,11 +2,13 @@ import { computed, defineComponent, onMounted, ref } from 'vue';
 import ArticleEditor from './ArticleEditor.ts';
 import {
   api,
+  ApiError,
   messageForApiFailure,
   type ArticleRow,
   type Author,
   type NewArticleInput,
   type OperationalStatus,
+  type Verdict,
 } from './api.ts';
 
 function newArticle(): NewArticleInput {
@@ -48,8 +50,64 @@ export default defineComponent({
     const status = ref<OperationalStatus | null>(null);
     const checkingStatus = ref(false);
     const signedIn = computed(() => author.value !== null);
+    // Not a ref: only loadStatus reads it, and nothing renders from it.
+    let statusRequest = 0;
+
+    /**
+     * The four states of docs/vps-acceptance-checklist.md section E.
+     *
+     * Each verdict gets its own word. `unknown` says the reading is missing
+     * rather than borrowing either reassuring label, which is the whole reason
+     * the fourth state exists.
+     */
+    const VERDICT_LABELS: Record<Verdict, string> = {
+      ok: '正常',
+      attention: '需要注意',
+      failure: '失败',
+      unknown: '未观测',
+    };
+
+    function verdictLabel(verdict: Verdict): string {
+      return VERDICT_LABELS[verdict] ?? VERDICT_LABELS.unknown;
+    }
+
+    /** When this row's own reading was taken, or that there is none. */
+    function observedLabel(observedAt: string | null): string {
+      if (!observedAt) return '暂无读数';
+      const at = new Date(observedAt);
+      if (Number.isNaN(at.getTime())) return '读数时间无法解析';
+      return `读数时间 ${at.toLocaleString()}`;
+    }
+
+    function checkedLabel(checkedAt: string): string {
+      const at = new Date(checkedAt);
+      if (Number.isNaN(at.getTime())) return '本次检查时间无法解析';
+      return `本次检查 ${at.toLocaleString()}`;
+    }
+
+    /**
+     * Drops every trace of the signed-in author and returns to the login form.
+     *
+     * Called on any 401. Leaving the shell showing "已登录" beside a stale
+     * article list is worse than an error: it claims a session that the server
+     * has already destroyed, and the drafts on screen belong to it.
+     */
+    function endSession(): void {
+      author.value = null;
+      articles.value = [];
+      openId.value = null;
+      status.value = null;
+      creating.value = false;
+      draft.value = newArticle();
+      tagsText.value = '';
+    }
 
     function report(error: unknown): void {
+      if (error instanceof ApiError && error.status === 401) {
+        endSession();
+        failure.value = '会话已过期，请重新登录。';
+        return;
+      }
       failure.value = messageForApiFailure(error, '连接不上后台，请检查网络后重试。');
     }
 
@@ -57,11 +115,37 @@ export default defineComponent({
       articles.value = (await api.listArticles()).articles;
     }
 
+    /**
+     * Fetches the panel, and shows `unknown` when the fetch itself fails.
+     *
+     * Checklist item E4: the panel failing has to read as "no reading", not as
+     * a blank section. `messageForApiFailure` keeps the browser's own
+     * `TypeError: Failed to fetch` off screen (ADR 0002 section 21.14).
+     *
+     * The sequence number is what makes the re-check button honest. A second
+     * click is already blocked while one request is open, but `bootstrap`,
+     * `signIn` and `backToList` all call this too, and a slow earlier response
+     * landing after a newer one would leave the panel showing older readings
+     * than the timestamp beside them claims.
+     */
     async function loadStatus(): Promise<void> {
+      statusRequest += 1;
+      const mine = statusRequest;
       checkingStatus.value = true;
       try {
-        status.value = await api.status();
+        const next = await api.status();
+        if (mine !== statusRequest) return;
+        status.value = next;
       } catch (error) {
+        if (mine !== statusRequest) return;
+        // A 401 is not a missing reading, it is the end of the session. Drawing
+        // it as an `unknown` row would leave the author looking at a panel that
+        // implies they are still signed in.
+        if (error instanceof ApiError && error.status === 401) {
+          endSession();
+          failure.value = '会话已过期，请重新登录。';
+          return;
+        }
         status.value = {
           checkedAt: new Date().toISOString(),
           items: [
@@ -70,21 +154,36 @@ export default defineComponent({
               label: '运维状态',
               verdict: 'unknown',
               detail: messageForApiFailure(error, '连接不上状态接口，请检查网络后重试。'),
+              observedAt: null,
             },
           ],
         };
       } finally {
-        checkingStatus.value = false;
+        if (mine === statusRequest) checkingStatus.value = false;
       }
+    }
+
+    /**
+     * Loads the article list and the operations panel without letting either
+     * failure hide the other.
+     *
+     * They used to be awaited in sequence inside one try, so a failing article
+     * list skipped loadStatus() entirely and the panel simply did not render.
+     * That is the failure mode section E exists to prevent, one level up: the
+     * panel is the only thing that reports a silent failure, so it must not be
+     * the thing a silent failure removes. loadStatus() reports its own trouble
+     * as an `unknown` row, so the article list's error is the only one `report`
+     * has to carry.
+     */
+    async function loadAuthorViews(): Promise<void> {
+      const [articles] = await Promise.allSettled([refresh(), loadStatus()]);
+      if (articles.status === 'rejected') report(articles.reason);
     }
 
     async function bootstrap(): Promise<void> {
       try {
         author.value = await api.session();
-        if (author.value) {
-          await refresh();
-          await loadStatus();
-        }
+        if (author.value) await loadAuthorViews();
       } catch (error) {
         report(error);
       } finally {
@@ -98,8 +197,7 @@ export default defineComponent({
       try {
         author.value = await api.login(name.value, password.value);
         password.value = '';
-        await refresh();
-        await loadStatus();
+        await loadAuthorViews();
       } catch (error) {
         report(error);
       } finally {
@@ -112,10 +210,7 @@ export default defineComponent({
       failure.value = '';
       try {
         await api.logout();
-        author.value = null;
-        articles.value = [];
-        openId.value = null;
-        status.value = null;
+        endSession();
       } catch (error) {
         report(error);
       } finally {
@@ -149,8 +244,7 @@ export default defineComponent({
 
     async function backToList(): Promise<void> {
       openId.value = null;
-      await refresh();
-      await loadStatus();
+      await loadAuthorViews();
     }
 
     onMounted(() => void bootstrap());
@@ -171,6 +265,9 @@ export default defineComponent({
       status,
       checkingStatus,
       loadStatus,
+      verdictLabel,
+      observedLabel,
+      checkedLabel,
       signIn,
       signOut,
       create,
@@ -233,14 +330,13 @@ export default defineComponent({
           <div><p class="eyebrow">Operations</p><h2 id="status-title">运维状态</h2></div>
           <button type="button" class="quiet" :disabled="checkingStatus" @click="loadStatus">{{ checkingStatus ? '检查中…' : '重新检查' }}</button>
         </div>
-        <p class="note">这里不会主动告警；需要注意和未观测的状态都会明确列出。</p>
+        <p class="note">这里不会主动告警；需要注意、失败和未观测的状态都会明确列出。{{ checkedLabel(status.checkedAt) }}。</p>
         <ul class="status-items">
-          <li v-for="item in status.items" :key="item.id" :class="['status-item', item.verdict]">
+          <li v-for="item in status.items" :key="item.id" :class="['status-item', 'verdict-' + item.verdict]">
             <span class="status-label">{{ item.label }}</span>
             <span class="status-detail">{{ item.detail }}</span>
-            <span :class="['pill', item.verdict === 'attention' ? 'waiting' : item.verdict === 'ok' ? 'live' : 'unknown']">
-              {{ item.verdict === 'ok' ? '正常' : item.verdict === 'attention' ? '需要注意' : '未观测' }}
-            </span>
+            <span class="status-observed">{{ observedLabel(item.observedAt) }}</span>
+            <span :class="['pill', 'verdict-' + item.verdict]">{{ verdictLabel(item.verdict) }}</span>
           </li>
         </ul>
       </section>

@@ -10,6 +10,9 @@
   --admin-danger: #9a3d39;
   --admin-warning: #8b641c;
   --admin-live: #2d6651;
+  /* The fourth operational state. Deliberately not green, not amber and not
+     red: "no reading" is a different claim from any of the three. */
+  --admin-unknown: #4a5568;
   color-scheme: light dark;
   font-family: Sora, "Noto Sans SC", "Noto Sans JP", system-ui, sans-serif;
 }
@@ -27,6 +30,7 @@
     --admin-danger: #ef9a94;
     --admin-warning: #e1b75d;
     --admin-live: #9bd5bc;
+    --admin-unknown: #9aa6b8;
   }
 }
 
@@ -82,14 +86,18 @@ h2 { margin-bottom: 14px; font-size: 17px; }
 
 .status-panel { margin-bottom: 32px; }
 .status-items { display: grid; gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
-.status-item { display: grid; grid-template-columns: minmax(96px, max-content) 1fr max-content; gap: 12px; align-items: center; padding: 10px 12px; border: 1px solid var(--admin-line); border-radius: 6px; background: var(--admin-surface); }
-.status-item.attention { border-color: var(--admin-warning); }
+.status-item { display: grid; grid-template-columns: minmax(96px, max-content) 1fr max-content max-content; gap: 6px 12px; align-items: center; padding: 10px 12px; border: 1px solid var(--admin-line); border-radius: 6px; background: var(--admin-surface); }
+.status-item.verdict-attention { border-color: var(--admin-warning); }
+.status-item.verdict-failure { border-color: var(--admin-danger); border-left-width: 3px; }
+/* Dashed, so "no reading" is still distinguishable without relying on hue. */
+.status-item.verdict-unknown { border-color: var(--admin-unknown); border-style: dashed; }
 .status-label { font-weight: 600; }
 .status-detail { color: var(--admin-muted); font-size: 13px; }
+.status-observed { color: var(--admin-muted); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 @media (max-width: 640px) {
   .status-item { grid-template-columns: 1fr max-content; }
-  .status-detail { grid-column: 1 / -1; }
+  .status-detail, .status-observed { grid-column: 1 / -1; }
 }
 
 .pill, .state { display: inline-flex; align-items: center; min-height: 24px; padding: 2px 8px; border: 1px solid var(--admin-line); border-radius: 999px; color: var(--admin-muted); font-size: 11px; white-space: nowrap; }
@@ -97,6 +105,10 @@ h2 { margin-bottom: 14px; font-size: 17px; }
 .pill.published, .state.changed { border-color: currentColor; color: var(--admin-accent); }
 .pill.live { border-color: currentColor; color: var(--admin-live); }
 .pill.waiting, .state.waiting { border-color: currentColor; color: var(--admin-warning); }
+.pill.verdict-ok { border-color: currentColor; color: var(--admin-live); }
+.pill.verdict-attention { border-color: currentColor; color: var(--admin-warning); }
+.pill.verdict-failure { border-color: currentColor; color: var(--admin-danger); font-weight: 600; }
+.pill.verdict-unknown { border-color: currentColor; border-style: dashed; color: var(--admin-unknown); }
 
 .editor-heading { align-items: center; margin-bottom: 20px; }
 .editor-heading > div { flex: 1; min-width: 0; }

@@ -1,4 +1,17 @@
--- Moriium admin database, migration 001.
+// The initial schema, as a module rather than a file read at runtime.
+//
+// open.ts used to load this with readFileSync(resolve(import.meta.dirname,
+// 'schema.sql')). That works from source and fails in the built artifact: the
+// bundler inlines open.ts into dist/server/chunks/ and does not carry the .sql
+// file, so import.meta.dirname points somewhere the schema does not exist. A
+// fresh production database could therefore never be migrated, and the first
+// boot on a clean VPS would fail (ADR 0002 section 21.26).
+//
+// Generated once from the former src/server/db/schema.sql, which was then
+// removed; this module is the only copy. Keep it SQL and this header, nothing
+// else.
+
+export const SCHEMA_SQL = `-- Moriium admin database, migration 001.
 --
 -- ADR 0002 sections 6.3 and 6.4. Never edit this file to change an existing
 -- installation: it is applied once, recorded in schema_migrations, and every
@@ -8,20 +21,20 @@
 -- Three decisions are visible in the shape and worth naming, because a reader
 -- would otherwise assume they were accidents:
 --
---   * Frontmatter hangs off `versions`, not `articles`. Changing a title, a
+--   * Frontmatter hangs off \`versions\`, not \`articles\`. Changing a title, a
 --     category or a tag has to produce a new version and has to be revertible.
 --     Hanging it off the article would make a rollback restore the body while
 --     silently keeping the new metadata.
---   * `tags` is its own table rather than a JSON column, because tag pages and
+--   * \`tags\` is its own table rather than a JSON column, because tag pages and
 --     the tag directory query and group by tag. A JSON column forces string
 --     matching for something the database can index.
---   * `articles` carries both `published_version_id` and `live_version_id`.
+--   * \`articles\` carries both \`published_version_id\` and \`live_version_id\`.
 --     The first is what the database says is public; the second is what the
 --     last successful site build actually contains. Publishing is two steps
 --     (ADR 0002 section 4.2), and the gap between them has to be observable
 --     rather than inferred.
 
--- No `PRAGMA foreign_keys` here. Migrations run inside a transaction, and
+-- No \`PRAGMA foreign_keys\` here. Migrations run inside a transaction, and
 -- SQLite makes that pragma a no-op while one is open, so a copy of it in this
 -- file would look like the thing enforcing the REFERENCES clauses below while
 -- doing nothing at all. open.ts sets it before any transaction starts.
@@ -56,7 +69,7 @@ CREATE TABLE IF NOT EXISTS versions (
   kind            TEXT    NOT NULL CHECK (kind IN ('autosave', 'manual')),
   created_at      TEXT    NOT NULL,
 
-  -- Frontmatter. One column per field in src/content-schema.ts, except `tags`,
+  -- Frontmatter. One column per field in src/content-schema.ts, except \`tags\`,
   -- which is version_tags below. A test asserts this list against that file, so
   -- adding a field there without adding a migration here fails the build.
   title           TEXT    NOT NULL,
@@ -121,3 +134,4 @@ CREATE TABLE IF NOT EXISTS audit (
 ) STRICT;
 
 CREATE INDEX IF NOT EXISTS audit_by_article ON audit (article_id, id DESC);
+`;

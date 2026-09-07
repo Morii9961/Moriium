@@ -9,11 +9,13 @@
 // fails the build if `node:sqlite` reaches the public output.
 
 import { DatabaseSync } from 'node:sqlite';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import { AdminError } from '../errors.ts';
-
-const SCHEMA_PATH = resolve(import.meta.dirname, 'schema.sql');
+// Imported, not read from disk. A request handler must not resolve an asset
+// relative to its own source location: the bundler inlines this module into
+// dist/server/chunks/ and carries no .sql file with it, so the former
+// readFileSync(import.meta.dirname + 'schema.sql') left a freshly deployed
+// production database impossible to migrate (ADR 0002 section 21.26).
+import { SCHEMA_SQL } from './schema.ts';
 
 /**
  * Milliseconds SQLite waits for a write lock before giving up.
@@ -34,7 +36,7 @@ export type Migration = {
 
 /** Forward only. ADR 0002 section 6.4: rolling back is restoring a backup. */
 export const MIGRATIONS: readonly Migration[] = [
-  { id: 1, name: 'initial-schema', sql: () => readFileSync(SCHEMA_PATH, 'utf8') },
+  { id: 1, name: 'initial-schema', sql: () => SCHEMA_SQL },
 ];
 
 function applyPragmas(db: DatabaseSync): void {

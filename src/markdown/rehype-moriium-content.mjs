@@ -95,13 +95,20 @@ function transformVideo(node) {
   }
 
   const embed = VIDEO_PROVIDERS[provider]?.(id);
+  // The consent control is a link, not a button. Deferring the iframe until the
+  // reader asks is the point, but a button carrying the URL in a data attribute
+  // leaves a reader without JavaScript with no way to reach the video at all.
+  // As a link it degrades to what it is — a way to open the video at the
+  // provider — and ReaderEnhancements upgrades it to an inline frame in place.
+  // The href is the same allowlisted embed URL, so this adds no new origin.
   node.children = embed
     ? [
         element(
-          'button',
+          'a',
           {
-            type: 'button',
             className: ['video-consent'],
+            href: embed,
+            rel: ['noopener', 'noreferrer'],
             dataVideoSrc: embed,
             dataVideoTitle: title,
             ariaLabel: `Load video: ${title}`,
@@ -143,13 +150,35 @@ function transformMusic(node) {
     element('figcaption', { className: ['music-card__body'] }, [
       element('strong', { className: ['music-card__title'] }, [text(title)]),
       element('span', { className: ['music-card__artist'] }, [text(artist)]),
-      element('button', { type: 'button', className: ['music-card__play'], dataMusicPlay: '' }, [text('Play')]),
+      // This button does nothing without the script -- for a remote track it has
+      // no audio URL yet, and for a local one every listener lives in
+      // ReaderEnhancements. So it ships disabled in every case and is enabled on
+      // bind. Shipping it enabled for local audio only looked like a smaller
+      // claim, but it still put a dead control in front of a reader with no
+      // JavaScript, which is the thing this is supposed to prevent.
+      element(
+        'button',
+        { type: 'button', className: ['music-card__play'], dataMusicPlay: '', disabled: true },
+        [text('Play')],
+      ),
       ...(isSafeLyrics
         ? [element('a', { href: lrc, className: ['music-card__lyrics'], rel: ['noopener', 'noreferrer'] }, [text('Lyrics')])]
         : []),
-      ...(isSafeLocalAudio ? [element('audio', { src: audio, preload: 'none', dataMusicAudio: '' })] : []),
+      // Native controls are the fallback: with no script the element is still a
+      // working player, and preload="none" keeps it from fetching anything.
+      ...(isSafeLocalAudio
+        ? [element('audio', { src: audio, controls: true, preload: 'none', dataMusicAudio: '' })]
+        : []),
+      // The static status describes the page as it stands, with no script yet
+      // run. Telling a reader to press play while the button is disabled is the
+      // contradiction this replaces; ReaderEnhancements swaps in the working
+      // message once the control actually works.
       element('p', { className: ['music-card__status'], ariaLive: 'polite', dataMusicStatus: '' }, [
-        text(meting ? 'Remote track loads only after you press play.' : 'Ready to play.'),
+        text(
+          isSafeLocalAudio
+            ? 'These controls need JavaScript. The audio player above works without it.'
+            : 'This track loads from a remote service, which needs JavaScript.',
+        ),
       ]),
     ]),
   ];

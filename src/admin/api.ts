@@ -50,16 +50,19 @@ export type AuditEntry = {
   readonly note: string | null;
 };
 
-export type Verdict = 'ok' | 'attention' | 'unknown';
+export type Verdict = 'ok' | 'attention' | 'failure' | 'unknown';
 
 export type StatusItem = {
   readonly id: string;
   readonly label: string;
   readonly verdict: Verdict;
   readonly detail: string;
+  /** When this row's reading was taken. Null means there is no reading. */
+  readonly observedAt: string | null;
 };
 
 export type OperationalStatus = {
+  /** When the check ran. Never rendered as a stand-in for a missing observedAt. */
   readonly checkedAt: string;
   readonly items: StatusItem[];
 };

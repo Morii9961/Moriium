@@ -151,12 +151,25 @@ const { features, lang } = Astro.props;
     const videoLang = document.querySelector<HTMLTemplateElement>('[data-reader-lang]')?.dataset.readerLang ?? 'en';
     const videoFallback = { zh: '嵌入视频', ja: '埋め込み動画', en: 'Embedded video' }[videoLang as 'zh' | 'ja' | 'en'];
     function bindVideos() {
-      for (const button of document.querySelectorAll<HTMLButtonElement>('[data-video-src]')) {
+      // The consent control is a link so that it still works with no script;
+      // see transformVideo in src/markdown/rehype-moriium-content.mjs. Here it
+      // is upgraded in place, which means cancelling the navigation it would
+      // otherwise perform.
+      //
+      // It keeps link semantics after binding. An earlier version set
+      // role="button", which told assistive technology to expect Space to
+      // activate it -- and an anchor does not do that, so Space scrolled the
+      // page instead and the promised affordance was simply missing. The
+      // element really is a link to the video at the provider; enhancement
+      // changes where that video opens, not what the control is. Enter
+      // activates it natively, which is what a link is supposed to do.
+      for (const button of document.querySelectorAll<HTMLAnchorElement>('[data-video-src]')) {
         if (button.dataset.videoBound) continue;
         button.dataset.videoBound = 'true';
-        button.addEventListener('click', () => {
+        button.addEventListener('click', (event) => {
         const source = button.dataset.videoSrc;
         if (!source) return;
+        event.preventDefault();
         const frame = document.createElement('iframe');
         frame.src = source;
         frame.title = button.dataset.videoTitle || videoFallback;
@@ -178,9 +191,9 @@ const { features, lang } = Astro.props;
   <script>
     const musicLang = document.querySelector<HTMLTemplateElement>('[data-reader-lang]')?.dataset.readerLang ?? 'en';
     const musicCopy = {
-      zh: { blocked: '这个音乐接口不在允许列表中。', response: '音乐服务返回了错误：', source: '音乐服务没有返回可用的音频地址。', loading: '正在加载歌曲信息，加载好后请再点一次播放。', loaded: '歌曲已经加载，可以播放了。', play: '播放', pause: '暂停', playing: '正在播放。', paused: '已暂停。', unavailable: '这首歌暂时无法播放。' },
-      ja: { blocked: 'この音楽サービスは許可されていません。', response: '音楽サービスからエラーが返されました：', source: '再生できる音声 URL が返されませんでした。', loading: '曲の情報を読み込んでいます。完了後、もう一度再生してください。', loaded: '読み込みが完了しました。再生できます。', play: '再生', pause: '一時停止', playing: '再生中。', paused: '一時停止しました。', unavailable: 'この曲は現在再生できません。' },
-      en: { blocked: 'This music service is not allowed.', response: 'The music service returned an error:', source: 'The music service did not return a playable audio URL.', loading: 'Loading track details. Press play again when it is ready.', loaded: 'The track is ready.', play: 'Play', pause: 'Pause', playing: 'Playing.', paused: 'Paused.', unavailable: 'This track is not available.' },
+      zh: { ready: '可以播放了。', remoteReady: '点击播放后才会连接音乐服务。', blocked: '这个音乐接口不在允许列表中。', response: '音乐服务返回了错误：', source: '音乐服务没有返回可用的音频地址。', loading: '正在加载歌曲信息，加载好后请再点一次播放。', loaded: '歌曲已经加载，可以播放了。', play: '播放', pause: '暂停', playing: '正在播放。', paused: '已暂停。', unavailable: '这首歌暂时无法播放。' },
+      ja: { ready: '再生できます。', remoteReady: '再生を押してから音楽サービスに接続します。', blocked: 'この音楽サービスは許可されていません。', response: '音楽サービスからエラーが返されました：', source: '再生できる音声 URL が返されませんでした。', loading: '曲の情報を読み込んでいます。完了後、もう一度再生してください。', loaded: '読み込みが完了しました。再生できます。', play: '再生', pause: '一時停止', playing: '再生中。', paused: '一時停止しました。', unavailable: 'この曲は現在再生できません。' },
+      en: { ready: 'Ready to play.', remoteReady: 'The music service is contacted only after you press play.', blocked: 'This music service is not allowed.', response: 'The music service returned an error:', source: 'The music service did not return a playable audio URL.', loading: 'Loading track details. Press play again when it is ready.', loaded: 'The track is ready.', play: 'Play', pause: 'Pause', playing: 'Playing.', paused: 'Paused.', unavailable: 'This track is not available.' },
     }[musicLang as 'zh' | 'ja' | 'en'];
     let activeAudio: HTMLAudioElement | null = null;
 
@@ -210,6 +223,13 @@ const { features, lang } = Astro.props;
         card.dataset.musicBound = 'true';
         const button = card.querySelector<HTMLButtonElement>('[data-music-play]');
         const status = card.querySelector<HTMLElement>('[data-music-status]');
+        // The card ships inert: the button is disabled and the status says the
+        // controls need JavaScript. Both statements are true of the page until
+        // this line runs, and both stop being true here, so both are replaced
+        // together rather than leaving the reader a working button under a
+        // message telling them it will not work.
+        if (button) button.disabled = false;
+        if (status) status.textContent = card.dataset.meting ? musicCopy.remoteReady : musicCopy.ready;
         button?.addEventListener('click', async () => {
         button.disabled = true;
         try {
