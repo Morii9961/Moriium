@@ -36,6 +36,20 @@ before(() => {
   capability = readFileSync(path, 'utf8');
 });
 
+describe('reader language', () => {
+  it('uses Chinese controls throughout the built Chinese capability article', () => {
+    assert.match(capability, /title="复制代码"/);
+    assert.match(capability, /data-copied="已复制"/);
+    assert.match(capability, /aria-label="显示隐藏内容"/);
+    assert.match(capability, /第三方视频。载入后将连接外部服务。/);
+    assert.match(capability, /歌曲来自外部服务，需要 JavaScript 才能载入。/);
+    assert.match(capability, />脚注</);
+    assert.match(capability, /aria-label="返回注记 1"/);
+    assert.doesNotMatch(capability, /title="Copy code"/);
+    assert.doesNotMatch(capability, /Third-party video\. Loading it connects to an external service\./);
+  });
+});
+
 describe('images', () => {
   it('stay visible and keep the original file one ordinary click away', async () => {
     const html = await renderPrivateMarkdown('![A descriptive fixture](/fixtures/reader-image.svg)');

@@ -347,7 +347,7 @@ describe('media API', () => {
     );
     assert.equal(missingFile.status, 400);
     assert.deepEqual(await missingFile.json(), {
-      error: 'That media file is missing from storage.',
+      error: '存储中缺少这张图片的文件。',
       code: 'validation-failed',
     });
 
@@ -400,7 +400,7 @@ describe('media API', () => {
 
       assert.equal(response.status, 503);
       assert.deepEqual(await response.json(), {
-        error: 'The database is busy. Try again.',
+        error: '数据库正忙，请稍后重试。',
         code: 'db-locked',
       });
       assert.equal(writer.prepare('SELECT COUNT(*) AS count FROM media_assets').get().count, 0);

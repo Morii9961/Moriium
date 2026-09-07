@@ -56,20 +56,20 @@ const readingMinutes = (body: string) => {
 
 const copy = {
   zh: {
-    home: '首页', writing: '文章', breadcrumb: '面包屑导航', outline: '本文目录', back: '← 返回文章列表',
-    published: '发布', updated: '更新', reading: '阅读', minutes: (count: number) => `${count} 分钟`,
+    home: '首页', writing: '文章', breadcrumb: '面包屑导航', outline: '目录', back: '← 文章索引',
+    published: '发布', updated: '更新', reading: '阅读时间', minutes: (count: number) => `约 ${count} 分钟`,
     category: '分类', tags: '标签', previous: '上一篇', next: '下一篇', adjacent: '上一篇与下一篇',
     cover: '题图', openImage: '文章题图',
   },
   ja: {
-    home: 'ホーム', writing: '記事', breadcrumb: 'パンくずリスト', outline: '目次', back: '← 記事一覧へ戻る',
-    published: '公開', updated: '更新', reading: '読了目安', minutes: (count: number) => `${count} 分`,
+    home: 'ホーム', writing: '記事', breadcrumb: 'パンくずリスト', outline: '目次', back: '← 記事索引',
+    published: '公開', updated: '更新', reading: '読了目安', minutes: (count: number) => `約 ${count} 分`,
     category: 'カテゴリー', tags: 'タグ', previous: '前の記事', next: '次の記事', adjacent: '前後の記事',
     cover: 'カバー', openImage: '記事のカバー画像',
   },
   en: {
-    home: 'Home', writing: 'Writing', breadcrumb: 'Breadcrumb', outline: 'On this page', back: '← Back to all writing',
-    published: 'Published', updated: 'Updated', reading: 'Reading', minutes: (count: number) => `${count} min`,
+    home: 'Home', writing: 'Writing', breadcrumb: 'Breadcrumb', outline: 'Contents', back: '← Writing index',
+    published: 'Published', updated: 'Updated', reading: 'Reading time', minutes: (count: number) => `About ${count} min`,
     category: 'Category', tags: 'Tags', previous: 'Previous', next: 'Next', adjacent: 'Previous and next post',
     cover: 'Cover', openImage: 'Article cover image',
   },

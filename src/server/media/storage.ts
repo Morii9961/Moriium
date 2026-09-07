@@ -79,12 +79,12 @@ export function publicPathFor(input: {
  */
 export function fileForPublicPath(publicPath: string, root = mediaRoot()): string {
   if (!publicPath.startsWith(PUBLIC_MEDIA_PREFIX)) {
-    throw new AdminError('path-outside-root', 'That media path is not part of the media library.');
+    throw new AdminError('path-outside-root', '该媒体路径不属于媒体库。');
   }
   const file = resolve(root, publicPath.slice(PUBLIC_MEDIA_PREFIX.length));
   const inside = relative(root, file);
   if (!inside || inside.startsWith('..') || isAbsolute(inside)) {
-    throw new AdminError('path-outside-root', 'That media path is not part of the media library.');
+    throw new AdminError('path-outside-root', '该媒体路径不属于媒体库。');
   }
   return file;
 }

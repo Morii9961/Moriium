@@ -7,7 +7,7 @@ import { adminJson } from '../../../server/http/boundary.ts';
 export const prerender = false;
 
 const handle: APIRoute = async ({ request, session }) => {
-  if (!session) return adminJson({ error: 'Session storage unavailable.' }, 500);
+  if (!session) return adminJson({ error: '会话存储不可用。' }, 500);
   const db = getDatabase();
   return handleArticlesCollection(request, session, new ArticleStore(db), db);
 };

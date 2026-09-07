@@ -8,14 +8,6 @@ export const getStaticPaths: GetStaticPaths = () =>
 
 const { lang } = Astro.props as { lang: Language };
 
-/**
- * The dated record. The dates are facts from this repository and are shared by
- * every language; only the sentence beside each is translated. 2026-08-23 is the
- * publishedAt of the three reconstruction posts, 2026-08-28 the first commit,
- * 2026-08-30 the approval of ADR 0002, 2026-09-01 the recorded visual decision.
- */
-const RECORD_DATES = ['2026-08-23', '2026-08-28', '2026-08-30', '2026-09-01'] as const;
-
 const CHANNELS = [
   { name: 'GitHub', handle: 'github.com/Morii9961', href: 'https://github.com/Morii9961' },
   { name: 'X', handle: 'x.com/morii9961', href: 'https://x.com/morii9961' },
@@ -24,163 +16,103 @@ const CHANNELS = [
 
 const copy = {
   zh: {
-    title: '关于 Moriium', intro: 'Moriium 是 Morii 的个人博客。这里放文章、摄影笔记、旅行记录和技术随笔。',
+    title: '这个地方',
+    intro: 'Moriium 是 Morii 的私人数字档案。文章、照片、旅行记录与技术笔记，陆续归在这里。',
     place: 'This place',
-    statement: '把值得保留的东西，放在一个可以慢慢阅读的地方。',
+    statement: '写下的、拍下的，慢慢留下。',
     body: [
-      '这里不追赶即时动态，也不要求所有内容长成同一种样子。照片可以展开，代码需要清楚；其他时候，页面只安静地承载文字。',
-      '网站以静态方式生成。公开文章可以持续整理，受保护内容先在本地加密；阅读不需要账户、数据库或常驻服务。',
+      '没有固定主题，也没有更新计划。内容按时间、分类与标签保存。',
+      '公开页面预先生成；受保护文章在本地加密。阅读不需要账户，也不记录访问行为。',
     ],
-    kinds: '这里放什么', kindsNote: 'Four kinds',
+    kinds: '收存内容', kindsNote: 'Four kinds',
     kindList: [
-      ['文章', '想清楚了再写的那一类。长度由题目决定，不由栏目决定。'],
-      ['摄影笔记', '照片先于文字。说明只交代当时在看什么，不替照片作总结。'],
-      ['旅行记录', '按去过的地方存放，不按时间线更新。回看比追更重要。'],
-      ['技术随笔', '做过、验证过的东西，连同当时的判断一起留下来。'],
+      ['文章', '主题与长度不固定。'],
+      ['摄影笔记', '照片为主，文字只补充必要背景。'],
+      ['旅行记录', '按地点与行程整理。'],
+      ['技术随笔', '记录做过的事，也保留当时的判断。'],
     ],
-    record: '站点纪年', recordNote: 'Since 2026',
-    recordList: [
-      '写下重建的第一篇，中文、日文、英文三份同时存在。',
-      '从一个空目录重新开始，旧站不再增补。',
-      '架构定案：公开页面全部预先生成，阅读不需要数据库。',
-      '视觉方向定为一块深蓝的取景框，其余交还给留白。',
+    colophon: '站点说明', colophonNote: 'Colophon',
+    facts: [
+      ['字体', '公开页面使用 Noto Serif SC/JP；首页题字使用 Shippori Mincho；日期与数据使用 IBM Plex Mono。'],
+      ['构建', '公开页面预先生成，搜索索引只在打开搜索时载入。'],
+      ['访问', '不使用分析脚本、访问计数或读者账户。'],
+      ['许可', '代码采用 MIT 许可；文章、照片与其他内容保留所有权利。'],
     ],
-    colophon: '这个站是怎么做的', colophonNote: 'Colophon',
-    faces: '字体分三种职责',
-    faceList: [
-      ['显示与界面', 'Noto Sans SC', '标题和导航要在三种文字里保持同一个骨架，所以交给无衬线。'],
-      ['阅读', 'LXGW WenKai Screen', '正文是楷体。它替中文长文承担节奏，这是前一种字体做不到的。'],
-      ['日期与数据', 'IBM Plex Mono', '等宽让日期能对齐成一条轴，归档页那条线就是这么来的。'],
-    ],
-    build: '构建',
-    buildBody: '每个公开页面在构建时就已经生成好，服务器只负责把文件递出去。所以这个站没有数据库，也没有常驻的应用服务。搜索是构建时生成的索引，只有你真的打开搜索才会下载它。',
-    refuse: '不会有的东西',
-    refuseBody: [
-      '这里不做任何形式的读者度量：没有统计脚本，没有访问计数，也不需要你注册账户。你读了什么、读了多久，这个站不知道，也不打算知道。',
-      '这里也不向你要钱或者要注意力。没有广告，没有赞赏，没有弹出来的订阅框。想继续读就订 RSS，不想读就关掉。',
-    ],
-    rights: '许可', rightsBody: '代码以 MIT 许可开放，文章与照片保留所有权利。',
-    principles: '站点原则', principlesNote: 'Three quiet rules',
-    rules: [
-      ['内容先于装饰', '设计为阅读建立节奏，不抢走文章本身的注意力。'],
-      ['功能按需出现', '灯箱、图表、音乐与解密模块只在对应文章需要时加载。'],
-      ['长期重于即时', '链接、归档、翻译状态与订阅入口保持清楚、稳定、可回访。'],
-    ],
-    reach: '订阅与联系', reachNote: 'Feeds and channels',
-    feedBody: '三种语言各有一份 RSS，收录该语言下所有公开文章。订阅不会收集任何关于你的信息——这个站没有能力知道谁订阅了它。',
+    reach: '订阅与其他地址', reachNote: 'Feeds and elsewhere',
+    feedBody: '三种语言各有一份 RSS，收录对应语言的公开文章。',
     feedLabel: { zh: '中文 RSS', ja: '日本語 RSS', en: 'English RSS' },
     channelNotes: {
-      GitHub: '这个站的源码就在这里。看到错字或者事实错误，开一个 pull request 最直接。',
-      X: '偶尔说话的地方，不保证回复。',
-      Bilibili: '视频放在这里，和这个站的文字不重合。',
+      GitHub: '源码与公开问题记录。',
+      X: '偶尔更新近况。',
+      Bilibili: '视频存放处。',
     },
-    linksLabel: '继续浏览', read: '去看文章',
+    linksLabel: '继续浏览', read: '文章索引',
   },
   ja: {
-    title: 'Moriium について', intro: 'Moriium は Morii の個人ブログです。文章、写真のメモ、旅の記録、技術ノートを置いています。',
+    title: 'この場所',
+    intro: 'Moriium は Morii の個人アーカイブです。文章、写真、旅の記録、技術ノートを少しずつ収めています。',
     place: 'This place',
-    statement: '残しておきたいものを、ゆっくり読める場所へ。',
+    statement: '書いたもの、撮ったものを、少しずつ残す。',
     body: [
-      'ここは短い近況を追いかける場所ではなく、すべてを同じ形にも揃えません。写真は大きく開き、コードは読みやすくする。それ以外のときは、文章を静かに載せます。',
-      'サイトは静的に生成します。公開記事は継続して整え、保護記事はローカルで暗号化してから公開します。閲覧にアカウント、データベース、常駐サービスは不要です。',
+      'テーマも更新予定も決めていません。内容は日付、カテゴリー、タグで整理しています。',
+      '公開ページは事前に生成し、保護記事はローカルで暗号化します。閲覧にアカウントは不要で、アクセスも計測しません。',
     ],
-    kinds: 'ここに置くもの', kindsNote: 'Four kinds',
+    kinds: '収めるもの', kindsNote: 'Four kinds',
     kindList: [
-      ['記事', '考えがまとまってから書くもの。長さは主題が決め、欄が決めるのではありません。'],
-      ['写真のメモ', '写真が先で、文章は後。そのとき何を見ていたかだけを書き添えます。'],
-      ['旅の記録', '時系列ではなく、行った場所ごとに置きます。追うことより、読み返すことのために。'],
-      ['技術ノート', '実際にやって確かめたことを、そのときの判断ごと残します。'],
+      ['文章', '主題も長さも固定しません。'],
+      ['写真の記録', '写真を主に、文章は必要な背景だけを補います。'],
+      ['旅の記録', '場所と行程ごとに整理します。'],
+      ['技術ノート', '実際に行ったことと、その時点の判断を残します。'],
     ],
-    record: 'サイトの年譜', recordNote: 'Since 2026',
-    recordList: [
-      '再構築の最初の一本を書く。中国語・日本語・英語の三つが同時に存在する。',
-      '空のディレクトリからやり直す。以前のサイトへの追記はここで止める。',
-      '構成が決まる。公開ページはすべて事前に生成し、閲覧にデータベースを使わない。',
-      '視覚の方向が決まる。深い青の枠をひとつ置き、残りは余白に返す。',
+    colophon: 'サイト情報', colophonNote: 'Colophon',
+    facts: [
+      ['書体', '公開ページは Noto Serif SC/JP、ホームの題字は Shippori Mincho、日付とデータは IBM Plex Mono を使用します。'],
+      ['ビルド', '公開ページは事前に生成し、検索索引は検索を開いたときだけ読み込みます。'],
+      ['アクセス', '解析スクリプト、アクセスカウンター、読者アカウントは使用しません。'],
+      ['ライセンス', 'コードは MIT ライセンス。文章、写真、その他のコンテンツの権利は作者に帰属します。'],
     ],
-    colophon: 'このサイトの作り', colophonNote: 'Colophon',
-    faces: '書体の三つの役割',
-    faceList: [
-      ['表示と画面', 'Noto Sans SC', '見出しとナビゲーションは三つの文字で同じ骨格を保つ必要があるので、サンセリフに任せます。'],
-      ['本文', 'LXGW WenKai Screen', '本文は楷書体です。中国語の長文にリズムを与える役目は、ほかの二つには果たせません。'],
-      ['日付とデータ', 'IBM Plex Mono', '等幅だから日付が一本の軸に揃います。アーカイブのあの線はここから来ています。'],
-    ],
-    build: 'ビルド',
-    buildBody: '公開ページはビルドの時点で出来上がっていて、サーバーはファイルを渡すだけです。だからデータベースも常駐サービスもありません。検索はビルド時に作る索引で、実際に検索を開いたときにだけ読み込まれます。',
-    refuse: '置かないもの',
-    refuseBody: [
-      '読者を計測することは一切しません。解析スクリプトもアクセスカウンターもなく、アカウント登録も求めません。何をどれだけ読んだかを、このサイトは知りませんし、知るつもりもありません。',
-      'お金も注意も求めません。広告、投げ銭、購読を促すポップアップはありません。続けて読みたければ RSS を、そうでなければ閉じてください。',
-    ],
-    rights: 'ライセンス', rightsBody: 'コードは MIT ライセンスで公開し、文章と写真の権利は作者が保持します。',
-    principles: 'サイトの方針', principlesNote: 'Three quiet rules',
-    rules: [
-      ['内容を先に置く', 'デザインは読むためのリズムをつくり、記事から注意を奪いません。'],
-      ['機能は必要なときだけ', '写真、図表、音楽、復号の機能は、必要な記事でだけ読み込みます。'],
-      ['速さより長く残ること', 'リンク、アーカイブ、翻訳状況、購読入口を明確で安定した状態に保ちます。'],
-    ],
-    reach: '購読と連絡', reachNote: 'Feeds and channels',
-    feedBody: '三つの言語にそれぞれ RSS があり、その言語の公開記事をすべて収めています。購読してもあなたに関する情報は集まりません。このサイトには、誰が購読しているかを知る手段がありません。',
+    reach: '購読とほかの場所', reachNote: 'Feeds and elsewhere',
+    feedBody: '三つの言語にそれぞれ RSS があり、対応する言語の公開記事を収めています。',
     feedLabel: { zh: '中文 RSS', ja: '日本語 RSS', en: 'English RSS' },
     channelNotes: {
-      GitHub: 'このサイトのソースはここにあります。誤字や事実の誤りを見つけたら、pull request が一番早い経路です。',
-      X: 'ときどき話す場所です。返信は約束できません。',
-      Bilibili: '動画はこちらに置いています。このサイトの文章とは重なりません。',
+      GitHub: 'ソースコードと公開の課題記録。',
+      X: '近況をときどき更新します。',
+      Bilibili: '動画の保管場所。',
     },
-    linksLabel: '次に読む', read: '記事を読む',
+    linksLabel: '次に読む', read: '記事索引',
   },
   en: {
-    title: 'About Moriium', intro: "Moriium is Morii's personal blog for essays, photography notes, travel records, and technical writing.",
+    title: 'This place',
+    intro: 'Moriium is Morii’s private archive of writing, photographs, travel records, and technical notes.',
     place: 'This place',
-    statement: 'A place to keep what matters and read it slowly.',
+    statement: 'What is written and photographed is kept here over time.',
     body: [
-      'This is not a feed of passing updates, and every piece need not take the same shape. Photographs can open wide, code stays legible, and plain pages carry the rest.',
-      'The site builds to static files. Public posts remain editable; protected posts are encrypted locally before publication. Reading requires no account, database, or always-on application service.',
+      'There is no fixed subject or publishing schedule. Entries are filed by date, category, and tag.',
+      'Public pages are built in advance; protected posts are encrypted locally. Reading requires no account and is not tracked.',
     ],
-    kinds: 'What this archive keeps', kindsNote: 'Four kinds',
+    kinds: 'Contents', kindsNote: 'Four kinds',
     kindList: [
-      ['Essays', 'The pieces written once the thinking has settled. The subject sets the length, not the section.'],
-      ['Photography notes', 'The photograph comes first. The note says what was in front of the camera, and does not summarise the picture.'],
-      ['Travel records', 'Filed by place rather than kept as a timeline. They are here to be returned to, not followed.'],
-      ['Technical writing', 'Things actually built and verified, kept together with the judgement made at the time.'],
+      ['Writing', 'No fixed subject or length.'],
+      ['Photography notes', 'The photograph comes first; text adds only necessary context.'],
+      ['Travel records', 'Filed by place and journey.'],
+      ['Technical notes', 'What was built, together with the judgement made at the time.'],
     ],
-    record: 'A dated record', recordNote: 'Since 2026',
-    recordList: [
-      'The first piece of the rebuild, written in Chinese, Japanese, and English at once.',
-      'Starting again from an empty directory. The old site stops being added to.',
-      'The architecture settles: every public page is built ahead of time and reading needs no database.',
-      'The visual direction settles on one deep blue aperture, with everything else returned to blank space.',
+    colophon: 'Colophon', colophonNote: 'Site facts',
+    facts: [
+      ['Type', 'Public pages use Noto Serif SC/JP; the home title uses Shippori Mincho; dates and data use IBM Plex Mono.'],
+      ['Build', 'Public pages are built in advance. The search index loads only when search is opened.'],
+      ['Access', 'No analytics, view counters, or reader accounts.'],
+      ['Rights', 'Code is MIT licensed. Writing, photographs, and other content are all rights reserved.'],
     ],
-    colophon: 'How this site is made', colophonNote: 'Colophon',
-    faces: 'Three type roles',
-    faceList: [
-      ['Display and interface', 'Noto Sans SC', 'Headings and navigation have to keep one skeleton across three scripts, so they go to the sans.'],
-      ['Reading', 'LXGW WenKai Screen', 'The body text is a kai face. It carries the rhythm of long Chinese prose, which the sans cannot do.'],
-      ['Dates and data', 'IBM Plex Mono', 'Fixed widths let dates line up into an axis. That is where the archive rule comes from.'],
-    ],
-    build: 'The build',
-    buildBody: 'Every public page already exists when the server is asked for it; the server only hands over a file. There is no database and no resident application service. Search is an index generated at build time, and it downloads only once you actually open search.',
-    refuse: 'What this site will not have',
-    refuseBody: [
-      'Nothing here measures its readers. No analytics, no view counters, no account to create. What you read, and how long you stayed, is not something this site knows or intends to know.',
-      'Nothing here asks you for money or for attention either. No advertising, no tip jar, no subscription box appearing over the text. Take the feed if you want to keep reading, and close the tab if you do not.',
-    ],
-    rights: 'Rights', rightsBody: 'The code is MIT licensed. Writing and photographs remain all rights reserved.',
-    principles: 'Site principles', principlesNote: 'Three quiet rules',
-    rules: [
-      ['Content before decoration', 'Design gives reading a rhythm without competing with the work.'],
-      ['Features appear when needed', 'Lightboxes, diagrams, music, and decryption load only for posts that use them.'],
-      ['Longevity over immediacy', 'Links, archives, translation status, and feeds stay clear, stable, and easy to revisit.'],
-    ],
-    reach: 'Subscribing and getting in touch', reachNote: 'Feeds and channels',
-    feedBody: 'Each language has its own feed carrying every public post in that language. Subscribing collects nothing about you — this site has no way of knowing who reads it.',
+    reach: 'Feeds and elsewhere', reachNote: 'Feeds and elsewhere',
+    feedBody: 'Each language has its own feed containing its public posts.',
     feedLabel: { zh: '中文 RSS', ja: '日本語 RSS', en: 'English RSS' },
     channelNotes: {
-      GitHub: "This site's source is here. If you find a typo or an error of fact, a pull request is the most direct route.",
-      X: 'Occasional talking. No promise of a reply.',
-      Bilibili: 'Video lives here, and does not overlap with the writing on this site.',
+      GitHub: 'Source code and public issue records.',
+      X: 'Occasional updates.',
+      Bilibili: 'Video archive.',
     },
-    linksLabel: 'Keep exploring', read: 'Read the writing',
+    linksLabel: 'Keep exploring', read: 'Writing index',
   },
 } as const;
 const c = copy[lang];
@@ -209,42 +141,13 @@ const pad = (value: number) => String(value + 1).padStart(2, '0');
       </ol>
     </section>
 
-    <section class="a-about-page__band" aria-labelledby="about-record">
-      <header class="a-about-page__head"><h2 id="about-record">{c.record}</h2><p>{c.recordNote}</p></header>
-      <ol class="a-about-page__axis">
-        {RECORD_DATES.map((date, index) => (
-          <li><time datetime={date}>{date}</time><p>{c.recordList[index]}</p></li>
-        ))}
-      </ol>
-    </section>
-
     <section class="a-about-page__band a-about-page__colophon" aria-labelledby="about-colophon">
       <header class="a-about-page__head"><h2 id="about-colophon">{c.colophon}</h2><p>{c.colophonNote}</p></header>
-
-      <h3 class="a-about-page__sub"><span class="a-about-page__slab" aria-hidden="true"></span>{c.faces}</h3>
       <dl class="a-about-page__inset">
-        {c.faceList.map(([role, face, why]) => (
-          <div><dt>{role}</dt><dd><strong>{face}</strong>{why}</dd></div>
+        {c.facts.map(([term, description]) => (
+          <div><dt>{term}</dt><dd>{description}</dd></div>
         ))}
       </dl>
-
-      <h3 class="a-about-page__sub">{c.build}</h3>
-      <p>{c.buildBody}</p>
-
-      <h3 class="a-about-page__sub">{c.refuse}</h3>
-      {c.refuseBody.map((paragraph) => <p>{paragraph}</p>)}
-
-      <h3 class="a-about-page__sub">{c.rights}</h3>
-      <p>{c.rightsBody}</p>
-    </section>
-
-    <section class="a-about-page__band a-about-page__principles" aria-labelledby="about-principles">
-      <header class="a-about-page__head"><h2 id="about-principles">{c.principles}</h2><p>{c.principlesNote}</p></header>
-      <ol class="a-about-page__rows">
-        {c.rules.map(([title, description], index) => (
-          <li><span>{pad(index)}</span><div><h3>{title}</h3><p>{description}</p></div></li>
-        ))}
-      </ol>
     </section>
 
     <section class="a-about-page__band" aria-labelledby="about-reach">

@@ -191,7 +191,7 @@ describe('the built server artifact', () => {
     const response = await fetch(`${origin}/api/articles/`);
     const body = await json(response);
     assert.equal(response.status, 401);
-    assert.equal(body.error, 'Authentication required.');
+    assert.equal(body.error, '会话已失效，请重新登录。');
   });
 
   it('answers every author route with JSON rather than a load failure', async () => {

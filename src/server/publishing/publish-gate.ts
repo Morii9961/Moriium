@@ -120,7 +120,7 @@ export async function imageReferencesIn(markdown: string): Promise<MarkdownImage
 
 function contentBlockers(store: ArticleStore, version: Version): string[] {
   const article = store.getArticle(version.articleId);
-  if (!article) return ['article: The article no longer exists.'];
+  if (!article) return ['article：文章已不存在。'];
 
   const parsed = publishCandidate.safeParse({
     title: version.title,
@@ -142,7 +142,7 @@ function contentBlockers(store: ArticleStore, version: Version): string[] {
   if (!parsed.success) {
     return parsed.error.issues.map((issue) => {
       const field = issue.path.join('.') || 'article';
-      return `${field}: ${issue.message}`;
+      return `${field}：字段内容无效。`;
     });
   }
 
@@ -150,12 +150,12 @@ function contentBlockers(store: ArticleStore, version: Version): string[] {
   for (const entry of store.listArticles()) {
     if (entry.translationKey !== article.translationKey) continue;
     if (seen.has(entry.lang)) {
-      return [`translationKey: duplicate ${entry.lang} entry in ${article.translationKey}.`];
+      return [`translationKey：翻译组 ${article.translationKey} 中存在重复的 ${entry.lang} 文章。`];
     }
     seen.add(entry.lang);
   }
   if (!seen.has(article.lang)) {
-    return ['translationKey: The candidate is absent from its own translation group.'];
+    return ['translationKey：待发布文章不在自身翻译组中。'];
   }
   return [];
 }
@@ -182,40 +182,40 @@ function mediaBlockers(
 
   for (const reference of references) {
     if (reference.rawHtml) {
-      blockers.push('Raw HTML images are not publishable; use Markdown image syntax.');
+      blockers.push('不能发布原始 HTML 图片；请使用 Markdown 图片语法。');
       continue;
     }
     if (reference.publicPath.length === 0) {
-      blockers.push('An image has no path at all.');
+      blockers.push('有一张图片缺少路径。');
       continue;
     }
     if (reference.alt.trim().length === 0) {
-      blockers.push(`Image ${reference.publicPath} has blank alt text.`);
+      blockers.push(`图片 ${reference.publicPath} 缺少替代文字。`);
     }
     const asset = findAsset.get(reference.publicPath) as MediaRow | undefined;
     if (!asset) {
-      blockers.push(`Image ${reference.publicPath} is missing from media assets.`);
+      blockers.push(`媒体库中找不到图片 ${reference.publicPath}。`);
       continue;
     }
     if (asset.alt.trim().length === 0) {
-      blockers.push(`${reference.publicPath}: stored alt text must not be blank.`);
+      blockers.push(`${reference.publicPath}：媒体库中的替代文字不能为空。`);
     }
     if (RASTER_FORMATS.has(asset.format) && asset.sanitized_at === null) {
-      blockers.push(`${reference.publicPath}: raster media has not passed sanitization.`);
+      blockers.push(`${reference.publicPath}：位图尚未通过元数据清理。`);
     }
     try {
       const exif: unknown = JSON.parse(asset.exif_json);
       if (!exif || typeof exif !== 'object' || Array.isArray(exif)) {
-        blockers.push(`${reference.publicPath}: stored EXIF metadata is invalid.`);
+        blockers.push(`${reference.publicPath}：保存的 EXIF 元数据无效。`);
       } else {
         for (const tag of Object.keys(exif)) {
           if (!PUBLISHABLE_EXIF_TAGS.has(tag)) {
-            blockers.push(`${reference.publicPath}: EXIF tag "${tag}" is not publishable.`);
+            blockers.push(`${reference.publicPath}：EXIF 标签“${tag}”不可发布。`);
           }
         }
       }
     } catch {
-      blockers.push(`${reference.publicPath}: stored EXIF metadata is invalid.`);
+      blockers.push(`${reference.publicPath}：保存的 EXIF 元数据无效。`);
     }
   }
   return blockers;
@@ -232,15 +232,15 @@ export async function preparePublishValidator(
   const references = await imageReferencesIn(version.markdown);
   return (candidate: Version): void => {
     if (candidate.id !== version.id) {
-      throw new AdminError('validation-failed', 'The publication candidate changed. Try again.');
+      throw new AdminError('validation-failed', '待发布版本已发生变化，请重试。');
     }
     const content = contentBlockers(store, candidate);
     if (content.length > 0) {
-      throw new AdminError('validation-failed', `Publishing is blocked: ${content.join(' ')}`);
+      throw new AdminError('validation-failed', `无法发布：${content.join(' ')}`);
     }
     const media = mediaBlockers(db, candidate, references);
     if (media.length > 0) {
-      throw new AdminError('media-gate-refused', `Publishing is blocked: ${media.join(' ')}`);
+      throw new AdminError('media-gate-refused', `无法发布：${media.join(' ')}`);
     }
   };
 }

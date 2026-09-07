@@ -47,3 +47,45 @@ test('private directive rendering constrains embed URLs and style values', async
   assert.doesNotMatch(html, /javascript:/);
   assert.doesNotMatch(html, /data-meting=/);
 });
+
+test('private Markdown localizes reader controls from the article language', async () => {
+  const markdown = `
+\`\`\`ts
+const localized = true;
+\`\`\`
+
+:::important
+Localized admonition.
+:::
+
+This is :spoiler[hidden].
+
+::video{provider="youtube" id="aqz-KE-bpKQ" title="Fixture"}
+
+::music{title="Fixture" artist="Morii" audio="/media/fixture.mp3"}
+
+A footnote.[^1]
+
+[^1]: Footnote body.
+`;
+
+  const cases = [
+    {
+      lang: 'zh',
+      expected: ['复制代码', '已复制', '重要', '显示隐藏内容', '第三方视频', '播放', '脚注', '返回注记'],
+    },
+    {
+      lang: 'ja',
+      expected: ['コードをコピー', 'コピーしました', '重要', '伏せた内容を表示', '外部サービスの動画', '再生', '脚注', '注記に戻る'],
+    },
+    {
+      lang: 'en',
+      expected: ['Copy code', 'Copied', 'Important', 'Reveal hidden text', 'Third-party video', 'Play', 'Footnotes', 'Back to reference'],
+    },
+  ];
+
+  for (const { lang, expected } of cases) {
+    const html = await renderPrivateMarkdown(markdown, lang);
+    for (const copy of expected) assert.match(html, new RegExp(copy));
+  }
+});

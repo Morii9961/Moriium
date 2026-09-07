@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { readerCopyForFile } from './reader-copy.mjs';
 
 const VIDEO_PROVIDERS = {
   youtube: (id) => `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}`,
@@ -44,7 +45,7 @@ function readGitHubCache() {
   }
 }
 
-function transformGitHub(node, cache) {
+function transformGitHub(node, cache, copy) {
   const repo = String(property(node, 'data-repo', 'dataRepo') ?? '');
   const valid = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repo);
   const href = valid ? `https://github.com/${repo}` : 'https://github.com/';
@@ -56,26 +57,26 @@ function transformGitHub(node, cache) {
     rel: ['noopener', 'noreferrer'],
   };
   node.children = [
-    element('span', { className: ['github-card__eyebrow'] }, [text('GitHub repository')]),
-    element('strong', { className: ['github-card__name'] }, [text(repo || 'Invalid repository')]),
-    element('span', { className: ['github-card__description'] }, [
-      text(data?.description || 'Open the repository on GitHub.'),
-    ]),
+    element('span', { className: ['github-card__eyebrow'] }, [text(copy.github.eyebrow)]),
+    element('strong', { className: ['github-card__name'] }, [text(repo || copy.github.invalid)]),
+    ...(data?.description
+      ? [element('span', { className: ['github-card__description'] }, [text(data.description)])]
+      : []),
     ...(data
       ? [
           element('span', { className: ['github-card__meta'] }, [
-            text(`${data.language || 'Repository'} · ★ ${Number(data.stargazers_count || 0).toLocaleString('en-US')}`),
+            text(`${data.language || copy.github.repository} · ★ ${Number(data.stargazers_count || 0).toLocaleString('en-US')}`),
           ]),
         ]
       : []),
   ];
 }
 
-function transformVideo(node) {
+function transformVideo(node, copy) {
   const provider = String(property(node, 'data-provider', 'dataProvider') ?? '');
   const id = String(property(node, 'data-id', 'dataId') ?? '');
   const src = String(property(node, 'data-src', 'dataSrc') ?? '');
-  const title = String(property(node, 'data-title', 'dataTitle') ?? '') || 'Embedded video';
+  const title = String(property(node, 'data-title', 'dataTitle') ?? '') || copy.video.fallback;
   const requestedRatio = String(property(node, 'data-ratio', 'dataRatio') ?? '16/9');
   const ratio = /^\d+(?:\.\d+)?\/\d+(?:\.\d+)?$/.test(requestedRatio) ? requestedRatio : '16/9';
   const poster = String(property(node, 'data-poster', 'dataPoster') ?? '');
@@ -87,7 +88,7 @@ function transformVideo(node) {
     node.children = [
       element('video', { controls: true, preload: 'none', playsinline: true, poster, title }, [
         element('source', { src }),
-        text('Your browser does not support HTML video.'),
+        text(copy.video.unsupported),
       ]),
       element('figcaption', {}, [text(title)]),
     ];
@@ -111,24 +112,24 @@ function transformVideo(node) {
             rel: ['noopener', 'noreferrer'],
             dataVideoSrc: embed,
             dataVideoTitle: title,
-            ariaLabel: `Load video: ${title}`,
+            ariaLabel: `${copy.video.load}${title}`,
           },
           [
             element('span', { className: ['video-consent__title'] }, [text(title)]),
             element('span', { className: ['video-consent__note'] }, [
-              text('Load this video from a third-party service'),
+              text(copy.video.thirdParty),
             ]),
           ],
         ),
         element('figcaption', {}, [text(title)]),
       ]
-    : [element('p', { className: ['embed-error'] }, [text('This video source is not allowed.')])];
+    : [element('p', { className: ['embed-error'] }, [text(copy.video.blocked)])];
 }
 
-function transformMusic(node) {
+function transformMusic(node, copy) {
   const properties = node.properties ?? {};
-  const title = String(properties['data-title'] ?? properties.dataTitle ?? '') || 'Untitled track';
-  const artist = String(properties['data-artist'] ?? properties.dataArtist ?? '') || 'Unknown artist';
+  const title = String(properties['data-title'] ?? properties.dataTitle ?? '') || copy.music.untitled;
+  const artist = String(properties['data-artist'] ?? properties.dataArtist ?? '') || copy.music.unknownArtist;
   const audio = String(properties['data-audio'] ?? properties.dataAudio ?? '');
   const cover = String(properties['data-cover'] ?? properties.dataCover ?? '');
   const lrc = String(properties['data-lrc'] ?? properties.dataLrc ?? '');
@@ -159,10 +160,10 @@ function transformMusic(node) {
       element(
         'button',
         { type: 'button', className: ['music-card__play'], dataMusicPlay: '', disabled: true },
-        [text('Play')],
+        [text(copy.music.play)],
       ),
       ...(isSafeLyrics
-        ? [element('a', { href: lrc, className: ['music-card__lyrics'], rel: ['noopener', 'noreferrer'] }, [text('Lyrics')])]
+        ? [element('a', { href: lrc, className: ['music-card__lyrics'], rel: ['noopener', 'noreferrer'] }, [text(copy.music.lyrics)])]
         : []),
       // Native controls are the fallback: with no script the element is still a
       // working player, and preload="none" keeps it from fetching anything.
@@ -176,8 +177,8 @@ function transformMusic(node) {
       element('p', { className: ['music-card__status'], ariaLive: 'polite', dataMusicStatus: '' }, [
         text(
           isSafeLocalAudio
-            ? 'These controls need JavaScript. The audio player above works without it.'
-            : 'This track loads from a remote service, which needs JavaScript.',
+            ? copy.music.noScriptLocal
+            : copy.music.noScriptRemote,
         ),
       ]),
     ]),
@@ -188,7 +189,7 @@ function blank(node) {
   return node.type === 'text' && node.value.trim() === '';
 }
 
-function transformImage(node, parent, index) {
+function transformImage(node, parent, index, copy) {
   const src = String(node.properties?.src ?? '');
   if (!src) return;
   const alt = String(node.properties?.alt ?? '');
@@ -200,7 +201,7 @@ function transformImage(node, parent, index) {
       href: src,
       className: ['article-image-link'],
       dataLightbox: '',
-      ariaLabel: `Open image: ${alt || 'article image'}`,
+      ariaLabel: `${copy.image.open}${alt || copy.image.fallback}`,
     },
     [node],
   );
@@ -229,12 +230,13 @@ function wrapTable(node, parent, index) {
 export function rehypeMoriiumContent() {
   const githubCache = readGitHubCache();
 
-  return (tree) => {
+  return (tree, file) => {
+    const copy = readerCopyForFile(file);
     walk(tree, (node, parent, index) => {
       if (node.type !== 'element') return;
 
       if (node.tagName === 'img' && parent && parent.tagName !== 'a') {
-        transformImage(node, parent, index);
+        transformImage(node, parent, index, copy);
         return;
       }
 
@@ -242,10 +244,18 @@ export function rehypeMoriiumContent() {
         wrapTable(node, parent, index);
       }
 
-      if (property(node, 'data-github', 'dataGithub') !== undefined) transformGitHub(node, githubCache);
-      if (property(node, 'data-video', 'dataVideo') !== undefined) transformVideo(node);
-      if (property(node, 'data-music', 'dataMusic') !== undefined) transformMusic(node);
+      if (property(node, 'data-github', 'dataGithub') !== undefined) transformGitHub(node, githubCache, copy);
+      if (property(node, 'data-video', 'dataVideo') !== undefined) transformVideo(node, copy);
+      if (property(node, 'data-music', 'dataMusic') !== undefined) transformMusic(node, copy);
 
+      if (node.properties?.id === 'footnote-label') {
+        node.children = [text(copy.footnotes)];
+      }
+      if (property(node, 'data-footnote-backref', 'dataFootnoteBackref') !== undefined) {
+        const existing = String(node.properties?.ariaLabel ?? '');
+        const number = existing.match(/\d+/)?.[0] ?? '';
+        node.properties = { ...node.properties, ariaLabel: `${copy.footnoteBack}${number}`.trim() };
+      }
       if (node.tagName === 'a' && /^https?:\/\//.test(String(node.properties?.href ?? ''))) {
         node.properties = { ...(node.properties ?? {}), rel: ['noopener', 'noreferrer'] };
       }

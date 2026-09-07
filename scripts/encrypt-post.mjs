@@ -67,7 +67,7 @@ if (!sourceArg) {
   const confirmation = await hiddenPrompt('Confirm password: ');
   if (password !== confirmation) throw new Error('Passwords do not match.');
 
-  const rendered = await renderPrivateMarkdown(content);
+  const rendered = await renderPrivateMarkdown(content, String(frontmatter.lang));
   const encryption = await encryptHtml(rendered, password);
   const output = {
     ...publicMetadata(frontmatter),

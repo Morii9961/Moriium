@@ -30,7 +30,7 @@ test('production tag directory has localized empty states and responsive public 
   ]);
 
   assert.match(tags, /tagEntries\.length > 0/);
-  for (const text of ['还没有标签', 'タグはまだありません', 'No tags yet']) {
+  for (const text of ['尚无标签', 'タグはまだありません', 'No tags yet']) {
     assert.match(tags, new RegExp(text));
   }
   assert.match(tags, /a-tag-field--quiet/);
@@ -54,7 +54,7 @@ test('production tag detail uses the shared localized taxonomy article list', as
   assert.match(tag, /formatDate\(latest\.data\.publishedAt, ui\.locale\)/);
   assert.match(tag, /<TaxonomyPostList/);
   assert.match(tag, /heading=\{`# \$\{tag\}`\}/);
-  for (const text of ['返回全部标签', 'タグ一覧へ戻る', 'Back to all tags']) {
+  for (const text of ['全部标签', 'タグ一覧', 'All tags']) {
     assert.match(tag, new RegExp(text));
   }
   assert.match(list, /aria-labelledby="taxonomy-posts-title"/);

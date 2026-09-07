@@ -137,7 +137,7 @@ function asStoreError(error: unknown): unknown {
   if (isAdminError(error)) return error;
   const message = error instanceof Error ? error.message : String(error);
   if (/database is locked|database is busy|SQLITE_BUSY/i.test(message)) {
-    return new AdminError('db-locked', 'The database is busy. Try again.', { cause: error });
+    return new AdminError('db-locked', '数据库正忙，请稍后重试。', { cause: error });
   }
   return error;
 }
@@ -307,7 +307,7 @@ export class ArticleStore {
   saveVersion(articleId: number, input: SaveInput): Version {
     return this.#transaction(() => {
       if (!this.getArticle(articleId)) {
-        throw new AdminError('validation-failed', 'That article does not exist.');
+        throw new AdminError('validation-failed', '文章不存在。');
       }
       return this.getVersion(this.#insertVersion(articleId, input))!;
     });
@@ -336,9 +336,9 @@ export class ArticleStore {
   unpublish(articleId: number, options: { actorId: number; note?: string }): Article {
     return this.#transaction(() => {
       const article = this.getArticle(articleId);
-      if (!article) throw new AdminError('validation-failed', 'That article does not exist.');
+      if (!article) throw new AdminError('validation-failed', '文章不存在。');
       if (article.publishedVersionId == null) {
-        throw new AdminError('conflict', 'That article is not published.');
+        throw new AdminError('conflict', '文章尚未发布。');
       }
       this.#db.prepare('UPDATE articles SET published_version_id = NULL WHERE id = ?').run(articleId);
       this.#insertAudit(
@@ -364,18 +364,18 @@ export class ArticleStore {
   markLive(articleId: number, versionId: number): Article {
     return this.#transaction(() => {
       const article = this.getArticle(articleId);
-      if (!article) throw new AdminError('validation-failed', 'That article does not exist.');
+      if (!article) throw new AdminError('validation-failed', '文章不存在。');
 
       const version = this.getVersion(versionId);
       if (!version || version.articleId !== articleId) {
-        throw new AdminError('validation-failed', 'That version does not belong to this article.');
+        throw new AdminError('validation-failed', '该版本不属于这篇文章。');
       }
       // Going live with something that was never published would put content in
       // front of readers that the publish gate never examined.
       if (article.publishedVersionId !== versionId) {
         throw new AdminError(
           'conflict',
-          'Only the published version can be marked live.',
+          '只有已发布版本可以标记为上线。',
         );
       }
       this.#db.prepare('UPDATE articles SET live_version_id = ? WHERE id = ?').run(versionId, articleId);
@@ -387,9 +387,9 @@ export class ArticleStore {
   markNotLive(articleId: number): Article {
     return this.#transaction(() => {
       const article = this.getArticle(articleId);
-      if (!article) throw new AdminError('validation-failed', 'That article does not exist.');
+      if (!article) throw new AdminError('validation-failed', '文章不存在。');
       if (article.publishedVersionId != null) {
-        throw new AdminError('conflict', 'That article is still published.');
+        throw new AdminError('conflict', '文章仍处于发布状态。');
       }
       this.#db.prepare('UPDATE articles SET live_version_id = NULL WHERE id = ?').run(articleId);
       return this.getArticle(articleId)!;
@@ -411,7 +411,7 @@ export class ArticleStore {
     } catch (cause) {
       throw new AdminError(
         'conflict',
-        'An article with that slug, or that language within the translation group, already exists.',
+        '相同 slug 的文章，或同一翻译组中的该语言文章，已经存在。',
         { cause },
       );
     }
@@ -427,16 +427,16 @@ export class ArticleStore {
   ): Article {
     return this.#transaction(() => {
       const article = this.getArticle(articleId);
-      if (!article) throw new AdminError('validation-failed', 'That article does not exist.');
+      if (!article) throw new AdminError('validation-failed', '文章不存在。');
 
       const version = this.getVersion(versionId);
       // Ownership, not mere existence: publishing another article's version
       // would silently swap the content a reader sees.
       if (!version || version.articleId !== articleId) {
-        throw new AdminError('validation-failed', 'That version does not belong to this article.');
+        throw new AdminError('validation-failed', '该版本不属于这篇文章。');
       }
       if (article.publishedVersionId === versionId) {
-        throw new AdminError('conflict', 'That version is already the published one.');
+        throw new AdminError('conflict', '该版本已经是当前发布版本。');
       }
 
       // Before any write, so a rejection cannot leave a half-published article

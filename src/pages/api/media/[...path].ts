@@ -8,12 +8,12 @@ export const prerender = false;
 const MEDIA_PATH = /^(\d+)\/file$/;
 
 const handle: APIRoute = async ({ request, session, params }) => {
-  if (!session) return adminJson({ error: 'Session storage unavailable.' }, 500);
+  if (!session) return adminJson({ error: '会话存储不可用。' }, 500);
   const match = MEDIA_PATH.exec(params.path ?? '');
-  if (!match) return adminJson({ error: 'Media route not found.' }, 404);
+  if (!match) return adminJson({ error: '媒体接口路径不存在。' }, 404);
   const assetId = Number(match[1]);
   if (!Number.isSafeInteger(assetId) || assetId <= 0) {
-    return adminJson({ error: 'Media route not found.' }, 404);
+    return adminJson({ error: '媒体接口路径不存在。' }, 404);
   }
   return handleMediaFile(request, session, getDatabase(), assetId);
 };

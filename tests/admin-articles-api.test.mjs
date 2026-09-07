@@ -172,7 +172,7 @@ describe('production publish gate', () => {
     assert.throws(
       () =>
         store.publish(article.id, rawHtml.id, { actorId: author.id, validate: rejectRawHtml }),
-      (error) => error?.code === 'media-gate-refused' && /Raw HTML/.test(error.userMessage),
+      (error) => error?.code === 'media-gate-refused' && /原始 HTML/.test(error.userMessage),
     );
   });
 
@@ -216,7 +216,7 @@ describe('production publish gate', () => {
       () => store.publish(article.id, mediaOnly.id, { actorId: author.id, validate: validateMedia }),
       (error) =>
         error?.code === 'media-gate-refused' &&
-        /sanit/.test(error.userMessage) &&
+        /元数据清理/.test(error.userMessage) &&
         /GPSLatitude/.test(error.userMessage),
     );
   });
@@ -378,7 +378,7 @@ describe('author article HTTP API', () => {
 
       assert.equal(response.status, 503);
       assert.deepEqual(await json(response), {
-        error: 'The database is busy. Try again.',
+        error: '数据库正忙，请稍后重试。',
         code: 'db-locked',
       });
       assert.equal(contender.prepare('SELECT COUNT(*) AS count FROM articles').get().count, 0);
@@ -407,7 +407,10 @@ describe('author article HTTP API', () => {
       'preview',
     );
     assert.equal(preview.status, 200);
-    assert.match((await json(preview)).html, /expressive-code/);
+    const previewHtml = (await json(preview)).html;
+    assert.match(previewHtml, /expressive-code/);
+    assert.match(previewHtml, /title="复制代码"/);
+    assert.match(previewHtml, /data-copied="已复制"/);
     assert.equal(store.listVersions(article.id).length, before);
     assert.equal(store.getArticle(article.id).publishedVersionId, null);
 

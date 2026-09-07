@@ -144,14 +144,14 @@ export class MediaStore {
       if (/UNIQUE|constraint/i.test(message)) {
         throw new AdminError(
           'conflict',
-          'That image is already in the media library. Pick it from the library instead.',
+          '图片已在媒体库中，请直接选用。',
           { cause },
         );
       }
       if (/database is locked|database is busy|SQLITE_BUSY/i.test(message)) {
-        throw new AdminError('db-locked', 'The database is busy. Try again.', { cause });
+        throw new AdminError('db-locked', '数据库正忙，请稍后重试。', { cause });
       }
-      throw new AdminError('db-write-failed', 'The media asset could not be recorded.', { cause });
+      throw new AdminError('db-write-failed', '无法记录媒体库图片。', { cause });
     }
     return this.getByPublicPath(input.publicPath)!;
   }

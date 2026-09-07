@@ -13,25 +13,25 @@ const posts = await getListedPosts(lang);
 const latest = posts[0]?.data.publishedAt;
 const copy = {
   zh: {
-    title: '文章', intro: '这里收着所有公开文章，新的排在前面。', count: '文章', updated: '最近更新', list: '全部文章',
+    title: '文章', intro: '公开留下的文章，新写的在前。', count: '文章', updated: '最近更新', list: '全部文章',
     unitOne: ' 篇', unitMany: ' 篇', filter: '筛选', all: '全部', categories: '分类', tags: '标签',
-    filterHint: '按分类或标签筛选这个列表', search: '搜索',
-    searchHint: '在这一页里搜索', searchLabel: '输入标题、摘要、分类或标签', searchPlaceholder: '标题、分类或标签',
-    empty: '这一页里没有匹配的文章。',
+    filterHint: '按分类或标签筛选', search: '搜索',
+    searchHint: '搜索当前列表', searchLabel: '标题、摘要、分类或标签', searchPlaceholder: '标题、分类或标签',
+    empty: '没有相符的文章。',
   },
   ja: {
-    title: '記事', intro: '公開中の記事を新しい順に並べています。', count: '記事', updated: '最近の更新', list: 'すべての記事',
+    title: '記事', intro: '公開中の記事を、新しいものから。', count: '記事', updated: '最近の更新', list: 'すべての記事',
     unitOne: ' 件', unitMany: ' 件', filter: '絞り込み', all: 'すべて', categories: 'カテゴリー', tags: 'タグ',
-    filterHint: 'カテゴリーやタグでこの一覧を絞り込む', search: '検索',
-    searchHint: 'この一覧を検索', searchLabel: 'タイトル、概要、カテゴリー、タグを入力', searchPlaceholder: 'タイトル、カテゴリー、タグ',
-    empty: 'この一覧に一致する記事はありません。',
+    filterHint: 'カテゴリーまたはタグで絞り込む', search: '検索',
+    searchHint: '現在の一覧を検索', searchLabel: 'タイトル・概要・カテゴリー・タグ', searchPlaceholder: 'タイトル、カテゴリー、タグ',
+    empty: '該当する記事はありません。',
   },
   en: {
-    title: 'Writing', intro: 'All public posts, newest first.', count: 'Posts', updated: 'Latest update', list: 'All posts',
+    title: 'Writing', intro: 'Public writing, newest first.', count: 'Posts', updated: 'Latest update', list: 'All posts',
     unitOne: ' post', unitMany: ' posts', filter: 'Filter', all: 'All', categories: 'Categories', tags: 'Tags',
-    filterHint: 'Filter this list by category or tag', search: 'Search',
-    searchHint: 'Search this list', searchLabel: 'Enter a title, summary, category, or tag', searchPlaceholder: 'Title, category, or tag',
-    empty: 'Nothing on this page matched.',
+    filterHint: 'Filter by category or tag', search: 'Search',
+    searchHint: 'Search this list', searchLabel: 'Title, summary, category, or tag', searchPlaceholder: 'Title, category, or tag',
+    empty: 'No matching posts.',
   },
 } as const;
 const c = copy[lang];

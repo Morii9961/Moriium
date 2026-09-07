@@ -37,9 +37,9 @@ async function createPublicRenderer() {
 
 let cached;
 
-export async function renderPreview(markdown) {
+export async function renderPreview(markdown, lang = 'en') {
   cached ??= createPublicRenderer();
-  const rendered = await (await cached).render(markdown);
+  const rendered = await (await cached).render(markdown, { frontmatter: { lang } });
   return rendered.code
     .replace(/<style>[\s\S]*?<\/style>/g, '')
     .replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, '');

@@ -131,7 +131,7 @@ describe('fixture and test article migration', () => {
 
     assert.throws(
       () => store.createArticles([version, { ...version, translationKey: 'second' }]),
-      /already exists/i,
+      /已经存在/,
     );
     assert.deepEqual(store.listArticles(), []);
   });

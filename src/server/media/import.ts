@@ -54,10 +54,10 @@ export async function importImage(
 ): Promise<MediaAsset> {
   const alt = request.alt.trim();
   if (alt.length === 0) {
-    throw new AdminError('validation-failed', 'Every image needs alt text before it can be imported.');
+    throw new AdminError('validation-failed', '导入前必须填写替代文字。');
   }
   if (request.data.byteLength === 0) {
-    throw new AdminError('validation-failed', 'The uploaded file is empty.');
+    throw new AdminError('validation-failed', '上传文件为空。');
   }
 
   let sanitized;
@@ -69,7 +69,7 @@ export async function importImage(
     // file, or metadata that survived the re-encode.
     throw new AdminError(
       'media-gate-refused',
-      `That file could not be turned into a sanitized public image: ${cause instanceof Error ? cause.message : String(cause)}`,
+      '无法将此文件转换为已清理元数据的公开图片。请检查格式、尺寸与文件完整性。',
       { cause },
     );
   }
@@ -88,7 +88,7 @@ export async function importImage(
   if (store.getByPublicPath(publicPath)) {
     throw new AdminError(
       'conflict',
-      'That image is already in the media library. Pick it from the library instead.',
+      '图片已在媒体库中，请直接选用。',
     );
   }
 
@@ -101,7 +101,7 @@ export async function importImage(
     await rm(file, { force: true });
     throw new AdminError(
       'media-gate-refused',
-      `The stored image still carried ${remaining.join(', ')} metadata and was discarded.`,
+      `存储后的图片仍含有 ${remaining.join(', ')} 元数据，文件已丢弃。`,
     );
   }
 

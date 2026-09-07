@@ -1,5 +1,44 @@
 import { pluginCollapsibleSections } from '@expressive-code/plugin-collapsible-sections';
 import { pluginLineNumbers } from '@expressive-code/plugin-line-numbers';
+import { READER_COPY, readerLanguageForFile } from './reader-copy.mjs';
+
+const EXPRESSIVE_CODE_LOCALES = { zh: 'zh-CN', ja: 'ja-JP', en: 'en-US' };
+
+function walk(node, visitor) {
+  visitor(node);
+  if (Array.isArray(node.children)) {
+    for (const child of node.children) walk(child, visitor);
+  }
+}
+
+function languageForLocale(locale) {
+  if (locale.toLowerCase().startsWith('zh')) return 'zh';
+  if (locale.toLowerCase().startsWith('ja')) return 'ja';
+  return 'en';
+}
+
+// Expressive Code documents postprocessRenderedBlock as the hook for editing a
+// block's rendered HAST. The bundled Frames plugin runs before configured
+// plugins, so its copy button exists by the time this hook runs.
+// Source: https://expressive-code.com/reference/plugin-hooks/#postprocessrenderedblock
+const localizedCopyButton = {
+  name: 'Moriium localized copy button',
+  hooks: {
+    postprocessRenderedBlock({ renderData, locale }) {
+      const copy = READER_COPY[languageForLocale(locale)].code;
+      walk(renderData.blockAst, (node) => {
+        if (node.type !== 'element' || node.tagName !== 'button') return;
+        if (node.properties?.['data-code'] === undefined && node.properties?.dataCode === undefined) return;
+        node.properties = {
+          ...node.properties,
+          title: copy.copy,
+          'data-copied': copy.copied,
+        };
+        delete node.properties.dataCopied;
+      });
+    },
+  },
+};
 
 /**
  * One Expressive Code configuration for every renderer.
@@ -17,7 +56,11 @@ import { pluginLineNumbers } from '@expressive-code/plugin-line-numbers';
  * the rest of the page instead of carrying GitHub's chrome into it.
  */
 export const expressiveCodeOptions = {
-  plugins: [pluginLineNumbers(), pluginCollapsibleSections()],
+  plugins: [pluginLineNumbers(), pluginCollapsibleSections(), localizedCopyButton],
+  // The integration's documented callback receives the Markdown VFile. Astro
+  // stores collection frontmatter at file.data.astro.frontmatter.
+  // Source: https://expressive-code.com/reference/configuration/#getblocklocale
+  getBlockLocale: ({ file }) => EXPRESSIVE_CODE_LOCALES[readerLanguageForFile(file)],
   defaultProps: { wrap: true, showLineNumbers: false },
   themes: ['github-light', 'github-dark'],
   themeCssSelector: (theme) =>

@@ -39,7 +39,7 @@ export default defineComponent({
     function report(error: unknown): void {
       failure.value = messageForApiFailure(
         error,
-        '连接不上后台，这次没有导入。请检查网络后重试。',
+        '后台连接失败。请检查网络后重试。本次未导入。',
       );
     }
 
@@ -76,7 +76,7 @@ export default defineComponent({
         alt.value = '';
         caption.value = '';
         copyright.value = '';
-        status.value = `已导入 ${result.asset.publicPath}，元数据已剥离并复核。`;
+        status.value = `已导入 ${result.asset.publicPath}；敏感元数据已清除并复核。`;
         await refresh();
       } catch (error) {
         report(error);
@@ -113,7 +113,7 @@ export default defineComponent({
   template: `
     <section class="subpanel media-library">
       <h2>媒体库</h2>
-      <p class="note">导入时服务端会重新编码并剥离 EXIF/XMP/IPTC，再读回文件复核。原图不上传，也不会被改写。</p>
+      <p class="note">源文件只用于导入与元数据清理，不进入公开目录；本地原图不会被改写。</p>
 
       <form class="media-upload" @submit.prevent="upload">
         <label>
@@ -124,14 +124,14 @@ export default defineComponent({
         <label><span>替代文字（必填）</span><textarea v-model="alt" rows="2"></textarea></label>
         <label><span>说明文字（可选）</span><input v-model="caption" /></label>
         <label><span>版权（可选）</span><input v-model="copyright" /></label>
-        <button class="primary" type="submit" :disabled="busy || !ready">{{ busy ? '导入中…' : '导入并净化' }}</button>
+        <button class="primary" type="submit" :disabled="busy || !ready">{{ busy ? '导入中…' : '导入并清理元数据' }}</button>
         <p v-if="!ready && fileName" class="field-error">替代文字为空时不能导入。</p>
       </form>
 
       <p v-if="failure" class="message error" role="alert">{{ failure }}</p>
       <p v-else-if="status" class="message" role="status" aria-live="polite">{{ status }}</p>
 
-      <p v-if="loaded && assets.length === 0" class="empty">媒体库还是空的。</p>
+      <p v-if="loaded && assets.length === 0" class="empty">媒体库暂无图片。</p>
       <ul v-else class="media-list">
         <li v-for="asset in assets" :key="asset.id">
           <img :src="fileUrl(asset)" :alt="asset.alt" loading="lazy" />
@@ -146,7 +146,7 @@ export default defineComponent({
           </div>
         </li>
       </ul>
-      <p class="note">这里的路径要等下一次导出才会出现在静态站上；缩略图走作者接口，读者看不到。</p>
+      <p class="note">公开路径将在下次导出后生效。当前缩略图仅通过作者接口显示。</p>
     </section>
   `,
 });

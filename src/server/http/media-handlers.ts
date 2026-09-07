@@ -62,19 +62,19 @@ function textField(form: FormData, name: string): string | undefined {
 async function uploadForm(request: Request): Promise<FormData> {
   const contentType = request.headers.get('Content-Type') ?? '';
   if (!contentType.toLowerCase().startsWith('multipart/form-data')) {
-    throw new RequestBodyError(415, 'Expected a multipart upload.');
+    throw new RequestBodyError(415, '请求格式必须为 multipart/form-data。');
   }
   const body = await readBodyBytes(request, MAX_UPLOAD_BYTES);
   if (!body.ok) {
     throw new RequestBodyError(
       body.status,
-      body.status === 413 ? 'That file is too large to import.' : 'The upload was unreadable.',
+      body.status === 413 ? '文件过大，无法导入。' : '无法读取上传内容。',
     );
   }
   try {
     return await new Response(body.value, { headers: { 'Content-Type': contentType } }).formData();
   } catch {
-    throw new RequestBodyError(400, 'The upload was unreadable.');
+    throw new RequestBodyError(400, '无法读取上传内容。');
   }
 }
 
@@ -90,12 +90,12 @@ export async function handleMediaCollection(
   const store = new MediaStore(db);
   try {
     if (request.method === 'GET') return adminJson({ assets: store.list() }, 200);
-    if (request.method !== 'POST') return adminJson({ error: 'Method not allowed.' }, 405);
+    if (request.method !== 'POST') return adminJson({ error: '不支持此请求方式。' }, 405);
 
     const form = await uploadForm(request);
     const file = form.get('file');
     if (!(file instanceof Blob)) {
-      throw new AdminError('validation-failed', 'The upload had no file attached.');
+      throw new AdminError('validation-failed', '上传请求未附带文件。');
     }
     const asset = await importImage(store, {
       data: new Uint8Array(await file.arrayBuffer()),
@@ -118,13 +118,13 @@ export async function handleMediaFile(
   db: DatabaseSync,
   assetId: number,
 ): Promise<Response> {
-  if (request.method !== 'GET') return adminJson({ error: 'Method not allowed.' }, 405);
+  if (request.method !== 'GET') return adminJson({ error: '不支持此请求方式。' }, 405);
   const auth = await authorizeRequest(request, session, false);
   if (!auth.ok) return auth.response;
 
   try {
     const asset = new MediaStore(db).get(assetId);
-    if (!asset) throw new AdminError('validation-failed', 'That media asset does not exist.');
+    if (!asset) throw new AdminError('validation-failed', '媒体库中不存在这张图片。');
     const file = fileForPublicPath(asset.publicPath);
     let bytes: Buffer;
     try {
@@ -133,7 +133,7 @@ export async function handleMediaFile(
       // A row whose file is gone is a real state -- a restore that missed the
       // media directory, most likely -- and it deserves its own answer rather
       // than a generic server error.
-      throw new AdminError('validation-failed', 'That media file is missing from storage.', {
+      throw new AdminError('validation-failed', '存储中缺少这张图片的文件。', {
         cause,
       });
     }

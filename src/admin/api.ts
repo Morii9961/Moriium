@@ -147,14 +147,14 @@ async function send<T>(method: string, path: string, body?: unknown): Promise<T>
   try {
     payload = text ? JSON.parse(text) : {};
   } catch {
-    throw new ApiError(response.status, 'The author API returned an unreadable response.');
+    throw new ApiError(response.status, '作者接口返回了无法读取的响应。');
   }
   if (!response.ok) {
     if (response.status === 401) csrfToken = '';
     const message =
       typeof payload === 'object' && payload !== null && 'error' in payload
         ? String((payload as { error: unknown }).error)
-        : `Request failed with ${response.status}.`;
+        : `请求失败（HTTP ${response.status}）。`;
     throw new ApiError(response.status, message);
   }
   return payload as T;
@@ -182,14 +182,14 @@ async function sendForm<T>(path: string, form: FormData): Promise<T> {
   try {
     payload = text ? JSON.parse(text) : {};
   } catch {
-    throw new ApiError(response.status, 'The author API returned an unreadable response.');
+    throw new ApiError(response.status, '作者接口返回了无法读取的响应。');
   }
   if (!response.ok) {
     if (response.status === 401) csrfToken = '';
     const message =
       typeof payload === 'object' && payload !== null && 'error' in payload
         ? String((payload as { error: unknown }).error)
-        : `Request failed with ${response.status}.`;
+        : `请求失败（HTTP ${response.status}）。`;
     throw new ApiError(response.status, message);
   }
   return payload as T;

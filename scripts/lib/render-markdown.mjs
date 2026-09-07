@@ -7,7 +7,7 @@ import { expressiveCodeOptions } from '../../src/markdown/expressive-code.mjs';
 import { rehypeMoriiumContent } from '../../src/markdown/rehype-moriium-content.mjs';
 import { remarkMoriiumDirectives } from '../../src/markdown/remark-moriium-directives.mjs';
 
-export async function renderPrivateMarkdown(markdown) {
+export async function renderPrivateMarkdown(markdown, lang = 'en') {
   const processor = await createMarkdownProcessor({
     syntaxHighlight: false,
     smartypants: false,
@@ -18,7 +18,7 @@ export async function renderPrivateMarkdown(markdown) {
       rehypeMoriiumContent,
     ],
   });
-  const rendered = await processor.render(markdown);
+  const rendered = await processor.render(markdown, { frontmatter: { lang } });
 
   // Expressive Code normally injects its browser module into the document head.
   // Protected HTML is inserted after decryption, where inline modules neither run

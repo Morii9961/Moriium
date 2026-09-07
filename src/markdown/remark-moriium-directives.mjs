@@ -31,7 +31,7 @@ function applyAdmonition(node, kind, title) {
   node.children = [titleParagraph(title || kind[0].toUpperCase() + kind.slice(1)), ...node.children];
 }
 
-function githubCallout(node) {
+function githubCallout(node, copy) {
   if (node.type !== 'blockquote' || !node.children?.length) return;
   const first = node.children[0];
   if (first?.type !== 'paragraph' || first.children?.[0]?.type !== 'text') return;
@@ -41,7 +41,7 @@ function githubCallout(node) {
   first.children[0].value = first.children[0].value.slice(match[0].length);
   if (!first.children[0].value) first.children.shift();
   if (!first.children.length) node.children.shift();
-  applyAdmonition(node, kind, kind[0].toUpperCase() + kind.slice(1));
+  applyAdmonition(node, kind, copy.admonitions[kind]);
 }
 
 function placeholder(node, name, properties) {
@@ -58,15 +58,16 @@ function placeholder(node, name, properties) {
 }
 
 export function remarkMoriiumDirectives() {
-  return (tree) => {
+  return (tree, file) => {
+    const copy = readerCopyForFile(file);
     walk(tree, (node) => {
-      githubCallout(node);
+      githubCallout(node, copy);
 
       if (!['containerDirective', 'leafDirective', 'textDirective'].includes(node.type)) return;
       const attributes = node.attributes ?? {};
 
       if (node.type === 'containerDirective' && ADMONITIONS.has(node.name)) {
-        applyAdmonition(node, node.name, attributes.title);
+        applyAdmonition(node, node.name, attributes.title || copy.admonitions[node.name]);
         return;
       }
 
@@ -78,7 +79,7 @@ export function remarkMoriiumDirectives() {
             className: ['spoiler'],
             tabindex: 0,
             role: 'button',
-            'aria-label': 'Reveal spoiler',
+            'aria-label': copy.spoiler,
             'aria-pressed': 'false',
             'data-spoiler': '',
           },
@@ -112,3 +113,4 @@ export function remarkMoriiumDirectives() {
     });
   };
 }
+import { readerCopyForFile } from './reader-copy.mjs';

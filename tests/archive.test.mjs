@@ -29,7 +29,7 @@ test('production archive has localized empty states and mobile-safe public style
   ]);
 
   assert.match(archive, /yearGroups\.length > 0/);
-  for (const text of ['还没有文章', '記事はまだありません', 'No posts yet']) assert.match(archive, new RegExp(text));
+  for (const text of ['尚无公开文章', '公開中の記事はまだありません', 'No public posts yet']) assert.match(archive, new RegExp(text));
   assert.match(archive, /a-archive--quiet/);
   assert.match(styles, /@media \(max-width: 48rem\)[\s\S]*\.a-archive\s*{[^}]*--archive-date:\s*3\.5rem/);
   assert.match(styles, /@media \(max-width: 48rem\)[\s\S]*\.a-archive__days > li\s*{[^}]*grid-template-columns:\s*var\(--archive-date\) minmax\(0, 1fr\)/);

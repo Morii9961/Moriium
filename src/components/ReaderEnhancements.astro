@@ -1,14 +1,16 @@
 ---
 import type { ReaderFeatures } from '../utils/features';
 import type { Language } from '../data/site';
+import { READER_COPY } from '../markdown/reader-copy.mjs';
 import photoSwipeCss from 'photoswipe/dist/photoswipe.css?url';
 import katexCss from 'katex/dist/katex.min.css?url';
 
 interface Props { features: ReaderFeatures; lang: Language }
 const { features, lang } = Astro.props;
+const copy = READER_COPY[lang];
 ---
 
-<template data-reader-lang={lang}></template>
+<template data-reader-copy={JSON.stringify(copy)}></template>
 {features.lightbox && <link rel="stylesheet" href={photoSwipeCss} />}
 {features.math && <link rel="stylesheet" href={katexCss} />}
 
@@ -73,12 +75,9 @@ const { features, lang } = Astro.props;
 
 {features.mermaid && (
   <script>
-    const mermaidLang = document.querySelector<HTMLTemplateElement>('[data-reader-lang]')?.dataset.readerLang ?? 'en';
-    const mermaidCopy = {
-      zh: { diagram: '图表', error: '图表无法显示，下面是原始内容：' },
-      ja: { diagram: '図', error: '図を表示できません。元の内容を示します。' },
-      en: { diagram: 'Diagram', error: 'The diagram could not be displayed. Here is the source:' },
-    }[mermaidLang as 'zh' | 'ja' | 'en'];
+    const mermaidCopy = JSON.parse(
+      document.querySelector<HTMLTemplateElement>('[data-reader-copy]')?.dataset.readerCopy ?? '{}',
+    ).mermaid as { diagram: string; error: string };
     const renderDiagrams = async (refresh = false) => {
       const diagramSources = [
         ...document.querySelectorAll<HTMLElement>('pre[data-language="mermaid"]'),
@@ -148,8 +147,9 @@ const { features, lang } = Astro.props;
 
 {features.video && (
   <script>
-    const videoLang = document.querySelector<HTMLTemplateElement>('[data-reader-lang]')?.dataset.readerLang ?? 'en';
-    const videoFallback = { zh: '嵌入视频', ja: '埋め込み動画', en: 'Embedded video' }[videoLang as 'zh' | 'ja' | 'en'];
+    const videoCopy = JSON.parse(
+      document.querySelector<HTMLTemplateElement>('[data-reader-copy]')?.dataset.readerCopy ?? '{}',
+    ).video as { fallback: string };
     function bindVideos() {
       // The consent control is a link so that it still works with no script;
       // see transformVideo in src/markdown/rehype-moriium-content.mjs. Here it
@@ -172,7 +172,7 @@ const { features, lang } = Astro.props;
         event.preventDefault();
         const frame = document.createElement('iframe');
         frame.src = source;
-        frame.title = button.dataset.videoTitle || videoFallback;
+        frame.title = button.dataset.videoTitle || videoCopy.fallback;
         frame.loading = 'lazy';
         frame.allow = 'accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen';
         frame.allowFullscreen = true;
@@ -189,12 +189,13 @@ const { features, lang } = Astro.props;
 
 {features.music && (
   <script>
-    const musicLang = document.querySelector<HTMLTemplateElement>('[data-reader-lang]')?.dataset.readerLang ?? 'en';
-    const musicCopy = {
-      zh: { ready: '可以播放了。', remoteReady: '点击播放后才会连接音乐服务。', blocked: '这个音乐接口不在允许列表中。', response: '音乐服务返回了错误：', source: '音乐服务没有返回可用的音频地址。', loading: '正在加载歌曲信息，加载好后请再点一次播放。', loaded: '歌曲已经加载，可以播放了。', play: '播放', pause: '暂停', playing: '正在播放。', paused: '已暂停。', unavailable: '这首歌暂时无法播放。' },
-      ja: { ready: '再生できます。', remoteReady: '再生を押してから音楽サービスに接続します。', blocked: 'この音楽サービスは許可されていません。', response: '音楽サービスからエラーが返されました：', source: '再生できる音声 URL が返されませんでした。', loading: '曲の情報を読み込んでいます。完了後、もう一度再生してください。', loaded: '読み込みが完了しました。再生できます。', play: '再生', pause: '一時停止', playing: '再生中。', paused: '一時停止しました。', unavailable: 'この曲は現在再生できません。' },
-      en: { ready: 'Ready to play.', remoteReady: 'The music service is contacted only after you press play.', blocked: 'This music service is not allowed.', response: 'The music service returned an error:', source: 'The music service did not return a playable audio URL.', loading: 'Loading track details. Press play again when it is ready.', loaded: 'The track is ready.', play: 'Play', pause: 'Pause', playing: 'Playing.', paused: 'Paused.', unavailable: 'This track is not available.' },
-    }[musicLang as 'zh' | 'ja' | 'en'];
+    const musicCopy = JSON.parse(
+      document.querySelector<HTMLTemplateElement>('[data-reader-copy]')?.dataset.readerCopy ?? '{}',
+    ).music as {
+      ready: string; remoteReady: string; blocked: string; response: string; source: string;
+      loading: string; loaded: string; play: string; pause: string; playing: string;
+      paused: string; unavailable: string;
+    };
     let activeAudio: HTMLAudioElement | null = null;
 
     async function loadRemote(card: HTMLElement) {
@@ -267,12 +268,9 @@ const { features, lang } = Astro.props;
 )}
 
 <script>
-  const commonLang = document.querySelector<HTMLTemplateElement>('[data-reader-lang]')?.dataset.readerLang ?? 'en';
-  const commonCopy = {
-    zh: { copied: '已复制', failed: '复制失败，请手动选择代码。' },
-    ja: { copied: 'コピーしました', failed: 'コピーできませんでした。コードを手動で選択してください。' },
-    en: { copied: 'Copied', failed: 'Copy failed. Select the code manually.' },
-  }[commonLang as 'zh' | 'ja' | 'en'];
+  const commonCopy = JSON.parse(
+    document.querySelector<HTMLTemplateElement>('[data-reader-copy]')?.dataset.readerCopy ?? '{}',
+  ).code as { copied: string; failed: string };
   function bindDecryptedCodeCopy() {
     const buttons = document.querySelectorAll<HTMLButtonElement>(
       '[data-decrypted-content] .expressive-code .copy button[data-code]',
@@ -319,12 +317,9 @@ const { features, lang } = Astro.props;
 
 {features.copyProtection && (
   <script>
-    const protectionLang = document.querySelector<HTMLTemplateElement>('[data-reader-lang]')?.dataset.readerLang ?? 'en';
-    const protectionNotice = {
-      zh: '这篇文章不允许复制正文，代码块仍可复制。',
-      ja: 'この記事の本文はコピーできません。コードブロックはコピーできます。',
-      en: 'Prose copying is disabled for this article. Code blocks remain copyable.',
-    }[protectionLang as 'zh' | 'ja' | 'en'];
+    const protectionNotice = JSON.parse(
+      document.querySelector<HTMLTemplateElement>('[data-reader-copy]')?.dataset.readerCopy ?? '{}',
+    ).copyProtection as string;
     const protectedArticle = document.querySelector<HTMLElement>('[data-copy-protection="true"]');
     protectedArticle?.addEventListener('copy', (event) => {
       const selection = document.getSelection();

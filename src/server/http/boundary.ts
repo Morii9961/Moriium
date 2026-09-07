@@ -116,14 +116,14 @@ export async function authorizeRequest(
   write: boolean,
 ): Promise<AuthorizedRequest> {
   if (!adminBoundaryAllows(request, write)) {
-    return { ok: false, response: adminJson({ error: 'Request refused.' }, 403) };
+    return { ok: false, response: adminJson({ error: '请求已拒绝。' }, 403) };
   }
   const author = await requireAuthor(session);
   if (!author) {
-    return { ok: false, response: adminJson({ error: 'Authentication required.' }, 401) };
+    return { ok: false, response: adminJson({ error: '会话已失效，请重新登录。' }, 401) };
   }
   if (write && !(await verifyCsrfToken(session, request.headers.get('X-CSRF-Token')))) {
-    return { ok: false, response: adminJson({ error: 'Request refused.' }, 403) };
+    return { ok: false, response: adminJson({ error: '请求已拒绝。' }, 403) };
   }
   return { ok: true, authorId: author.id };
 }
@@ -157,5 +157,5 @@ export function responseForError(error: unknown): Response {
     return adminJson({ error: error.userMessage, code: error.code }, status);
   }
   console.error(describeForLog(error));
-  return adminJson({ error: 'The author API could not complete that request.' }, 500);
+  return adminJson({ error: '作者接口未能完成请求。' }, 500);
 }

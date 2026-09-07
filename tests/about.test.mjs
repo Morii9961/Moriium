@@ -14,8 +14,9 @@ test('production about page uses the public editorial layout and confirmed publi
   assert.doesNotMatch(about, /bodyClass=|prototypes\.css/);
   assert.match(about, /import type \{ GetStaticPaths \} from 'astro'/);
   assert.match(about, /class="a-about-page__statement"/);
-  assert.match(about, /class="a-about-page__band a-about-page__principles"/);
   assert.match(about, /class="a-about-page__band a-about-page__colophon"/);
+  assert.match(about, /c\.facts\.map/);
+  assert.doesNotMatch(about, /a-about-page__principles|recordList|RECORD_DATES/);
 
   // Every channel Morii approved, and no other outbound identity.
   assert.match(about, /https:\/\/github\.com\/Morii9961/);
@@ -27,7 +28,7 @@ test('production about page uses the public editorial layout and confirmed publi
   assert.match(about, /SITE\.languages\.map\(\(code\) => \(/);
   assert.match(about, /href=\{`\/\$\{code\}\/rss\.xml`\}/);
 
-  for (const text of ['把值得保留的东西', '残しておきたいもの', 'A place to keep what matters']) {
+  for (const text of ['写下的、拍下的，慢慢留下', '書いたもの、撮ったものを、少しずつ残す', 'What is written and photographed is kept here over time']) {
     assert.match(about, new RegExp(text));
   }
 
@@ -36,20 +37,17 @@ test('production about page uses the public editorial layout and confirmed publi
   assert.doesNotMatch(about, /Dalian|大连|所在地|site-shell page-heading|client:/);
 });
 
-test('the dated record carries the same sourced dates in all three languages', async () => {
+test('the public colophon stays factual and omits a recent engineering timeline', async () => {
   const about = await read('src/pages/[lang]/about/index.astro');
 
-  // The dates are facts about this repository and are shared; only the sentence
-  // beside each is translated, so a language cannot drift onto its own timeline.
-  assert.match(about, /const RECORD_DATES = \['2026-08-23', '2026-08-28', '2026-08-30', '2026-09-01'\]/);
-  assert.match(about, /RECORD_DATES\.map\(\(date, index\) => \(/);
-  assert.match(about, /<time datetime=\{date\}>\{date\}<\/time>/);
-
-  // Each language supplies exactly one sentence per date.
+  assert.doesNotMatch(about, /RECORD_DATES|recordList|about-record|Since 2026/);
+  // Each language supplies the same four public facts: type, build, access,
+  // and rights, without turning implementation choices into a manifesto.
   for (const block of ['zh', 'ja', 'en']) {
     const section = about.slice(about.indexOf(`  ${block}: {`));
-    const list = section.slice(section.indexOf('recordList: ['), section.indexOf('],', section.indexOf('recordList: [')));
-    assert.equal(list.split('\n').filter((line) => line.trim().startsWith("'")).length, 4, `${block} recordList`);
+    const start = section.indexOf('facts: [');
+    const list = section.slice(start, section.indexOf('    ],', start));
+    assert.equal(list.split('\n').filter((line) => line.trim().startsWith("['")).length, 4, `${block} facts`);
   }
 });
 
@@ -59,14 +57,11 @@ test('about page bands share one left axis and keep responsive collapse and visi
     read('src/styles/public.css'),
   ]);
 
-  assert.match(about, /c\.rules\.map/);
   assert.match(about, /c\.kindList\.map/);
-  assert.match(about, /c\.faceList\.map/);
+  assert.match(about, /c\.facts\.map/);
 
-  // One label track drives every band, so the numbered rows, the date axis and
-  // the fact blocks all begin their words on the same edge.
+  // One label track drives the content rows and fact blocks.
   assert.match(styles, /\.a-about-page__rows li\s*{[^}]*grid-template-columns:\s*var\(--about-label, 7rem\)/s);
-  assert.match(styles, /\.a-about-page__axis li\s*{[^}]*grid-template-columns:\s*var\(--about-label, 7rem\)/s);
   assert.match(styles, /\.a-about-page__inset div\s*{[^}]*grid-template-columns:\s*var\(--about-label, 7rem\)/s);
 
   // The rule between rows starts after the label column; that inset is what

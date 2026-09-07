@@ -1,11 +1,32 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+
+const copy = {
+  zh: { locale: 'zh-CN', message: '没有这一页。' },
+  ja: { locale: 'ja-JP', message: 'このページはありません。' },
+  en: { locale: 'en-US', message: 'This page does not exist.' },
+} as const;
 ---
 
 <BaseLayout lang="zh" title="404" noindex>
-  <section class="site-shell page-heading">
+  <section class="site-shell page-heading" data-not-found-copy={JSON.stringify(copy)}>
     <p class="page-heading__eyebrow">404</p>
-    <h1>这里没有这个页面。</h1>
-    <p><a href="/zh/">回到首页</a></p>
+    <h1 data-not-found-message>{copy.zh.message}</h1>
+    <p><a href="/zh/" data-not-found-home>← Moriium</a></p>
   </section>
+  <script>
+    const root = document.querySelector<HTMLElement>('[data-not-found-copy]');
+    const message = root?.querySelector<HTMLElement>('[data-not-found-message]');
+    const home = root?.querySelector<HTMLAnchorElement>('[data-not-found-home]');
+    const lang = window.location.pathname.match(/^\/(zh|ja|en)(?:\/|$)/)?.[1] as 'zh' | 'ja' | 'en' | undefined;
+    if (root && message && home && lang) {
+      const copy = JSON.parse(root.dataset.notFoundCopy || '{}') as Record<string, { locale: string; message: string }>;
+      const selected = copy[lang];
+      if (selected) {
+        document.documentElement.lang = selected.locale;
+        message.textContent = selected.message;
+        home.href = `/${lang}/`;
+      }
+    }
+  </script>
 </BaseLayout>

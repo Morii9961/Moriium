@@ -189,9 +189,9 @@ test('production copy removes prototype fillers and keeps the Moriium voice', as
   // The display type stays Japanese in all three languages — it is read as form.
   // The panel beside it is ordinary prose, so it follows the page language and
   // no longer advertises the three languages as a label.
-  assert.match(home, /heroBody: \['文字と写真と旅の断片を、', 'ここでゆっくりと整理していく。'\]/);
-  assert.match(home, /heroBody: \['文字、照片与旅途的断片，'/);
-  assert.match(home, /heroBody: \['Fragments of writing, photographs'/);
+  assert.match(home, /heroBody: \['文章、写真、旅先の記録を、', '少しずつ残しています。'\]/);
+  assert.match(home, /heroBody: \['文章、照片与途中见闻，', '陆续归档。'\]/);
+  assert.match(home, /heroBody: \['Writing, photographs, and notes from the road,', 'filed over time.'\]/);
   assert.match(home, /\{c\.heroIdentity\}/);
   assert.match(home, /\{c\.heroBody\.map/);
   assert.doesNotMatch(home, /ZH · JA · EN|lang="ja"><span>\{heroCopy\.enter\}/);

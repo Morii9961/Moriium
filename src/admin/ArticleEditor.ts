@@ -95,7 +95,7 @@ export default defineComponent({
     function report(error: unknown): void {
       failure.value = messageForApiFailure(
         error,
-        '连接不上后台，这次没有保存。改动仍在编辑器里。',
+        '后台连接失败。请检查网络后重试。本次未保存，编辑器中的改动仍在。',
       );
     }
 
@@ -217,7 +217,7 @@ export default defineComponent({
         await refreshDetail();
         if (revision === savingRevision) dirty.value = false;
         status.value = kind === 'autosave'
-          ? `自动保存于 ${new Date().toLocaleTimeString()}；公开内容没有改变。`
+          ? `${new Date().toLocaleTimeString()} 自动保存。公开内容未变。`
           : `已保存手动版本 #${result.version.id}。`;
         return result.version;
       } catch (error) {
@@ -289,7 +289,7 @@ export default defineComponent({
     }
 
     async function unpublish(): Promise<void> {
-      if (!window.confirm('撤下这篇文章？数据库会立即变成未发布，静态站仍需等待下一次导出。')) return;
+      if (!window.confirm('确认撤下？数据库会立即改为未发布；静态站将在下一次导出后更新。')) return;
       busy.value = true;
       failure.value = '';
       try {
@@ -413,7 +413,7 @@ export default defineComponent({
           </div>
           <fieldset class="checks">
             <legend>发布属性</legend>
-            <label><input v-model="fields.draft" type="checkbox" @change="scheduleAutosave" /> draft 标记（勾选时发布门禁会拒绝）</label>
+            <label><input v-model="fields.draft" type="checkbox" @change="scheduleAutosave" /> 保留为草稿（不可发布）</label>
             <label><input v-model="fields.unlisted" type="checkbox" @change="scheduleAutosave" /> 不在列表中显示</label>
             <label><input v-model="fields.copyProtection" type="checkbox" @change="scheduleAutosave" /> 启用复制限制</label>
           </fieldset>
@@ -423,10 +423,10 @@ export default defineComponent({
           <section v-if="selectedImage" class="subpanel image-properties">
             <h2>图片属性</h2>
             <label><span>公开路径（由媒体库决定）</span><input :value="selectedImage.src" readonly /></label>
-            <p class="note">路径不再手填。要换图，在右侧媒体库里选一张，它会替换当前选中的图片。</p>
+            <p class="note">图片路径由媒体库管理。选择右侧图片即可替换当前图片。</p>
             <label><span>替代文字（必填）</span><textarea v-model="selectedImage.alt" rows="2" @input="applySelectedImage"></textarea></label>
             <label><span>说明文字（可选）</span><input v-model="selectedImage.title" @input="applySelectedImage" /></label>
-            <p v-if="!selectedImage.alt.trim()" class="field-error">替代文字为空时，发布门禁会拒绝。</p>
+            <p v-if="!selectedImage.alt.trim()" class="field-error">必须填写替代文字，才能发布。</p>
           </section>
 
           <div class="editor-actions">
@@ -444,7 +444,7 @@ export default defineComponent({
               <dt>语言</dt><dd>{{ article.lang }}</dd>
               <dt>slug</dt><dd>{{ article.slug }}</dd>
             </dl>
-            <p class="note">这三项在新建后保持不变，避免翻译关系和公开 URL 被普通保存改写。</p>
+            <p class="note">语言、translationKey 与 slug 建立后不可修改，以保持翻译关系与公开 URL 稳定。</p>
           </section>
 
           <section class="subpanel">

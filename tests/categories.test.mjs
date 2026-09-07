@@ -53,7 +53,7 @@ test('production category detail uses the public layout with a static, localized
   assert.match(list, /class="a-taxonomy-posts"/);
   assert.match(list, /post\.data\.summary/);
   assert.match(list, /post\.data\.tags\.join\(' · '\)/);
-  for (const text of ['返回全部分类', 'カテゴリー一覧へ戻る', 'Back to all categories']) {
+  for (const text of ['全部分类', 'カテゴリー一覧', 'All categories']) {
     assert.match(category, new RegExp(text));
   }
   assert.doesNotMatch(category, /<PostList|site-shell page-heading|client:/);

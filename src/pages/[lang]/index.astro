@@ -170,113 +170,124 @@ const heroFragments = [
 // thing — ordinary prose the reader is meant to read — so it is localised in
 // `copy` below and follows the page language.
 const heroCopy = {
-  title: '見たものを記す。未完のまま残す。',
   leftNote: '時間の中で、拾い集める。',
   rightNote: 'いつか戻れるように。',
 } as const;
 
+const englishOrdinal = (value: number | string) => {
+  if (typeof value !== 'number') return value;
+  const mod100 = value % 100;
+  const suffix = mod100 >= 11 && mod100 <= 13
+    ? 'th'
+    : ({ 1: 'st', 2: 'nd', 3: 'rd' } as const)[value % 10 as 1 | 2 | 3] ?? 'th';
+  return `${value}${suffix}`;
+};
+
 const copy = {
   zh: {
-    heroIdentity: '文字・照片・旅途的记录',
-    heroBody: ['文字、照片与旅途的断片，', '在这里慢慢地整理。'],
+    heroTitle: '记录所见，留下未完。',
+    heroIdentity: 'Writing / Photography / Travel',
+    heroBody: ['文章、照片与途中见闻，', '陆续归档。'],
     routes: [
       ['Writing', '写下的', '全部公开文章'],
-      ['Archive', '回看的', '按年份寻找'],
+      ['Archive', '回看的', '按年份存放'],
       ['Subjects', '反复出现的', '分类与标签'],
-      ['About', '这个地方', 'Moriium 是什么'],
+      ['About', '这个地方', '作者与站点'],
     ],
-    recent: '前几页', recentNote: '最近公开、但不必立刻读完的文字。', all: '查看全部',
-    field: '内容星图', fieldNote: '分类是较大的方向，标签是文章之间偶然形成的连线。',
+    recent: '前几页', recentNote: '最近公开的几篇。', all: '文章索引',
+    field: '内容星图', fieldNote: '分类给出主要归处，标签保留更细的联系。',
     category: '主要方向', tags: '交叉索引', posts: (count: number) => `${count} 篇`,
     allCategories: '全部分类', allTags: '全部标签',
-    ledger: '存了些什么', ledgerNote: '按年份看，以及这个档案从什么时候开始。',
+    ledger: '存了些什么', ledgerNote: '按年份回看，也从最早的一页开始。',
     ledgerYears: '年份', ledgerEntries: (count: number) => `${count} 篇`,
     factStarted: '开始于', factPosts: '文章',
     colophon: '关于这里',
-    colophonNote: '谁在写，什么时候更新过。',
+    colophonNote: '维护者与更新记录。',
     authorTitle: '维护者',
     authorNames: 'Morii & Enouia',
     people: [
-      ['Morii', '写文章，拍照片。路上的见闻也放在这里。'],
-      ['Enouia', '整理内容，也负责把网站搭起来、照看好。'],
+      ['Morii', '写作、摄影，也记录途中见闻。'],
+      ['Enouia', '整理内容，维护站点。'],
     ],
     authorAbout: '关于',
     calendarTitle: '更新日历',
     calendarWeekdays: ['日', '一', '二', '三', '四', '五', '六'],
-    calendarDayActive: (day: number | string) => `${day}日有文章更新`,
+    calendarDayActive: (day: number | string) => `${day} 日有更新`,
     calendarPickYear: '选择年份', calendarPickMonth: '选择月份',
-    calendarEmpty: '这个月没有更新。',
-    calendarMore: (count: number | string) => `这个月还有 ${count} 篇`,
-    fullArchive: '完整归档',
-    rss: '订阅 RSS', about: '关于 Moriium',
+    calendarEmpty: '本月无更新。',
+    calendarMore: (count: number | string) => `另有 ${count} 篇。`,
+    fullArchive: '归档',
+    rss: 'RSS', about: '关于 Moriium',
   },
   ja: {
-    heroIdentity: '文字・写真・旅の記録',
-    heroBody: ['文字と写真と旅の断片を、', 'ここでゆっくりと整理していく。'],
+    heroTitle: '見たものを記す。未完のまま残す。',
+    heroIdentity: 'Writing / Photography / Travel',
+    heroBody: ['文章、写真、旅先の記録を、', '少しずつ残しています。'],
     routes: [
       ['Writing', '書いたもの', '公開中の記事'],
-      ['Archive', '振り返るもの', '年から探す'],
+      ['Archive', '振り返るもの', '年ごとに収録'],
       ['Subjects', '繰り返すもの', 'カテゴリーとタグ'],
-      ['About', 'この場所', 'Moriium について'],
+      ['About', 'この場所', '書き手とサイト'],
     ],
-    recent: '前の頁', recentNote: '最近公開した、急いで読み終えなくてもよい文章。', all: 'すべて見る',
-    field: '内容の星図', fieldNote: 'カテゴリーは大きな方向、タグは記事のあいだに偶然生まれた線です。',
+    recent: '前の頁', recentNote: '最近公開した記事。', all: '記事索引',
+    field: '内容の星図', fieldNote: 'カテゴリーが主な置き場所を決め、タグが細かなつながりを残します。',
     category: '主な方向', tags: '交差する索引', posts: (count: number) => `${count} 件`,
     allCategories: 'カテゴリー一覧', allTags: 'タグ一覧',
-    ledger: '残っているもの', ledgerNote: '年ごとの記事と、このアーカイブが始まった時期。',
+    ledger: '残っているもの', ledgerNote: '年ごとに振り返り、最初の頁まで戻れます。',
     ledgerYears: '年', ledgerEntries: (count: number) => `${count} 件`,
     factStarted: '開始', factPosts: '記事',
     colophon: 'この場所について',
-    colophonNote: '誰が書いているか、いつ更新されたか。',
+    colophonNote: '運営と更新の記録。',
     authorTitle: '運営',
     authorNames: 'Morii & Enouia',
     people: [
-      ['Morii', '文章を書き、写真を撮る。旅の記録もここに置いています。'],
-      ['Enouia', '内容を整理し、サイトの構築と管理を担当しています。'],
+      ['Morii', '文章を書き、写真を撮り、旅先の見聞を記録します。'],
+      ['Enouia', '内容を整理し、サイトを管理します。'],
     ],
     authorAbout: 'について',
     calendarTitle: '更新カレンダー',
     calendarWeekdays: ['日', '月', '火', '水', '木', '金', '土'],
-    calendarDayActive: (day: number | string) => `${day}日に記事が更新されました`,
+    calendarDayActive: (day: number | string) => `${day}日に更新`,
     calendarPickYear: '年を選ぶ', calendarPickMonth: '月を選ぶ',
     calendarEmpty: 'この月の更新はありません。',
-    calendarMore: (count: number | string) => `この月はあと ${count} 件`,
+    calendarMore: (count: number | string) => `ほか ${count} 件。`,
     fullArchive: 'アーカイブ',
-    rss: 'RSS を購読', about: 'Moriium について',
+    rss: 'RSS', about: 'Moriium について',
   },
   en: {
-    heroIdentity: 'Words · Photographs · Travel',
-    heroBody: ['Fragments of writing, photographs', 'and travel, gathered here slowly.'],
+    heroTitle: 'Record what was seen. Leave the unfinished as it is.',
+    heroIdentity: 'Writing / Photography / Travel',
+    heroBody: ['Writing, photographs, and notes from the road,', 'filed over time.'],
     routes: [
       ['Writing', 'Things written', 'Every public post'],
-      ['Archive', 'Things revisited', 'Find a year'],
+      ['Archive', 'Things revisited', 'Filed by year'],
       ['Subjects', 'Things recurring', 'Categories and tags'],
-      ['About', 'This place', 'What Moriium is'],
+      ['About', 'This place', 'Author and site'],
     ],
-    recent: 'Previous pages', recentNote: 'Recently published writing that does not ask to be finished at once.', all: 'See all writing',
-    field: 'A map of the work', fieldNote: 'Categories mark broad directions; tags are lines that happen to form between posts.',
+    recent: 'Previous pages', recentNote: 'Recently published.', all: 'Writing index',
+    field: 'A map of the work', fieldNote: 'Categories provide the main filing; tags preserve finer links.',
     category: 'Main directions', tags: 'Cross-index', posts: (count: number) => `${count} ${count === 1 ? 'post' : 'posts'}`,
     allCategories: 'All categories', allTags: 'All tags',
-    ledger: 'What is kept here', ledgerNote: 'By year, and when this archive starts from.',
+    ledger: 'What is kept here', ledgerNote: 'By year, back to the first page.',
     ledgerYears: 'Years', ledgerEntries: (count: number) => `${count} ${count === 1 ? 'entry' : 'entries'}`,
     factStarted: 'Started', factPosts: 'Posts',
     colophon: 'About this place',
-    colophonNote: 'Who writes here, and when it was last updated.',
+    colophonNote: 'Maintainers and update record.',
     authorTitle: 'Maintainers',
     authorNames: 'Morii & Enouia',
     people: [
-      ['Morii', 'Writes and photographs. Travel notes end up here too.'],
-      ['Enouia', 'Organises the content, and builds and looks after the site.'],
+      ['Morii', 'Writes, photographs, and records what is seen along the way.'],
+      ['Enouia', 'Organises the content and maintains the site.'],
     ],
     authorAbout: 'About',
     calendarTitle: 'Update calendar',
     calendarWeekdays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-    calendarDayActive: (day: number | string) => `Post updated on day ${day}`,
+    calendarDayActive: (day: number | string) => `Updated on the ${englishOrdinal(day)}`,
     calendarPickYear: 'Choose a year', calendarPickMonth: 'Choose a month',
-    calendarEmpty: 'Nothing was published this month.',
-    calendarMore: (count: number | string) => `${count} more this month`,
-    fullArchive: 'Full archive',
-    rss: 'Subscribe by RSS', about: 'About Moriium',
+    calendarEmpty: 'No entries this month.',
+    calendarMore: (count: number | string) => `${count} more.`,
+    fullArchive: 'Archive',
+    rss: 'RSS', about: 'About Moriium',
   },
 } as const;
 const c = copy[lang];
@@ -301,7 +312,7 @@ const routeHrefs = [`/${lang}/writing/`, `/${lang}/archive/`, `/${lang}/categori
         <p class="aperture-hero__note aperture-hero__note--right" lang="ja" aria-hidden="true">{heroCopy.rightNote}</p>
 
         <div class="aperture-hero__thesis">
-          <h1 id="home-title" lang="ja" aria-label={heroCopy.title}>
+          <h1 id="home-title" lang={ui.locale} aria-label={c.heroTitle}>
             {heroTitle.map(({ line, glyphs }) => (
               <span class={`aperture-hero__phrase aperture-hero__phrase--${line}`} aria-hidden="true">
                 <span class="aperture-hero__slant">

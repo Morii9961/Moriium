@@ -20,17 +20,17 @@ describe('admin client failure messages', () => {
     );
     const message = messageForApiFailure(
       failure,
-      '连接不上后台，请检查网络后重试。',
+      '后台连接失败。请检查网络后重试。',
     );
 
-    assert.equal(message, '连接不上后台，请检查网络后重试。');
+    assert.equal(message, '后台连接失败。请检查网络后重试。');
     assert.doesNotMatch(message, /Failed to fetch|TypeError/);
   });
 
   it('keeps a readable refusal returned by the author API', () => {
     const message = messageForApiFailure(
       new ApiError(503, '数据库正忙，请稍后重试。'),
-      '连接不上后台，请检查网络后重试。',
+      '后台连接失败。请检查网络后重试。',
     );
 
     assert.equal(message, '数据库正忙，请稍后重试。');

@@ -72,20 +72,20 @@ export type ArticleAction =
 
 async function bodyObject(request: Request): Promise<Record<string, unknown>> {
   if (request.headers.get('Content-Type')?.split(';', 1)[0]?.trim() !== 'application/json') {
-    throw new RequestBodyError(415, 'Expected a JSON request.');
+    throw new RequestBodyError(415, '请求格式必须为 JSON。');
   }
   const body = await readJsonObject(request, MAX_ARTICLE_BYTES);
   if (!body.ok) {
     if (body.status === 413) {
-      throw new RequestBodyError(413, 'The article request is too large.');
+      throw new RequestBodyError(413, '文章请求内容过大。');
     }
-    throw new RequestBodyError(400, 'The article request is invalid.');
+    throw new RequestBodyError(400, '文章请求无效。');
   }
   return body.value;
 }
 
 function parsed<T>(result: { success: true; data: T } | { success: false }): T {
-  if (!result.success) throw new AdminError('validation-failed', 'The article request is invalid.');
+  if (!result.success) throw new AdminError('validation-failed', '文章请求无效。');
   return result.data;
 }
 
@@ -103,7 +103,7 @@ export async function handleArticlesCollection(
     if (request.method === 'GET') {
       return adminJson({ articles: store.listArticles().map((article) => toArticleListDto(store, article)) }, 200);
     }
-    if (request.method !== 'POST') return adminJson({ error: 'Method not allowed.' }, 405);
+    if (request.method !== 'POST') return adminJson({ error: '不支持此请求方式。' }, 405);
 
     const input = parsed(createArticle.safeParse(await bodyObject(request)));
     const article = store.createArticle({ ...input, authorId: auth.authorId } satisfies NewArticle);
@@ -128,11 +128,11 @@ export async function handleArticleResource(
   try {
     if (request.method === 'GET' && action === undefined) {
       const article = store.getArticle(articleId);
-      if (!article) throw new AdminError('validation-failed', 'That article does not exist.');
+      if (!article) throw new AdminError('validation-failed', '文章不存在。');
       return adminJson(toArticleDetailDto(store, article), 200);
     }
     if (request.method !== 'POST' || action === undefined) {
-      return adminJson({ error: 'Method not allowed.' }, 405);
+      return adminJson({ error: '不支持此请求方式。' }, 405);
     }
 
     const body = await bodyObject(request);
@@ -141,10 +141,10 @@ export async function handleArticleResource(
       const article = store.getArticle(articleId);
       const latest = article ? store.getLatest(articleId) : null;
       if (!article || !latest) {
-        throw new AdminError('validation-failed', 'That article does not exist.');
+        throw new AdminError('validation-failed', '文章不存在。');
       }
       const markdown = input.markdown ?? latest.markdown;
-      return adminJson({ html: await renderPreview(markdown) }, 200);
+      return adminJson({ html: await renderPreview(markdown, article.lang) }, 200);
     }
 
     if (action === 'versions' || action === 'autosave') {
@@ -160,7 +160,7 @@ export async function handleArticleResource(
       const input = parsed(pointAtVersion.safeParse(body));
       const version = store.getVersion(input.versionId);
       if (!version || version.articleId !== articleId) {
-        throw new AdminError('validation-failed', 'That version does not belong to this article.');
+        throw new AdminError('validation-failed', '该版本不属于这篇文章。');
       }
       const validate = await preparePublishValidator(store, db, version);
       const options = input.note === undefined

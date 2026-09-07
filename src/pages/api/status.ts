@@ -6,6 +6,6 @@ import { handleStatus } from '../../server/http/status-handlers.ts';
 export const prerender = false;
 
 export const GET: APIRoute = async ({ request, session }) => {
-  if (!session) return adminJson({ error: 'Session storage unavailable.' }, 500);
+  if (!session) return adminJson({ error: '会话存储不可用。' }, 500);
   return handleStatus(request, session, getDatabase());
 };

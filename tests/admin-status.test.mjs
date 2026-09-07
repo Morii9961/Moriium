@@ -547,7 +547,7 @@ describe('admin status panel', () => {
     assert.match(handler[1], /verdict: 'unknown'/);
     assert.match(handler[1], /observedAt: null/);
     // messageForApiFailure keeps the browser's raw TypeError off the screen.
-    assert.match(handler[1], /messageForApiFailure\(error, '连接不上状态接口/);
+    assert.match(handler[1], /messageForApiFailure\(error, '后台连接失败/);
   });
 
   it('treats any 401 as the end of the session, not as a missing reading', () => {

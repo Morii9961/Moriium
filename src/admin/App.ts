@@ -27,7 +27,7 @@ function newArticle(): NewArticleInput {
     draft: false,
     unlisted: false,
     copyProtection: false,
-    markdown: '写点什么。\n',
+    markdown: '',
     editorJson: null,
   };
 }
@@ -108,7 +108,7 @@ export default defineComponent({
         failure.value = '会话已过期，请重新登录。';
         return;
       }
-      failure.value = messageForApiFailure(error, '连接不上后台，请检查网络后重试。');
+      failure.value = messageForApiFailure(error, '后台连接失败。请检查网络后重试。');
     }
 
     async function refresh(): Promise<void> {
@@ -153,7 +153,7 @@ export default defineComponent({
               id: 'panel',
               label: '运维状态',
               verdict: 'unknown',
-              detail: messageForApiFailure(error, '连接不上状态接口，请检查网络后重试。'),
+              detail: messageForApiFailure(error, '后台连接失败。请检查网络后重试。'),
               observedAt: null,
             },
           ],
@@ -281,8 +281,8 @@ export default defineComponent({
       <form class="login-panel" @submit.prevent="signIn">
         <p class="eyebrow">Moriium</p>
         <h1>作者后台</h1>
-        <p class="note">仅限服务器中已经建立的 Morii 与 Enouia 账户。</p>
-        <label><span>账户</span><input v-model="name" autocomplete="username" required /></label>
+        <p class="note">仅限已建立的 Morii 与 Enouia 账户。</p>
+        <label><span>账户名</span><input v-model="name" autocomplete="username" required /></label>
         <label><span>口令</span><input v-model="password" type="password" autocomplete="current-password" required /></label>
         <button class="primary wide" type="submit" :disabled="busy || !name || !password">{{ busy ? '登录中…' : '登录' }}</button>
         <p v-if="failure" class="message error" role="alert">{{ failure }}</p>
@@ -293,14 +293,14 @@ export default defineComponent({
 
     <main v-else class="admin-wrap">
       <header class="admin-header">
-        <div><p class="eyebrow">Moriium</p><h1>文章</h1><p class="note">{{ author?.name }} 已登录</p></div>
+        <div><p class="eyebrow">Moriium</p><h1>文章</h1><p class="note">当前账户：{{ author?.name }}</p></div>
         <div class="header-actions"><button type="button" @click="creating = !creating">{{ creating ? '取消新建' : '新建文章' }}</button><button type="button" class="quiet" :disabled="busy" @click="signOut">退出</button></div>
       </header>
 
       <p v-if="failure" class="message error" role="alert">{{ failure }}</p>
 
       <form v-if="creating" class="create-panel" @submit.prevent="create">
-        <div class="section-heading"><div><p class="eyebrow">New article</p><h2>新建文章</h2></div><p class="note">文章身份建立后不随普通版本保存改写。</p></div>
+        <div class="section-heading"><div><p class="eyebrow">Article / New</p><h2>新建文章</h2></div><p class="note">语言、slug 与 translationKey 建立后不可通过保存版本修改。</p></div>
         <div class="form-grid three">
           <label><span>语言</span><select v-model="draft.lang"><option value="zh">zh</option><option value="ja">ja</option><option value="en">en</option></select></label>
           <label><span>slug（如 zh/new-post）</span><input v-model="draft.slug" required /></label>
@@ -320,17 +320,17 @@ export default defineComponent({
           <label><span>封面公开路径（可空）</span><input :value="draft.cover ?? ''" @input="draft.cover = $event.target.value || null" /></label>
           <label><span>封面替代文字</span><input :value="draft.coverAlt ?? ''" @input="draft.coverAlt = $event.target.value || null" /></label>
         </div>
-        <fieldset class="checks"><legend>发布属性</legend><label><input v-model="draft.draft" type="checkbox" /> draft 标记</label><label><input v-model="draft.unlisted" type="checkbox" /> 不在列表中显示</label><label><input v-model="draft.copyProtection" type="checkbox" /> 启用复制限制</label></fieldset>
+        <fieldset class="checks"><legend>发布属性</legend><label><input v-model="draft.draft" type="checkbox" /> 保留为草稿（不可发布）</label><label><input v-model="draft.unlisted" type="checkbox" /> 不在列表中显示</label><label><input v-model="draft.copyProtection" type="checkbox" /> 启用复制限制</label></fieldset>
         <label><span>初始 Markdown</span><textarea v-model="draft.markdown" rows="6" required></textarea></label>
         <button class="primary" type="submit" :disabled="busy">{{ busy ? '创建中…' : '创建并打开' }}</button>
       </form>
 
       <section v-if="status" class="status-panel" aria-labelledby="status-title">
         <div class="section-heading">
-          <div><p class="eyebrow">Operations</p><h2 id="status-title">运维状态</h2></div>
+          <div><p class="eyebrow">Admin / Operations</p><h2 id="status-title">运维状态</h2></div>
           <button type="button" class="quiet" :disabled="checkingStatus" @click="loadStatus">{{ checkingStatus ? '检查中…' : '重新检查' }}</button>
         </div>
-        <p class="note">这里不会主动告警；需要注意、失败和未观测的状态都会明确列出。{{ checkedLabel(status.checkedAt) }}。</p>
+        <p class="note">此面板不主动告警。需要注意、失败与未观测状态均会列出。{{ checkedLabel(status.checkedAt) }}。</p>
         <ul class="status-items">
           <li v-for="item in status.items" :key="item.id" :class="['status-item', 'verdict-' + item.verdict]">
             <span class="status-label">{{ item.label }}</span>
@@ -343,7 +343,7 @@ export default defineComponent({
 
       <section class="article-list" aria-labelledby="article-list-title">
         <div class="section-heading"><h2 id="article-list-title">全部文章</h2><span class="note">{{ articles.length }} 篇</span></div>
-        <p v-if="articles.length === 0" class="empty">还没有文章。可以先建一篇测试文章。</p>
+        <p v-if="articles.length === 0" class="empty">暂无文章。</p>
         <button v-for="row in articles" :key="row.article.id" type="button" class="article-row" @click="openId = row.article.id">
           <span class="article-identity"><strong>{{ row.latest?.title || '未命名文章' }}</strong><small>{{ row.article.lang }} · {{ row.article.slug }}</small></span>
           <span class="article-states"><span v-if="row.article.publishedVersionId === null" class="pill draft">草稿</span><span v-else class="pill published">已发布 #{{ row.article.publishedVersionId }}</span><span v-if="row.article.liveVersionId !== null" class="pill live">已上线 #{{ row.article.liveVersionId }}</span><span v-if="row.awaitingExport" class="pill waiting">等待导出</span><span v-if="row.hasUnpublishedChanges" class="pill changed">有未发布改动</span></span>
