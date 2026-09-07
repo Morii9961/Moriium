@@ -1,0 +1,1859 @@
+@layer tokens, base, components;
+
+@layer tokens {
+  :root {
+    --moriium-blue-primary: #162043;
+    --moriium-blue-accent: #1f2c6a;
+    --moriium-blue-highlight: #2a3a8c;
+    --moriium-blue-mid: #3e4ea6;
+    --moriium-light-primary: #5a7daa;
+    --moriium-light-accent: #85a1c2;
+    --moriium-light-highlight: #aec3da;
+    --moriium-light-mid: #d3e0ee;
+    --moriium-light-canvas: #f2f5f9;
+    --moriium-light-border: #e6eaf0;
+    --moriium-light-selected: #e3ecf8;
+    --moriium-dark-canvas: #0b0c14;
+    --moriium-dark-secondary: #0d1220;
+    --moriium-dark-border: #151a27;
+    --moriium-dark-hover: #1c2760;
+
+    --surface: var(--moriium-light-canvas);
+    --surface-raised: #fbfcfe;
+    --surface-soft: #e8eef6;
+    --ink: #171c23;
+    --ink-muted: #56616e;
+    --ink-faint: #75808c;
+    --line: #c7d4e3;
+    --line-soft: var(--moriium-light-border);
+    --accent: #365f8d;
+    --accent-strong: var(--moriium-blue-primary);
+    --accent-field: var(--moriium-blue-primary);
+    --accent-field-ink: #f6f7ff;
+    --focus: #244f82;
+    /* Morii selected the archived Juanshou typography on 2026-09-07.
+       English uses the SC family's Latin glyphs, as in that study. */
+    --font-serif: "Noto Serif SC Variable", "Songti SC", serif;
+    --font-interface: var(--font-serif);
+    --font-display: var(--font-serif);
+    --font-reading: var(--font-serif);
+    --font-wordmark: var(--font-serif);
+    --font-data: "IBM Plex Mono", ui-monospace, var(--font-serif);
+    --font-sans: var(--font-serif);
+    --font-mono: var(--font-data);
+    --layout-reading: 48rem;
+    --layout-media: 62rem;
+    --layout-gallery: 76rem;
+    --layout-wide: 92rem;
+    --gutter: clamp(1.1rem, 4vw, 4.5rem);
+    --motion-fast: 220ms;
+    --motion-medium: 520ms;
+    --motion-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  :root:lang(ja) {
+    --font-serif: "Noto Serif JP Variable", "Hiragino Mincho ProN", serif;
+  }
+
+  :root[data-theme='dark'] {
+    --surface: var(--moriium-dark-canvas);
+    --surface-raised: var(--moriium-dark-secondary);
+    --surface-soft: #101727;
+    --ink: #eef1f6;
+    --ink-muted: #abb4c2;
+    --ink-faint: #818b9b;
+    --line: #293552;
+    --line-soft: var(--moriium-dark-border);
+    --accent: #a9b9ef;
+    --accent-strong: #c6d0f5;
+    --accent-field: var(--moriium-blue-accent);
+    --accent-field-ink: #f7f8ff;
+    --focus: #bdcaff;
+  }
+}
+
+@layer base {
+  .public-site {
+    min-width: 20rem;
+    background: var(--surface);
+    color: var(--ink);
+    font-family: var(--font-interface);
+    font-kerning: normal;
+    font-synthesis: none;
+    line-height: 1.65;
+  }
+
+  .public-site *,
+  .public-site *::before,
+  .public-site *::after {
+    box-sizing: border-box;
+  }
+
+  .public-site a {
+    color: inherit;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+  }
+
+  .public-site :focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 4px;
+  }
+
+  .public-site h1,
+  .public-site h2,
+  .public-site h3,
+  .public-site p {
+    margin: 0;
+  }
+
+  .public-site button,
+  .public-site input {
+    font: inherit;
+  }
+
+  .public-site main {
+    min-height: 70vh;
+    overflow: clip;
+  }
+
+  .public-site .site-shell,
+  .a-directory,
+  .a-article {
+    width: min(100%, var(--layout-wide));
+    margin-inline: auto;
+    padding-inline: var(--gutter);
+  }
+}
+
+@layer components {
+  .public-site .skip-link {
+    background: var(--accent-field);
+    color: var(--accent-field-ink);
+  }
+
+  .public-site .site-header {
+    position: relative;
+    z-index: 20;
+    background: color-mix(in srgb, var(--surface) 94%, transparent);
+  }
+
+  .public-site .site-header::after {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: clamp(2.5rem, 7vw, 7rem);
+    height: 4px;
+    background: var(--accent-field);
+    content: "";
+  }
+
+  .public-site .site-header__inner {
+    display: grid;
+    grid-template-columns: minmax(12rem, 1fr) auto minmax(12rem, 1fr);
+    min-height: 6rem;
+    align-items: center;
+    gap: clamp(1.5rem, 4vw, 4rem);
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  .public-site .site-mark {
+    display: inline-grid;
+    width: fit-content;
+    color: var(--ink);
+    text-decoration: none;
+  }
+
+  .public-site .site-mark strong {
+    font-family: var(--font-wordmark);
+    /* The wordmark is the masthead, and at 1.1rem it sat level with the nav
+       links it should outrank. */
+    font-size: clamp(1.45rem, 1.1rem + 0.6vw, 1.75rem);
+    font-weight: 660;
+    letter-spacing: -0.055em;
+    line-height: 1;
+  }
+
+  .public-site .site-nav {
+    display: flex;
+    align-items: center;
+    gap: clamp(0.9rem, 2vw, 1.7rem);
+  }
+
+  .public-site .site-nav a {
+    position: relative;
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    color: var(--ink-muted);
+    font-size: 0.72rem;
+    font-weight: 560;
+    text-decoration: none;
+  }
+
+  .public-site .site-nav a::before {
+    position: absolute;
+    bottom: 0.25rem;
+    left: 50%;
+    width: 0;
+    height: 3px;
+    background: var(--accent-field);
+    content: "";
+    transform: translateX(-50%);
+    transition: width var(--motion-fast) var(--motion-ease);
+  }
+
+  .public-site .site-nav a:hover,
+  .public-site .site-nav a[aria-current='page'] {
+    color: var(--ink);
+  }
+
+  .public-site .site-nav a:hover::before,
+  .public-site .site-nav a[aria-current='page']::before {
+    width: 1.4rem;
+  }
+
+  .public-site .site-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  .public-site .site-tool,
+  .public-site .theme-toggle {
+    display: inline-grid;
+    width: 2.75rem;
+    height: 2.75rem;
+    place-items: center;
+    border: 0;
+    background: transparent;
+    color: var(--ink);
+    cursor: pointer;
+    transition: background-color var(--motion-fast) ease, color var(--motion-fast) ease;
+  }
+
+  .public-site .site-tool:hover,
+  .public-site .theme-toggle:hover {
+    background: var(--accent-field);
+    color: var(--accent-field-ink);
+  }
+
+  .public-site .site-tool svg,
+  .public-site .theme-toggle svg,
+  .public-site .site-search__close svg,
+  .public-site .site-search__field svg {
+    width: 1.05rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-width: 1.7;
+  }
+
+  .public-site .language-nav {
+    display: flex;
+    min-height: 2.75rem;
+    align-items: center;
+    padding-inline: 0.55rem;
+    color: var(--ink-faint);
+    font-family: var(--font-data);
+    font-size: 0.58rem;
+  }
+
+  .public-site .language-nav a {
+    display: inline-flex;
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+  }
+
+  .public-site .language-nav a[aria-current='page'] {
+    color: var(--accent);
+  }
+
+  .public-site .site-search {
+    width: min(48rem, calc(100% - 2rem));
+    max-height: min(42rem, calc(100vh - 2rem));
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: var(--surface-raised);
+    color: var(--ink);
+    box-shadow: 0 1.5rem 5rem rgb(4 9 22 / 24%);
+  }
+
+  .public-site .site-search::backdrop {
+    background: rgb(8 12 24 / 72%);
+  }
+
+  .public-site .site-search__panel {
+    padding: clamp(1.5rem, 5vw, 4rem);
+    border-top: 0.6rem solid var(--accent-field);
+  }
+
+  .public-site .site-search__panel > header {
+    display: flex;
+    justify-content: space-between;
+    gap: 2rem;
+    align-items: start;
+  }
+
+  .public-site .site-search__kicker,
+  .public-site .site-search__panel > label,
+  .public-site .site-search__summary,
+  .public-site .site-search__results time {
+    color: var(--ink-faint);
+    font-family: var(--font-data);
+    font-size: 0.62rem;
+  }
+
+  .public-site .site-search h2 {
+    margin-top: 0.5rem;
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 5vw, 4rem);
+    font-weight: 650;
+    letter-spacing: -0.06em;
+  }
+
+  .public-site .site-search__close {
+    display: grid;
+    width: 2.75rem;
+    height: 2.75rem;
+    flex: none;
+    place-items: center;
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--ink);
+    cursor: pointer;
+  }
+
+  .public-site .site-search__panel > label {
+    display: block;
+    margin-top: 3rem;
+    margin-bottom: 0.7rem;
+  }
+
+  .public-site .site-search__field {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 1rem;
+    align-items: center;
+    border-bottom: 2px solid var(--ink);
+  }
+
+  .public-site .site-search__field input {
+    width: 100%;
+    padding: 1rem 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--ink);
+    font-size: 1.05rem;
+  }
+
+  .public-site .site-search__summary {
+    margin-block: 1rem 1.5rem;
+  }
+
+  .public-site .site-search__results {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .public-site .site-search__results li {
+    border-top: 1px solid var(--line);
+  }
+
+  .public-site .site-search__results a {
+    display: grid;
+    grid-template-columns: 7rem 1fr auto;
+    gap: 1rem;
+    align-items: center;
+    min-height: 5rem;
+    text-decoration: none;
+  }
+
+  .public-site .site-search__results strong {
+    font-family: var(--font-display);
+    font-weight: 580;
+  }
+
+  .public-site .site-search__results a:hover strong,
+  .public-site .site-search__results a:focus-visible strong {
+    color: var(--accent);
+  }
+
+  .public-site .site-footer {
+    margin-top: clamp(4rem, 10vw, 10rem);
+    background: var(--accent-field);
+    color: var(--accent-field-ink);
+  }
+
+  .public-site .site-footer__inner {
+    display: grid;
+    grid-template-columns: minmax(15rem, 1.2fr) minmax(20rem, 1fr) auto;
+    gap: clamp(3rem, 8vw, 8rem);
+    align-items: end;
+    min-height: 22rem;
+    padding-block: clamp(3rem, 7vw, 6rem);
+  }
+
+  .public-site .site-footer__name {
+    color: var(--accent-field-ink);
+    font-family: var(--font-wordmark);
+    font-size: clamp(3rem, 8vw, 7rem);
+    font-weight: 650;
+    letter-spacing: -0.075em;
+    line-height: 0.82;
+  }
+
+  .public-site .site-footer__identity > p:last-child,
+  .public-site .site-footer__rights {
+    margin-top: 1.5rem;
+    color: color-mix(in srgb, var(--accent-field-ink) 64%, transparent);
+    font-family: var(--font-data);
+    font-size: 0.62rem;
+  }
+
+  .public-site .site-footer nav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.6rem 2rem;
+  }
+
+  .public-site .site-footer nav a {
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    width: fit-content;
+    font-size: 0.74rem;
+  }
+
+  .public-site .site-footer__rights {
+    margin: 0;
+    text-align: right;
+  }
+
+  /* The site's one action grammar, shared by the home page and every index
+     below it: word and arrow, carried by the space around them rather than by a
+     rule or a box of their own. Colour and the stepping arrow are enough to
+     declare an action — and never a bordered box, which is DESIGN.md's "thin
+     gray borders and interchangeable cards" anti-goal. */
+  .aperture-action {
+    display: flex;
+    min-height: 2.75rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    color: var(--ink);
+    font-family: var(--font-data);
+    font-size: 0.68rem;
+    text-decoration: none;
+    transition: color var(--motion-fast) var(--motion-ease);
+  }
+
+  /* `display: flex` above outranks the UA stylesheet's `[hidden] { display: none }`,
+     so an action toggled with the `hidden` attribute would otherwise stay on
+     screen. The home calendar's overflow link is toggled that way. */
+  .aperture-action[hidden] {
+    display: none;
+  }
+
+  .aperture-action:hover,
+  .aperture-action:focus-visible {
+    color: var(--accent);
+  }
+
+  .aperture-action i {
+    font-size: 1.1em;
+    font-style: normal;
+    transition: transform var(--motion-fast) var(--motion-ease);
+  }
+
+  .aperture-action:hover i,
+  .aperture-action:focus-visible i {
+    transform: translate(0.25rem, -0.25rem);
+  }
+
+  /* A way back reads the other direction: its arrow leads the word and steps
+     the way it points. */
+  .aperture-action--back:hover i,
+  .aperture-action--back:focus-visible i {
+    transform: translateX(-0.25rem);
+  }
+
+  .a-directory {
+    padding-bottom: clamp(4rem, 9vw, 9rem);
+  }
+
+  .a-directory__hero {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    min-height: min(44rem, calc(100vh - 6rem));
+    align-items: center;
+    isolation: isolate;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .a-directory__hero::before {
+    position: absolute;
+    z-index: -1;
+    top: 0;
+    bottom: 0;
+    left: 62%;
+    width: clamp(5rem, 15vw, 14rem);
+    background: var(--accent-field);
+    content: "";
+  }
+
+  .prototype-kicker,
+  .a-directory__hero > .prototype-kicker {
+    color: var(--ink-faint);
+    font-family: var(--font-data);
+    font-size: 0.62rem;
+    letter-spacing: 0.04em;
+  }
+
+  .a-directory__hero > .prototype-kicker {
+    grid-column: 1 / 3;
+    align-self: start;
+    margin-top: 4rem;
+  }
+
+  .a-directory__title {
+    grid-column: 2 / 9;
+    align-self: center;
+  }
+
+  .a-directory__title h1 {
+    max-width: 10ch;
+    font-family: var(--font-display);
+    font-size: clamp(4rem, 10vw, 9.5rem);
+    font-weight: 680;
+    letter-spacing: -0.085em;
+    line-height: 0.83;
+    overflow-wrap: anywhere;
+  }
+
+  .a-directory__title p {
+    max-width: 35rem;
+    margin-top: 2rem;
+    color: var(--ink-muted);
+    font-size: 0.92rem;
+  }
+
+  .a-directory__stats {
+    z-index: 1;
+    grid-column: 10 / 13;
+    margin: 0;
+    align-self: end;
+    margin-bottom: 4rem;
+    background: var(--surface);
+  }
+
+  .a-directory__stats div {
+    display: flex;
+    min-height: 4rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-inline: clamp(1rem, 2vw, 1.5rem);
+    border-top: 1px solid var(--ink);
+  }
+
+  .a-directory__stats div:last-child {
+    border-bottom: 1px solid var(--ink);
+  }
+
+  .a-directory__stats dt,
+  .a-directory__stats dd {
+    margin: 0;
+    font-family: var(--font-data);
+    font-size: 0.62rem;
+  }
+
+  .a-directory__stats dt {
+    color: var(--ink-faint);
+  }
+
+  .a-directory__section,
+  .a-taxonomy-detail {
+    padding-top: clamp(4rem, 8vw, 8rem);
+  }
+
+  .a-directory__section-head,
+  .a-taxonomy-detail__head,
+  .a-about-page__head {
+    display: grid;
+    grid-template-columns: minmax(10rem, 0.5fr) minmax(0, 1fr);
+    min-height: 5rem;
+    align-items: center;
+    gap: 2rem;
+    border-bottom: 1px solid var(--ink);
+  }
+
+  .a-directory__section-head h2,
+  .a-taxonomy-detail__head h2,
+  .a-about-page__head h2 {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 620;
+    letter-spacing: -0.03em;
+  }
+
+  .a-directory__section-head p,
+  .a-taxonomy-detail__head p,
+  .a-about-page__head p {
+    color: var(--ink-faint);
+    font-family: var(--font-data);
+    font-size: 0.62rem;
+    text-align: right;
+  }
+
+  /* Writing index controls. Both read as a line of type over a hairline rule,
+     the same grammar the rest of the site uses for an action, so a filter and
+     a search entry never turn the section head into a row of buttons. */
+  .a-writing-controls {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: clamp(1rem, 2.5vw, 2rem);
+  }
+
+  .a-writing-filter {
+    position: relative;
+    transition: opacity var(--motion-fast) ease, visibility 0s linear var(--motion-fast);
+  }
+
+  /* Search opens in place instead of over the page. The row is right-aligned, so
+     growing the field from the right edge is what carries the icon left; the
+     filter only has to fade, and its box is left in the flow because collapsing
+     it would clip the dropdown that lives inside it. */
+  .a-writing-controls[data-searching='true'] .a-writing-filter {
+    opacity: 0;
+    visibility: hidden;
+    transition-delay: 0s;
+  }
+
+  .a-writing-search {
+    display: inline-flex;
+    min-width: 0;
+    align-items: center;
+    border-bottom: 1px solid var(--line);
+    transition: border-color var(--motion-fast) ease;
+  }
+
+  .a-writing-search:hover,
+  .a-writing-search:focus-within {
+    border-bottom-color: var(--accent-field);
+  }
+
+  .a-writing-filter > summary,
+  .a-writing-search__toggle {
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--ink-muted);
+    cursor: pointer;
+    font-family: var(--font-data);
+    font-size: 0.62rem;
+    list-style: none;
+    transition: color var(--motion-fast) ease, border-color var(--motion-fast) ease;
+  }
+
+  /* The rule belongs to the whole search control, so it runs under the icon and
+     the field together once the field is open. */
+  .a-writing-filter > summary {
+    border-bottom: 1px solid var(--line);
+  }
+
+  .a-writing-filter > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .a-writing-filter > summary:hover,
+  .a-writing-filter[open] > summary,
+  .a-writing-search:hover .a-writing-search__toggle,
+  .a-writing-search:focus-within .a-writing-search__toggle {
+    border-bottom-color: var(--accent-field);
+    color: var(--ink);
+  }
+
+  .a-writing-filter__value {
+    color: var(--ink);
+  }
+
+  .a-writing-filter[data-active='true'] .a-writing-filter__value {
+    color: var(--accent);
+  }
+
+  .a-writing-filter__caret,
+  .a-writing-search__toggle svg {
+    width: 0.85rem;
+    flex: none;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-width: 1.7;
+  }
+
+  /* The word gives way to the field rather than sitting in front of it. */
+  .a-writing-search__label {
+    overflow: hidden;
+    max-width: 6ch;
+    white-space: nowrap;
+    transition: max-width var(--motion-fast) var(--motion-ease), opacity var(--motion-fast) ease;
+  }
+
+  .a-writing-controls[data-searching='true'] .a-writing-search__label {
+    max-width: 0;
+    opacity: 0;
+  }
+
+  /* Sized by flex-basis with shrink switched off, so the field opens to the
+     same width whatever sits beside it in the row; a plain width would be a
+     shrinkable item's suggestion, not its size. The basis is what the open
+     state animates. */
+  .a-writing-search__input {
+    flex: 0 0 0;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    outline: 0;
+    appearance: none;
+    background: transparent;
+    color: var(--ink);
+    font-family: var(--font-interface);
+    font-size: 0.78rem;
+    visibility: hidden;
+    transition: flex-basis var(--motion-medium) var(--motion-ease),
+      padding-left var(--motion-medium) var(--motion-ease),
+      visibility 0s linear var(--motion-medium);
+  }
+
+  .a-writing-search__input::-webkit-search-cancel-button {
+    display: none;
+  }
+
+  .a-writing-search__input::placeholder {
+    color: var(--ink-faint);
+  }
+
+  .a-writing-controls[data-searching='true'] .a-writing-search__input {
+    flex-basis: clamp(11rem, 24vw, 20rem);
+    padding-left: 0.7rem;
+    visibility: visible;
+    transition-delay: 0s;
+  }
+
+  .a-writing-empty {
+    padding-block: clamp(3rem, 6vw, 5rem);
+    color: var(--ink-muted);
+    font-size: 0.82rem;
+  }
+
+  .a-writing-filter__caret {
+    width: 0.72rem;
+    transition: transform var(--motion-fast) var(--motion-ease);
+  }
+
+  .a-writing-filter[open] .a-writing-filter__caret {
+    transform: rotate(180deg);
+  }
+
+  .a-writing-filter__menu {
+    position: absolute;
+    z-index: 15;
+    top: calc(100% + 0.4rem);
+    right: 0;
+    width: max(15rem, 100%);
+    max-height: min(26rem, 60vh);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    padding-block: 0.35rem;
+    border: 1px solid var(--line);
+    background: var(--surface-raised);
+    box-shadow: 0 1rem 2.5rem rgb(4 9 22 / 14%);
+    animation: a-writing-filter-open var(--motion-fast) var(--motion-ease) both;
+  }
+
+  @keyframes a-writing-filter-open {
+    from {
+      opacity: 0;
+      transform: translateY(-0.35rem);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .a-writing-filter__group {
+    display: block;
+    padding: 0.9rem 1rem 0.35rem;
+    color: var(--ink-faint);
+    font-family: var(--font-data);
+    font-size: 0.58rem;
+    letter-spacing: 0.04em;
+  }
+
+  .a-writing-filter__option {
+    display: flex;
+    min-height: 2.75rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding-inline: 1rem;
+    color: var(--ink);
+    font-size: 0.76rem;
+    text-decoration: none;
+    transition: background-color var(--motion-fast) ease, color var(--motion-fast) ease;
+  }
+
+  .a-writing-filter__option small {
+    color: var(--ink-faint);
+    font-family: var(--font-data);
+    font-size: 0.58rem;
+  }
+
+  .a-writing-filter__option[aria-current='true'] {
+    box-shadow: inset 3px 0 0 var(--accent);
+  }
+
+  .a-writing-filter__option:hover,
+  .a-writing-filter__option:focus-visible {
+    background: var(--accent-field);
+    color: var(--accent-field-ink);
+    outline-offset: -4px;
+  }
+
+  .a-writing-filter__option:hover small,
+  .a-writing-filter__option:focus-visible small {
+    color: color-mix(in srgb, var(--accent-field-ink) 70%, transparent);
+  }
+
+  .prototype-posts,
+  .a-archive ol,
+  .a-taxonomy-posts,
+  .a-about-page__rows,
+  .a-about-page__axis {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .a-post-index .prototype-post,
+  .a-taxonomy-posts > li {
+    border-bottom: 1px solid var(--line);
+  }
+
+  .a-post-index .prototype-post[hidden] {
+    display: none;
+  }
+
+  /* Inset from the row's own rule, so the date and the tag line sit inside the
+     accent field rather than on its edge once the row lights up — the same
+     treatment the category directory takes. The date track is wide enough for a
+     written-out CJK date on one line; at 3rem every row broke "2026年6月12日"
+     across two lines mid-token. */
+  .a-post-index .prototype-post > a,
+  .a-taxonomy-posts > li > a {
+    position: relative;
+    display: grid;
+    grid-template-columns: 5.75rem minmax(16rem, 1fr) minmax(8rem, 0.4fr) 8rem auto;
+    gap: clamp(1rem, 3vw, 2rem);
+    min-height: 10rem;
+    align-items: center;
+    padding-inline: 1.25rem;
+    isolation: isolate;
+    text-decoration: none;
+  }
+
+  /* The writing index row carries five cells — number, copy, category, date,
+     arrow — and the taxonomy row four, because the date leads it instead of a
+     number. Sharing the five-track list left the taxonomy arrow parked in the
+     date's track with a whole empty track and its gap to its right, so it hung
+     some 60px short of the edge every other list's arrow sits on. */
+  .a-taxonomy-posts > li > a {
+    grid-template-columns: 5.75rem minmax(16rem, 1fr) minmax(8rem, 0.4fr) auto;
+  }
+
+  .a-post-index .prototype-post > a::before,
+  .a-taxonomy-posts > li > a::before,
+  .a-category-directory > a::before {
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    background: var(--accent-field);
+    content: "";
+    transform: scaleX(0);
+    transform-origin: right center;
+    transition: transform var(--motion-medium) var(--motion-ease);
+  }
+
+  .a-post-index .prototype-post > a:hover::before,
+  .a-post-index .prototype-post > a:focus-visible::before,
+  .a-taxonomy-posts > li > a:hover::before,
+  .a-taxonomy-posts > li > a:focus-visible::before,
+  .a-category-directory > a:hover::before,
+  .a-category-directory > a:focus-visible::before {
+    transform: scaleX(1);
+    transform-origin: left center;
+  }
+
+  .a-post-index .prototype-post > a:hover,
+  .a-post-index .prototype-post > a:focus-visible,
+  .a-taxonomy-posts > li > a:hover,
+  .a-taxonomy-posts > li > a:focus-visible,
+  .a-category-directory > a:hover,
+  .a-category-directory > a:focus-visible {
+    color: var(--accent-field-ink);
+    outline-offset: -4px;
+  }
+
+  /* The date and the tag line are what a reader scans a list by, so they take
+     muted ink at a size the mono can carry rather than the faint grey that read
+     as decoration. */
+  .a-post-index .prototype-post > a > span:first-child,
+  .a-post-index time,
+  .a-post-index .prototype-post > a > span:nth-last-child(2),
+  .a-taxonomy-posts time,
+  .a-taxonomy-posts__tags {
+    color: var(--ink-muted);
+    font-family: var(--font-data);
+    font-size: 0.66rem;
+    letter-spacing: 0.04em;
+  }
+
+  .a-post-index h3,
+  .a-taxonomy-posts h3 {
+    font-family: var(--font-display);
+    font-size: clamp(1.7rem, 3.2vw, 3.2rem);
+    font-weight: 630;
+    letter-spacing: -0.06em;
+    line-height: 1;
+  }
+
+  .a-post-index h3 + p,
+  .a-taxonomy-posts__copy p {
+    max-width: 38rem;
+    margin-top: 0.8rem;
+    color: var(--ink-muted);
+    font-size: 0.78rem;
+  }
+
+  .a-post-index a:hover :is(time, p, span),
+  .a-post-index a:focus-visible :is(time, p, span),
+  .a-taxonomy-posts a:hover :is(time, p, span),
+  .a-taxonomy-posts a:focus-visible :is(time, p, span),
+  .a-category-directory > a:hover p,
+  .a-category-directory > a:focus-visible p {
+    color: color-mix(in srgb, var(--accent-field-ink) 70%, transparent);
+  }
+
+  /* On the lit row the marks step above the summary line, so the two ends of
+     the row still lead and the sentence between them still follows. Name the
+     index by position: `:is()` takes complex selectors, not relative ones, so a
+     `> span` argument is dropped rather than voiding the rule, and the index
+     would keep its resting muted ink on a field that all but erases it. */
+  .a-post-index a:hover :is(time, span:first-child),
+  .a-post-index a:focus-visible :is(time, span:first-child),
+  .a-taxonomy-posts a:hover :is(time, .a-taxonomy-posts__tags),
+  .a-taxonomy-posts a:focus-visible :is(time, .a-taxonomy-posts__tags) {
+    color: color-mix(in srgb, var(--accent-field-ink) 82%, transparent);
+  }
+
+  /* The arrow is the row's verb, so it keeps the field's ink outright rather
+     than the 70% the rule above hands every other span. The category rows
+     already read this way; these two now match. */
+  :is(.a-post-index, .a-taxonomy-posts) a:hover :is(.a-post-index__arrow, .a-taxonomy-posts__arrow),
+  :is(.a-post-index, .a-taxonomy-posts) a:focus-visible :is(.a-post-index__arrow, .a-taxonomy-posts__arrow) {
+    color: var(--accent-field-ink);
+  }
+
+  .a-post-index__arrow,
+  .a-taxonomy-posts__arrow,
+  .a-category-directory__arrow {
+    font-style: normal;
+    font-weight: 400;
+    transition: transform var(--motion-fast) var(--motion-ease);
+  }
+
+  :is(.a-post-index, .a-taxonomy-posts, .a-category-directory) a:hover :is(.a-post-index__arrow, .a-taxonomy-posts__arrow, .a-category-directory__arrow),
+  :is(.a-post-index, .a-taxonomy-posts, .a-category-directory) a:focus-visible :is(.a-post-index__arrow, .a-taxonomy-posts__arrow, .a-category-directory__arrow) {
+    transform: translate(0.25rem, -0.25rem);
+  }
+
+  /* The archive is one chronological axis per year. The year is its masthead;
+     under it a hairline runs the length of the year with the dates ranged right
+     against it and the writing set out to its right, so the line divides time
+     from text instead of fencing the whole section. Every entry is marked on
+     that line — a heavy accent tick for a month, a quiet hairline for a day —
+     because an axis nothing touches is only a border.
+     `--archive-date` is the date column, `--archive-gap` the distance from the
+     line to the text, so the marks, the figures and the rules all follow one
+     pair of declarations. */
+  .a-archive {
+    --archive-date: clamp(4.5rem, 7vw, 6.5rem);
+    --archive-gap: clamp(1.25rem, 2.5vw, 2.25rem);
+
+    padding-block: clamp(3.5rem, 7vw, 7rem);
+  }
+
+  /* A rule between two years and nowhere else. Closing the last one drew a line
+     under the whole archive, which separates the listing from nothing. */
+  .a-archive + .a-archive {
+    border-top: 1px solid var(--line);
+  }
+
+  .a-archive__year {
+    position: relative;
+    margin-bottom: clamp(2rem, 3.5vw, 3rem);
+  }
+
+  .a-archive__year h2 {
+    font-family: var(--font-wordmark);
+    font-size: clamp(3.5rem, 7vw, 6.5rem);
+    font-weight: 650;
+    letter-spacing: -0.09em;
+    line-height: 0.78;
+  }
+
+  .a-archive__year h2::after {
+    display: block;
+    width: 2.5rem;
+    height: 0.7rem;
+    margin-top: 1.5rem;
+    background: var(--accent-field);
+    content: "";
+  }
+
+  .a-archive__year p,
+  .a-archive__days > li > span {
+    color: var(--ink-faint);
+    font-family: var(--font-data);
+    font-size: 0.62rem;
+  }
+
+  .a-archive__year p {
+    margin-top: 1rem;
+  }
+
+  /* The axis: one hairline for the whole year, standing at the end of the date
+     column so the figures range up against it and the writing begins beyond it.
+     It is drawn rather than bordered because nothing owns it — the months and
+     days it carries are separate boxes on either side. */
+  .a-archive__months {
+    position: relative;
+  }
+
+  .a-archive__months::before {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: var(--archive-date);
+    width: 1px;
+    background: var(--line);
+    content: "";
+  }
+
+  .a-archive__month + .a-archive__month {
+    margin-top: clamp(2rem, 3.5vw, 3.25rem);
+  }
+
+  /* Second in the hierarchy: the wordmark face the year uses, a third of its
+     size, in full-strength ink, ranged right so its figures end on the axis. */
+  .a-archive__month-mark {
+    position: relative;
+    display: flex;
+    justify-content: flex-end;
+    align-items: baseline;
+    gap: 0.3rem;
+    width: var(--archive-date);
+    padding-right: 0.85rem;
+    color: var(--ink);
+    font-family: var(--font-wordmark);
+    font-size: clamp(1.3rem, 2.2vw, 1.7rem);
+    font-variant-numeric: tabular-nums;
+    font-weight: 640;
+    letter-spacing: -0.045em;
+    line-height: 1;
+  }
+
+  /* The month's mark crosses the axis: two pixels of accent, the heaviest thing
+     on the line, so a month is found before any day is read. `0.5em` holds it
+     on the figure's centre at every step of the clamp. */
+  .a-archive__month-mark::before {
+    position: absolute;
+    top: calc(0.5em - 1px);
+    left: calc(100% - 0.5rem);
+    width: 1.1rem;
+    height: 2px;
+    background: var(--accent);
+    content: "";
+  }
+
+  .a-archive__month-mark small {
+    color: var(--ink-faint);
+    font-family: var(--font-data);
+    font-size: 0.7rem;
+    font-weight: 400;
+    letter-spacing: 0;
+  }
+
+  /* Rules start past the axis, never across it, so the line stays a spine
+     rather than becoming the left edge of a table. */
+  .a-archive__days {
+    position: relative;
+    margin-top: 1.1rem;
+  }
+
+  .a-archive__days::before,
+  .a-archive__days > li::after {
+    position: absolute;
+    left: calc(var(--archive-date) + var(--archive-gap));
+    right: 0;
+    height: 1px;
+    background: var(--line);
+    content: "";
+  }
+
+  .a-archive__days::before {
+    top: 0;
+  }
+
+  .a-archive__days > li {
+    position: relative;
+    display: grid;
+    grid-template-columns: var(--archive-date) minmax(0, 1fr) auto;
+    column-gap: var(--archive-gap);
+    min-height: 4.75rem;
+    align-items: center;
+  }
+
+  /* The row's own rule doubles as its hover state: an accent gradient sweeps
+     across the resting hairline from the left, the same wipe the writing and
+     taxonomy rows use for their accent field, at hairline weight because the
+     archive is the denser list. Travel is long, so it takes the medium
+     duration while the day's short tick keeps the fast one. */
+  .a-archive__days > li::after {
+    bottom: 0;
+    background-image: linear-gradient(var(--accent), var(--accent));
+    background-repeat: no-repeat;
+    background-size: 0 100%;
+    transition: background-size var(--motion-medium) var(--motion-ease);
+  }
+
+  .a-archive__days > li:has(a:hover)::after,
+  .a-archive__days > li:has(a:focus-visible)::after {
+    background-size: 100% 100%;
+  }
+
+  /* The day's own mark. A day is the finest reading on the axis, so it is a
+     hairline rather than a rule; hovering the row lengthens it and takes the
+     accent, which is the only motion on the page and the only thing that says
+     which row the pointer is on. */
+  .a-archive__days > li::before {
+    position: absolute;
+    top: calc(50% - 0.5px);
+    left: calc(var(--archive-date) - 0.3rem);
+    width: 0.7rem;
+    height: 1px;
+    background: var(--ink-faint);
+    content: "";
+    transition: width var(--motion-fast) var(--motion-ease), background-color var(--motion-fast) ease;
+  }
+
+  /* Third in the hierarchy: the same face again, smaller and quieter, ranged
+     right onto the axis under its own month. */
+  .a-archive__days time {
+    padding-right: 0.85rem;
+    color: var(--ink-muted);
+    font-family: var(--font-wordmark);
+    font-size: clamp(0.9rem, 1.25vw, 1.05rem);
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    text-align: right;
+    transition: color var(--motion-fast) ease;
+  }
+
+  /* Hovering a title lights its own day and its own mark, so the row, the date
+     and the axis stay one thing. */
+  .a-archive__days > li:has(a:hover) time,
+  .a-archive__days > li:has(a:focus-visible) time {
+    color: var(--accent);
+  }
+
+  .a-archive__days > li:has(a:hover)::before,
+  .a-archive__days > li:has(a:focus-visible)::before {
+    width: 1.35rem;
+    background: var(--accent);
+  }
+
+  /* The title's own underline is gone: the row rule beneath it now carries the
+     hover, and two rules under one line of type is noise. The colour is given
+     a duration so the title arrives with the mark and the figure rather than
+     snapping ahead of them. */
+  .a-archive__days a {
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    font-weight: 580;
+    text-decoration: none;
+    transition: color var(--motion-fast) ease;
+  }
+
+  .a-archive__days a:hover,
+  .a-archive__days a:focus-visible {
+    color: var(--accent);
+  }
+
+  .a-category-directory {
+    border-top: 1px solid var(--ink);
+  }
+
+  /* The row is inset from its own rule so that the index and the count sit
+     inside the band rather than on its edge the moment the row lights up. The
+     inset comes out of the number's track, not out of the gap, so the heading
+     keeps the column it shares with the hero title above. */
+  .a-category-directory > a {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1.75rem minmax(0, 1fr) auto auto;
+    gap: clamp(1rem, 4vw, 4rem);
+    min-height: 10rem;
+    align-items: center;
+    padding-inline: 1.25rem;
+    isolation: isolate;
+    border-bottom: 1px solid var(--line);
+    text-decoration: none;
+  }
+
+  /* The index and the count are the only marks holding the two ends of a ten-rem
+     row together, so they are set to be found rather than to recede: muted ink
+     instead of faint, and tracked out at a size the mono can carry. */
+  .a-category-directory__number,
+  .a-category-directory strong {
+    color: var(--ink-muted);
+    font-family: var(--font-data);
+    font-size: 0.7rem;
+    font-weight: 400;
+    letter-spacing: 0.08em;
+  }
+
+  /* On the lit row they stand on the accent field, where the resting ink tokens
+     have almost no contrast. They take the field's own ink, held just under the
+     heading so the ends read as marks and not as a second title. */
+  .a-category-directory > a:hover :is(.a-category-directory__number, strong),
+  .a-category-directory > a:focus-visible :is(.a-category-directory__number, strong) {
+    color: color-mix(in srgb, var(--accent-field-ink) 82%, transparent);
+  }
+
+  .a-category-directory h2 {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 5vw, 4.5rem);
+    font-weight: 650;
+    letter-spacing: -0.07em;
+    line-height: 0.95;
+  }
+
+  .a-category-directory h2 + p {
+    margin-top: 0.8rem;
+    color: var(--ink-muted);
+    font-size: 0.76rem;
+  }
+
+  .a-category-directory--quiet,
+  .a-tag-field--quiet {
+    padding-block: 4rem;
+    color: var(--ink-muted);
+  }
+
+  .a-tag-field {
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid var(--ink);
+  }
+
+  /* Every tag starts on the same left edge: the list is ordered by use, and a
+     per-rank indent staircased the words away from that shared line for no
+     reason a reader could act on. The row is inset from its own rule like the
+     category rows, so the word and the count sit inside the band rather than on
+     its edge once the row lights up. */
+  .a-tag-field > a {
+    display: flex;
+    min-height: 7rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+    padding-inline: 1.25rem;
+    border-bottom: 1px solid var(--line);
+    text-decoration: none;
+    transition: padding-left var(--motion-medium) var(--motion-ease), background-color var(--motion-fast) ease;
+  }
+
+  .a-tag-field > a span {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 5vw, 5rem);
+    font-weight: 620;
+    letter-spacing: -0.07em;
+    line-height: 1;
+  }
+
+  /* The count is the only mark holding the right end of a seven-rem row, so it
+     is set to be found rather than to recede: muted ink instead of faint, and
+     tracked out at the size the category rows use for the same job. */
+  .a-tag-field > a small {
+    color: var(--ink-muted);
+    font-family: var(--font-data);
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+  }
+
+  .a-tag-field > a:hover,
+  .a-tag-field > a:focus-visible {
+    padding-left: clamp(2.25rem, 5vw, 5rem);
+    background: var(--accent-field);
+    color: var(--accent-field-ink);
+  }
+
+  /* On the lit row the count stands on the accent field, where the resting ink
+     tokens have almost no contrast. It takes the field's own ink at the weight
+     the category rows use for the same mark. */
+  .a-tag-field > a:hover small,
+  .a-tag-field > a:focus-visible small {
+    color: color-mix(in srgb, var(--accent-field-ink) 82%, transparent);
+  }
+
+  /* Question and answer on one line: the lead-in stays supporting text and the
+     way out is an action like every other on the site. */
+  .a-directory__crosslink {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 1.25rem;
+    margin-top: 3rem;
+    color: var(--ink-muted);
+    font-size: 0.78rem;
+  }
+
+  /* The lead-in already sets the row's height, so the action asks for none of
+     its own and keeps its word and arrow on one gap instead of spreading. */
+  .a-directory__crosslink .aperture-action {
+    min-height: 0;
+    gap: 0.55rem;
+  }
+
+  .a-directory__crosslink a:not(.aperture-action) {
+    color: var(--accent);
+  }
+
+  .a-about-page__statement {
+    display: grid;
+    grid-template-columns: minmax(8rem, 0.35fr) minmax(18rem, 1fr) minmax(18rem, 0.8fr);
+    gap: clamp(2rem, 6vw, 7rem);
+    padding-block: clamp(5rem, 10vw, 10rem);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .a-about-page__statement h2 {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 4.4vw, 4rem);
+    font-weight: 650;
+    letter-spacing: -0.05em;
+    line-height: 1.12;
+  }
+
+  .a-about-page__statement > div {
+    color: var(--ink-muted);
+    font-family: var(--font-reading);
+    font-size: 1rem;
+    line-height: 1.85;
+  }
+
+  .a-about-page__statement > div p + p {
+    margin-top: 1.4rem;
+  }
+
+  /* The rule sits between rows rather than under every one, so the band's own
+     boundary stays the heavier mark and the list does not read as seven cells.
+     It also starts after the number, which is what makes that column a margin. */
+  .a-about-page__rows li {
+    display: grid;
+    grid-template-columns: var(--about-label, 7rem) minmax(0, 1fr);
+    gap: 2rem;
+    padding-block: 1.6rem;
+  }
+
+  .a-about-page__rows li + li {
+    position: relative;
+  }
+
+  .a-about-page__rows li + li::before {
+    position: absolute;
+    top: 0;
+    right: 0;
+    /* the label column plus its gap: the rule begins where the words do */
+    left: calc(var(--about-label, 7rem) + 2rem);
+    height: 1px;
+    background: var(--line-soft);
+    content: "";
+  }
+
+  .a-about-page__rows li > span {
+    padding-top: 0.4em;
+    color: var(--accent);
+    font-family: var(--font-data);
+    font-size: 0.62rem;
+  }
+
+  .a-about-page__rows h3 {
+    font-family: var(--font-display);
+    font-size: clamp(1.1rem, 1.8vw, 1.5rem);
+    font-weight: 620;
+    letter-spacing: -0.02em;
+  }
+
+  .a-about-page__rows li p {
+    max-width: 40em;
+    margin-top: 0.6rem;
+    color: var(--ink-muted);
+    font-family: var(--font-reading);
+    font-size: 0.95rem;
+    line-height: 1.8;
+  }
+
+  /* Every band below the statement runs on one grid, so a reader crossing the
+     page keeps meeting the same left edge. The band rule is the boundary; the
+     rules inside a band start after the number column, which is what lets that
+     column read as a margin rather than as a first cell. */
+  .a-about-page__band {
+    padding-block: clamp(4rem, 8vw, 8rem);
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  /* The size ladder is spent on the hero, so a heading inside a band changes
+     face and weight at reading size instead of jumping in size. */
+  .a-about-page__sub {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    margin-top: 3rem;
+    margin-left: var(--about-indent, calc(var(--about-label, 7rem) + 2rem));
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 620;
+  }
+
+  .a-about-page__band > p {
+    max-width: 40em;
+    margin-top: 1.1rem;
+    margin-left: var(--about-indent, calc(var(--about-label, 7rem) + 2rem));
+    color: var(--ink-muted);
+    font-family: var(--font-reading);
+    font-size: 0.95rem;
+    line-height: 1.85;
+  }
+
+  /* The aperture's small echo. The hero carries the page's one large blue
+     field; this is the same colour at the opposite scale, measured in
+     characters rather than pixels, and it appears exactly once. */
+  .a-about-page__slab {
+    width: 5ch;
+    height: 3px;
+    flex: none;
+    background: var(--accent-field);
+  }
+
+  /* The dated record stands on the archive's own axis: one hairline, the date
+     ranged right onto it with its own mark, the sentence starting past it. */
+  .a-about-page__axis li {
+    display: grid;
+    grid-template-columns: var(--about-label, 7rem) minmax(0, 1fr);
+    align-items: baseline;
+    column-gap: 2rem;
+    padding-block: 1.3rem;
+  }
+
+  .a-about-page__axis time {
+    position: relative;
+    padding-right: 2rem;
+    border-right: 1px solid var(--line);
+    color: var(--ink-muted);
+    font-family: var(--font-data);
+    font-size: 0.68rem;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+
+  .a-about-page__axis time::after {
+    position: absolute;
+    top: 0.5em;
+    right: -3px;
+    width: 5px;
+    height: 2px;
+    background: var(--accent);
+    content: '';
+  }
+
+  .a-about-page__axis p {
+    max-width: 40em;
+    color: var(--ink-muted);
+    font-family: var(--font-reading);
+    font-size: 0.95rem;
+    line-height: 1.8;
+  }
+
+  /* A block of short facts is subordinated by taking width away, never by
+     adding a container: a box would read as a widget on a page that has none.
+     One hairline above and below, and nothing between the rows. */
+  .a-about-page__inset {
+    max-inline-size: 34em;
+    margin-top: 1.4rem;
+    margin-left: var(--about-indent, calc(var(--about-label, 7rem) + 2rem));
+    padding-block: 0.4rem;
+    border-top: 1px solid var(--line-soft);
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  .a-about-page__inset div {
+    display: grid;
+    grid-template-columns: var(--about-label, 7rem) minmax(0, 1fr);
+    gap: 2rem;
+    padding-block: 0.95rem;
+  }
+
+  .a-about-page__inset dt {
+    color: var(--ink-faint);
+    font-family: var(--font-data);
+    font-size: 0.62rem;
+    line-height: 1.9;
+  }
+
+  .a-about-page__inset dd {
+    color: var(--ink-muted);
+    font-family: var(--font-reading);
+    font-size: 0.92rem;
+    line-height: 1.8;
+  }
+
+  .a-about-page__inset dd strong {
+    display: block;
+    color: var(--ink);
+    font-family: var(--font-interface);
+    font-size: 0.86rem;
+    font-weight: 600;
+  }
+
+  .a-about-page__channels dd a {
+    display: block;
+    color: var(--accent);
+    font-family: var(--font-data);
+    font-size: 0.68rem;
+  }
+
+  .a-about-page__feeds {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 2.25rem;
+    margin-top: 1.6rem;
+    margin-left: var(--about-indent, calc(var(--about-label, 7rem) + 2rem));
+  }
+
+  /* Nothing here solicits, so the page ends on one way back and a measured
+     amount of nothing rather than on a call to action. */
+  .a-about-page__end {
+    padding-block: clamp(4rem, 9vw, 9rem);
+  }
+}
+
+@media (max-width: 70rem) {
+  @layer components {
+    .public-site .site-header__inner {
+      grid-template-columns: 1fr auto;
+      padding-block: 1rem;
+    }
+
+    .public-site .site-nav {
+      grid-column: 1 / -1;
+      grid-row: 2;
+      width: 100%;
+      overflow-x: auto;
+      border-top: 1px solid var(--line-soft);
+      scrollbar-width: thin;
+      white-space: nowrap;
+    }
+
+    .public-site .site-actions {
+      grid-column: 2;
+      grid-row: 1;
+    }
+
+    .a-directory__hero::before {
+      left: 68%;
+    }
+
+    .a-directory__title {
+      grid-column: 2 / 10;
+    }
+
+    .a-directory__stats {
+      grid-column: 9 / 13;
+    }
+
+    .a-post-index .prototype-post > a,
+    .a-taxonomy-posts > li > a {
+      grid-template-columns: 5.75rem minmax(0, 1fr) 7rem auto;
+    }
+
+    .a-taxonomy-posts > li > a {
+      grid-template-columns: 5.75rem minmax(0, 1fr) auto;
+    }
+
+    .a-post-index .prototype-post > a > span:nth-last-child(2),
+    .a-taxonomy-posts__tags {
+      display: none;
+    }
+  }
+}
+
+@media (max-width: 48rem) {
+  @layer components {
+    .public-site .site-header::after {
+      width: 4rem;
+    }
+
+    .public-site .site-header__inner {
+      gap: 0.75rem;
+    }
+
+    .public-site .site-nav {
+      gap: 1.2rem;
+    }
+
+    .public-site .language-nav {
+      display: none;
+    }
+
+    .public-site .site-footer__inner {
+      grid-template-columns: 1fr;
+      min-height: 0;
+    }
+
+    .public-site .site-footer nav {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .public-site .site-footer__rights {
+      text-align: left;
+    }
+
+    .public-site .site-search__results a {
+      grid-template-columns: 1fr auto;
+    }
+
+    .public-site .site-search__results time {
+      grid-column: 1 / -1;
+      padding-top: 0.8rem;
+    }
+
+    .a-directory__hero {
+      display: block;
+      min-height: 38rem;
+      padding-top: 4rem;
+    }
+
+    .a-directory__hero::before {
+      top: auto;
+      bottom: 0;
+      left: auto;
+      right: 0;
+      width: 36%;
+      height: 42%;
+    }
+
+    .a-directory__hero > .prototype-kicker {
+      margin: 0;
+    }
+
+    .a-directory__title {
+      margin-top: 5rem;
+    }
+
+    .a-directory__title h1 {
+      font-size: clamp(4rem, 20vw, 7rem);
+    }
+
+    .a-directory__stats {
+      position: absolute;
+      right: 0;
+      bottom: 2rem;
+      width: min(15rem, 58%);
+      margin: 0;
+    }
+
+    .a-directory__section-head,
+    .a-taxonomy-detail__head,
+    .a-about-page__head {
+      grid-template-columns: 1fr auto;
+    }
+
+    .a-post-index .prototype-post > a,
+    .a-taxonomy-posts > li > a {
+      grid-template-columns: 1.4rem minmax(0, 1fr) auto;
+      min-height: 9rem;
+      padding-block: 1rem;
+      padding-inline: 0.6rem;
+    }
+
+    .a-post-index .prototype-post > a > div,
+    .a-taxonomy-posts__copy {
+      grid-column: 2 / 4;
+    }
+
+    .a-post-index time,
+    .a-taxonomy-posts time {
+      grid-column: 2;
+      grid-row: 2;
+    }
+
+    .a-post-index__arrow,
+    .a-taxonomy-posts__arrow {
+      grid-column: 3;
+      grid-row: 2;
+      justify-self: end;
+    }
+
+    .a-post-index h3,
+    .a-taxonomy-posts h3 {
+      font-size: clamp(1.7rem, 8vw, 2.5rem);
+    }
+
+    /* The date column narrows but the axis keeps its place between date and
+       text. The category drops under the title, so the row is two lines and the
+       day's mark moves off centre onto the title's first line. */
+    .a-archive {
+      --archive-date: 3.5rem;
+      --archive-gap: 1rem;
+    }
+
+    .a-archive__days > li {
+      grid-template-columns: var(--archive-date) minmax(0, 1fr);
+      gap: 0.4rem var(--archive-gap);
+      min-height: 0;
+      align-items: baseline;
+      padding-block: 1rem;
+    }
+
+    .a-archive__days > li::before {
+      top: 1.7rem;
+    }
+
+    .a-archive__days > li > span {
+      grid-column: 2;
+    }
+
+    .a-category-directory > a {
+      grid-template-columns: 1.4rem minmax(0, 1fr) auto;
+      min-height: 8rem;
+      padding-inline: 0.6rem;
+    }
+
+    .a-category-directory strong {
+      display: none;
+    }
+
+    .a-tag-field > a {
+      min-height: 6rem;
+      padding-inline: 0.6rem;
+    }
+
+    .a-about-page__statement {
+      grid-template-columns: 1fr;
+    }
+
+    /* The label column narrows to what an ISO date actually needs, and the
+       prose stops being indented into it — at this width the shared axis costs
+       more measure than the alignment is worth. */
+    .a-about-page {
+      --about-label: 5.5rem;
+      --about-indent: 0rem;
+    }
+
+    .a-about-page__rows li,
+    .a-about-page__axis li,
+    .a-about-page__inset div {
+      column-gap: 1rem;
+    }
+
+    .a-about-page__rows li + li::before {
+      left: calc(var(--about-label) + 1rem);
+    }
+
+    .a-about-page__axis time {
+      padding-right: 1rem;
+    }
+
+    .a-about-page__feeds {
+      gap: 0 1.5rem;
+    }
+
+    /* One column: the heading, then the two controls under it. Ordered after
+       the shared section-head rule above so it wins on equal specificity. */
+    .a-directory__section-head--controls {
+      grid-template-columns: minmax(0, 1fr);
+      min-height: 0;
+      gap: 1.1rem;
+      padding-block: 1.5rem;
+    }
+
+    .a-writing-controls {
+      justify-content: space-between;
+      gap: 1.2rem;
+    }
+
+    /* The field takes what the row has left rather than a share of the viewport,
+       because here it opens beside the filter instead of well clear of it. */
+    .a-writing-controls[data-searching='true'] .a-writing-search__input {
+      flex-basis: min(13rem, 46vw);
+    }
+
+    .a-writing-filter__menu {
+      right: auto;
+      left: 0;
+      width: min(17rem, calc(100vw - 2.2rem));
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @layer components {
+    .public-site *,
+    .public-site *::before,
+    .public-site *::after {
+      scroll-behavior: auto !important;
+      transition-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+    }
+
+    /* The colour still changes, so state stays legible. Only the travel goes;
+       the reset above only shortens it. */
+    .aperture-action:hover i,
+    .aperture-action:focus-visible i,
+    .aperture-action--back:hover i,
+    .aperture-action--back:focus-visible i {
+      transform: none;
+    }
+  }
+}

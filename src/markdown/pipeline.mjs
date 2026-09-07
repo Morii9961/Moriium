@@ -22,8 +22,6 @@
 import rehypeKatex from 'rehype-katex';
 import remarkDirective from 'remark-directive';
 import remarkMath from 'remark-math';
-import { pluginCollapsibleSections } from '@expressive-code/plugin-collapsible-sections';
-import { pluginLineNumbers } from '@expressive-code/plugin-line-numbers';
 import { rehypeMoriiumContent } from './rehype-moriium-content.mjs';
 import { remarkMoriiumDirectives } from './remark-moriium-directives.mjs';
 
@@ -39,13 +37,7 @@ export const remarkPlugins = [remarkMath, remarkDirective, remarkMoriiumDirectiv
 export const rehypePlugins = [rehypeKatex, rehypeMoriiumContent];
 
 /** Shared by the build integration and the preview's rehype plugin. */
-export const expressiveCodeOptions = {
-  plugins: [pluginLineNumbers(), pluginCollapsibleSections()],
-  defaultProps: { wrap: true, showLineNumbers: false },
-  themes: ['github-light', 'github-dark'],
-  themeCssSelector: (theme) =>
-    theme.name === 'github-dark' ? '[data-theme="dark"]' : '[data-theme="light"]',
-};
+export { expressiveCodeOptions } from './expressive-code.mjs';
 
 /**
  * Fails loudly if the chain stops ending where the preview expects.

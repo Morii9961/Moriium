@@ -1,0 +1,1719 @@
+/* Home hero display Mincho. `scripts/subset-hero-font.mjs` cuts Shippori
+   Mincho down to the thirty-three characters the hero actually sets — 14 KB for
+   both weights instead of 2.8 MB — and emits the unicode-range below. Anything
+   outside the hero copy therefore falls straight through to the platform Mincho
+   fallbacks in `--font-mincho`. Regenerate after editing the hero's Japanese;
+   `tests/design-fonts.test.mjs` fails if the shipped subset stops covering it. */
+@font-face {
+  font-family: "Shippori Mincho";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/shippori-mincho-hero-400.woff2") format("woff2");
+  unicode-range: U+3001-3002, U+3044, U+3046, U+304B, U+3059, U+305F, U+3064, U+3067, U+306B, U+306E, U+307E, U+3081-3082, U+3088, U+308B-308C, U+3092, U+4E2D, U+5B8C, U+623B, U+62FE, U+65AD, U+65C5, U+6642, U+672A, U+6B8B, U+7247, U+898B, U+8A18, U+9332, U+9593, U+96C6;
+}
+
+@font-face {
+  font-family: "Shippori Mincho";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/shippori-mincho-hero-600.woff2") format("woff2");
+  unicode-range: U+3001-3002, U+3044, U+3046, U+304B, U+3059, U+305F, U+3064, U+3067, U+306B, U+306E, U+307E, U+3081-3082, U+3088, U+308B-308C, U+3092, U+4E2D, U+5B8C, U+623B, U+62FE, U+65AD, U+65C5, U+6642, U+672A, U+6B8B, U+7247, U+898B, U+8A18, U+9332, U+9593, U+96C6;
+}
+
+@layer components {
+  /* The outline stroke is a literal from the approved composition; dark mode
+     needs its own value or the hairline vanishes on the near-black canvas. */
+  :root[data-theme='dark'] .aperture-hero__stage {
+    --hero-outline: #6b7a99;
+  }
+
+  .aperture-home {
+    width: min(100%, var(--layout-wide));
+    margin-inline: auto;
+    padding-inline: var(--gutter);
+  }
+
+  /* The hero is a fixed-proportion type field. Every offset inside the stage is
+     a percentage of that field, and every size is a container-query unit, so
+     the composition holds its geometry from 1200px to 1920px instead of
+     drifting with the viewport. The aperture panel and the overprint clip read
+     the same two custom properties, which is what keeps the outline glyphs
+     changing colour exactly on the panel edge. */
+  .aperture-hero {
+    position: relative;
+    container-type: inline-size;
+    padding-block: clamp(1.25rem, 2.6vw, 2.25rem) 0;
+  }
+
+  .aperture-hero__stage {
+    /* The panel slides right as one piece: `--panel-start` gains exactly what
+       `--panel-end` loses, so its width is unchanged and everything inside it
+       travels with it. 4.74% of the 1349px stage is 64px.
+
+       The size of the move is set by the type, not by taste. 見たものを has to
+       finish outside the panel, and its last glyph's ink reached 75.9px past the
+       old edge — a 32px slide leaves 44px of that still inside. 64px here plus a
+       small pull on the one glyph closes it; going further right would be paid
+       for out of the right margin, which is only 87px as it is. */
+    --panel-start: 52.34%;
+    --panel-end: 6.46%;
+    --panel-top: 0%;
+    --type-size: clamp(3.4rem, 10.75cqw, 11rem);
+    /* One curve for the whole entrance: a long tail that lets things settle
+       rather than arrive. Deliberately not the site's default, which is snappier
+       than this page wants. */
+    --enter-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --run-tilt: -8.5deg;
+    --glyph-italic: 10deg;
+    --line-tracking: -0.09em;
+    --hero-outline: #9aa7bd;
+    --note-size: clamp(0.85rem, 1.62cqw, 1.45rem);
+    --font-mincho: "Shippori Mincho", "Yu Mincho", "Hiragino Mincho ProN", "Noto Serif JP", "Songti SC", "SimSun", Georgia, serif;
+
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1660 / 960;
+    min-height: 26rem;
+    isolation: isolate;
+  }
+
+  .aperture-hero__thesis {
+    position: absolute;
+    z-index: 1;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .aperture-hero__thesis h1 {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    font-weight: inherit;
+  }
+
+  /* A run is one line of type. It rotates as a whole; an inner wrapper shears as
+     a whole; the glyphs inside carry no transform of their own. That separation
+     is the point — the run's tilt and the letterform's lean are two different
+     things, and mixing them into one per-character transform is what made
+     earlier passes read as scattered characters instead of a line.
+
+     Because every glyph in a run shares one font-size and one line box, the
+     em-box top edges of a run lie on one straight line and the bottom edges on
+     another, exactly parallel. Give any single glyph its own size, `top` or
+     `rotate` and that guarantee is gone. */
+  .aperture-hero__phrase {
+    position: absolute;
+    transform: rotate(var(--run-tilt));
+    transform-origin: 0 0;
+    color: var(--ink);
+    font-family: var(--font-mincho);
+    font-size: calc(var(--type-size) * var(--line-scale, 1));
+    font-weight: 400;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  /* The letterform's own lean. CJK Mincho has no true italic, so this is a
+     synthetic oblique; it is deliberately steeper than the run's tilt, and the
+     two must not be conflated. */
+  .aperture-hero__slant {
+    display: inline-block;
+    transform: skewX(calc(var(--glyph-italic) * -1));
+    letter-spacing: var(--line-tracking);
+  }
+
+  /* The one per-glyph value, and it is horizontal only. `--line-tracking` sets
+     the run's rhythm; `--nudge` opens one specific pair wider than that rhythm,
+     because even spacing reads tighter on some pairs than others.
+
+     It is spent as a margin rather than a `translateX` on purpose. A margin is
+     layout: the character moves along the run's own axis inside the shared line
+     box, so both em-box edges stay exactly where they were and the run keeps its
+     zero-residual collinearity. A transform would need `display: inline-block`
+     here, which gives every glyph a box of its own — the thing this structure
+     exists to avoid. There is deliberately no vertical counterpart. */
+  /* `inline-block`, not `inline`, because transforms do not apply to inline
+     boxes and each character animates itself. That swap was measured before it
+     was adopted: advances, both em-box edge fits (-8.500 degrees, zero residual)
+     and every glyph's text box come back byte identical either way, so the
+     resting composition is untouched. Only the border box changes height, from
+     the font's content area to the line box, and nothing is drawn from it. */
+  .aperture-hero__glyph {
+    --glyph-opacity: 1;
+
+    display: inline-block;
+    margin-left: calc(var(--nudge, 0) * 1em);
+    opacity: var(--glyph-opacity);
+    animation-name: var(--enter-keys, aperture-hero-set-solid);
+    animation-duration: var(--run-dur, 880ms);
+    animation-delay: calc(var(--run-delay, 0ms) + var(--at, 0) * 1ms);
+    animation-timing-function: var(--enter-ease);
+    animation-fill-mode: both;
+  }
+
+  /* The resting opacity is a custom property rather than a plain declaration
+     because the entrance animation has to land on it. An animation beats a
+     normal declaration, so a keyframe ending at a literal `opacity: 1` would
+     quietly promote every outline character to full strength the moment it
+     finished. */
+  .aperture-hero__glyph--outline {
+    --glyph-opacity: 0.55;
+
+    color: transparent;
+    -webkit-text-stroke: 1.2px var(--hero-outline);
+  }
+
+  /* Run origins. All four share one tilt, so they are parallel by construction;
+     only their start points differ. An ascending run's origin is its floor. */
+  .aperture-hero__phrase--primary {
+    top: 18.9%;
+    left: 2.2%;
+  }
+
+  /* The outline runs sit 30px lower and 45px right of where they were at
+     1536x1024, converted here against the stage box: 30/780.2 = 3.845% of its
+     height, 45/1349.1 = 3.335% of its width. That is what bites 記 into の and
+     残 into ま instead of leaving the two layers side by side. */
+  .aperture-hero__phrase--primary-echo {
+    --line-scale: 1.1;
+
+    top: 31.45%;
+    left: 29.74%;
+  }
+
+  .aperture-hero__phrase--secondary {
+    top: 61.2%;
+    left: 2.2%;
+  }
+
+  .aperture-hero__phrase--secondary-echo {
+    --line-scale: 1.1;
+
+    top: 73.65%;
+    left: 32.94%;
+  }
+
+  /* Second pass over the same glyphs, clipped to the panel. Solid characters
+     stay hidden here so the panel really does cut them off; outline characters
+     are redrawn in the panel ink and continue across the edge.
+     `mix-blend-mode: difference` was tried in place of this and rejected: a
+     #9AA7BD hairline at 0.55 opacity differenced against the panel composites to
+     about #525861, roughly 2:1 against the panel itself, so the outline vanishes
+     exactly where it is supposed to turn light. Clipping keeps the ink exact. */
+  .aperture-hero__overprint {
+    position: absolute;
+    z-index: 3;
+    inset: 0;
+    clip-path: inset(var(--panel-top) var(--panel-end) 0 var(--panel-start));
+    pointer-events: none;
+  }
+
+  .aperture-hero__overprint .aperture-hero__glyph {
+    visibility: hidden;
+  }
+
+  .aperture-hero__overprint .aperture-hero__glyph--outline {
+    --glyph-opacity: 1;
+
+    visibility: visible;
+    -webkit-text-stroke-color: color-mix(in srgb, var(--accent-field-ink) 84%, transparent);
+  }
+
+  .aperture-hero__window {
+    position: absolute;
+    z-index: 2;
+    top: var(--panel-top);
+    right: var(--panel-end);
+    bottom: 0;
+    left: var(--panel-start);
+    container-type: size;
+    background: var(--accent-field);
+    color: var(--accent-field-ink);
+  }
+
+  .aperture-hero__shutter {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 1px;
+    height: 7.4cqh;
+    background: color-mix(in srgb, var(--accent-field-ink) 42%, transparent);
+  }
+
+  .aperture-hero__corner {
+    position: absolute;
+    top: 3.4cqh;
+    right: 3cqw;
+    width: 4.4cqw;
+    height: 4.4cqw;
+    border-top: 1px solid color-mix(in srgb, var(--accent-field-ink) 58%, transparent);
+    border-right: 1px solid color-mix(in srgb, var(--accent-field-ink) 58%, transparent);
+  }
+
+  .aperture-hero__note {
+    position: absolute;
+    z-index: 4;
+    color: var(--ink-muted);
+    font-family: var(--font-mincho);
+    font-size: var(--note-size);
+    letter-spacing: 0.26em;
+    line-height: 1;
+    writing-mode: vertical-rl;
+  }
+
+  /* The notes and their rules hang 26px outside the stage box (1.927% of its
+     width at 1536), which is why these are negative. The stage does not clip, so
+     they sit in the page gutter rather than being cut; the widest of them still
+     lands well inside the viewport. */
+  .aperture-hero__note--left {
+    top: 31%;
+    left: -1.73%;
+  }
+
+  .aperture-hero__note--right {
+    top: 32.1%;
+    right: -1.73%;
+  }
+
+  .aperture-hero__rule {
+    position: absolute;
+    z-index: 4;
+    width: 1px;
+    background: color-mix(in srgb, var(--ink) 32%, transparent);
+  }
+
+  .aperture-hero__rule--left {
+    top: 4.5%;
+    left: -1.23%;
+    height: 9.4%;
+  }
+
+  .aperture-hero__rule--right {
+    top: 75.8%;
+    right: -1.23%;
+    height: 8.3%;
+  }
+
+  .aperture-hero__fragment {
+    position: absolute;
+    z-index: 0;
+    top: calc(var(--y) * 1%);
+    left: calc(var(--x) * 1%);
+    color: color-mix(in srgb, var(--ink) calc(var(--ink-share) * 1%), transparent);
+    font-family: var(--font-mincho);
+    font-size: calc(var(--size) * 1cqw);
+    letter-spacing: 0.08em;
+    line-height: 1;
+    filter: blur(calc(var(--fuzz) * 1px));
+    pointer-events: none;
+    user-select: none;
+    writing-mode: vertical-rl;
+  }
+
+  .aperture-identity {
+    display: grid;
+    height: 100%;
+    grid-template-rows: auto 1fr auto;
+    padding: 20cqh 11.5cqw 7cqh;
+  }
+
+  .aperture-identity__register {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-bottom: 1.8cqh;
+    border-bottom: 1px solid color-mix(in srgb, var(--accent-field-ink) 34%, transparent);
+    color: color-mix(in srgb, var(--accent-field-ink) 80%, transparent);
+    font-size: clamp(0.64rem, 2.5cqw, 0.88rem);
+    line-height: 1.2;
+  }
+
+  .aperture-identity__body {
+    align-self: center;
+    /* The wordmark block sits below the optical centre of the panel, as the
+       approved composition places it. */
+    margin-bottom: -9cqh;
+  }
+
+  .aperture-identity h2 {
+    font-family: var(--font-wordmark);
+    font-size: clamp(2.2rem, 18.6cqw, 8rem);
+    font-weight: 700;
+    letter-spacing: -0.055em;
+    line-height: 0.9;
+  }
+
+  .aperture-identity__body p {
+    margin-top: 4.6cqh;
+    color: color-mix(in srgb, var(--accent-field-ink) 80%, transparent);
+    font-size: clamp(0.72rem, 2.85cqw, 1rem);
+    line-height: 2;
+  }
+
+  .aperture-identity__body p span {
+    display: block;
+  }
+
+  .aperture-identity > a {
+    position: relative;
+    display: flex;
+    min-height: 2.75rem;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 2.2cqh;
+    font-size: clamp(0.7rem, 2.5cqw, 0.9rem);
+    text-decoration: none;
+  }
+
+  /* Rule, word, arrow. It stays a line of type: the rule grows left on hover
+     and the arrow steps out, and nothing ever becomes a filled button. */
+  .aperture-identity > a::before {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 9%;
+    height: 1px;
+    background: color-mix(in srgb, var(--accent-field-ink) 34%, transparent);
+    content: "";
+    transition: left var(--motion-medium) var(--motion-ease);
+  }
+
+  .aperture-identity > a:hover::before,
+  .aperture-identity > a:focus-visible::before {
+    left: 0;
+  }
+
+  .aperture-identity > a i {
+    font-size: 1.15em;
+    font-style: normal;
+    transition: transform var(--motion-fast) var(--motion-ease);
+  }
+
+  .aperture-identity > a:hover i,
+  .aperture-identity > a:focus-visible i {
+    transform: translate(0.3rem, -0.3rem);
+  }
+
+  @keyframes aperture-hero-rise {
+    from {
+      opacity: 0;
+      transform: translateY(1rem);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes aperture-hero-fade {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  /* The panel arrives early and as one piece, because it is what gives the page
+     its order; its contents then follow in reading order. Nothing here scales
+     and nothing blurs: a card that zooms turns an editorial page into a product
+     page. */
+  .aperture-hero__window {
+    animation: aperture-hero-rise 900ms 120ms var(--enter-ease) both;
+  }
+
+  .aperture-identity__register {
+    animation: aperture-hero-settle 800ms 300ms var(--enter-ease) both;
+  }
+
+  .aperture-identity h2 {
+    animation: aperture-hero-settle 850ms 780ms var(--enter-ease) both;
+  }
+
+  .aperture-identity__body p {
+    animation: aperture-hero-settle 900ms 1180ms var(--enter-ease) both;
+  }
+
+  /* The call to action is three things, so it arrives as three: the words, then
+     the rule drawing itself out from the left, then the arrow. */
+  .aperture-identity > a span {
+    animation: aperture-hero-fade 700ms 1980ms var(--enter-ease) both;
+  }
+
+  @keyframes aperture-hero-draw {
+    from {
+      opacity: 0;
+      transform: scaleX(0);
+    }
+
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .aperture-identity > a::before {
+    transform-origin: left center;
+    animation: aperture-hero-draw 750ms 2080ms var(--enter-ease) both;
+  }
+
+  .aperture-identity > a i {
+    animation: aperture-hero-fade 550ms 2250ms var(--enter-ease) both;
+  }
+
+  /* The statement writes itself rather than fading in, and the shape of that is
+     two layers that stay independent. A run says when it starts (`--run-delay`),
+     how long each of its characters takes (`--run-dur`), how far they travel
+     (`--set-y`) and which of the two entrances it uses (`--enter-keys`). A glyph
+     says only when its own turn comes (`--at`) and how far sideways it comes
+     from (`--drift`).
+
+     Nothing animates the run element: it already carries the rotation, and a
+     transform there would fight it. Because both the h1 and the clipped
+     overprint render the same data through the same classes, a character and its
+     counterpart derive identical timing and cannot drift apart mid-flight.
+
+     All travel is in em, so the entrance scales with the type at every
+     breakpoint rather than looking violent on a phone. */
+  @keyframes aperture-hero-set-solid {
+    from {
+      opacity: 0;
+      transform: translate(calc(var(--drift, 0) * 1em), calc(var(--set-y, 0.12) * 1em));
+      filter: blur(0.014em);
+    }
+
+    to {
+      opacity: var(--glyph-opacity);
+      transform: none;
+      filter: blur(0);
+    }
+  }
+
+  /* The outline runs are a second layer of type, not a copy of the first, so
+     they arrive in two stages: the stroke surfaces to about four tenths of its
+     resting strength while still soft and slightly out of place, drifts through
+     a slow middle, and only then resolves. Stating the partial stage as a
+     fraction of `--glyph-opacity` is what keeps it from ever reading stronger
+     than the solid characters it sits behind. */
+  @keyframes aperture-hero-set-outline {
+    from {
+      opacity: 0;
+      transform: translate(calc(var(--drift, 0) * 1em), calc(var(--set-y, 0.08) * 1em));
+      filter: blur(0.02em);
+    }
+
+    36% {
+      opacity: calc(var(--glyph-opacity) * 0.4);
+      transform: translate(calc(var(--drift, 0) * 0.5em), calc(var(--set-y, 0.08) * 0.55em));
+      filter: blur(0.012em);
+    }
+
+    64% {
+      opacity: calc(var(--glyph-opacity) * 0.55);
+      filter: blur(0.006em);
+    }
+
+    to {
+      opacity: var(--glyph-opacity);
+      transform: none;
+      filter: blur(0);
+    }
+  }
+
+  .aperture-hero__phrase--primary {
+    --run-delay: 250ms;
+    --run-dur: 880ms;
+    --set-y: 0.12;
+  }
+
+  .aperture-hero__phrase--primary-echo {
+    --enter-keys: aperture-hero-set-outline;
+    --run-delay: 720ms;
+    --run-dur: 1000ms;
+    --set-y: 0.08;
+  }
+
+  /* Steadier than the first run on purpose: this is the second mass of type
+     settling into a field that already exists, not the opening gesture. */
+  .aperture-hero__phrase--secondary {
+    --run-delay: 1120ms;
+    --run-dur: 860ms;
+    --set-y: 0.085;
+  }
+
+  .aperture-hero__phrase--secondary-echo {
+    --enter-keys: aperture-hero-set-outline;
+    --run-delay: 1600ms;
+    --run-dur: 950ms;
+    --set-y: 0.085;
+  }
+
+  /* No container-level fade here. The overprint's glyphs carry the same
+     per-character schedule as the h1's, so fading the wrapper would hide an
+     outline character that is already due: 見たものを's trailing character starts
+     at 585ms, well before any wrapper fade would have finished. */
+
+  /* The marginal notes are set as whole blocks, never per character. They are
+     the quiet layer that establishes the page before the display type arrives,
+     so they move less than anything else and take longer doing it. The left one
+     comes first and the right one last, which brackets the whole sequence. */
+  @keyframes aperture-hero-settle {
+    from {
+      opacity: 0;
+      transform: translateY(0.5rem);
+    }
+
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .aperture-hero__note--left {
+    animation: aperture-hero-settle 1250ms 140ms var(--enter-ease) both;
+  }
+
+  .aperture-hero__note--right {
+    animation: aperture-hero-settle 1100ms 1720ms var(--enter-ease) both;
+  }
+
+  .aperture-hero__rule--left {
+    animation: aperture-hero-fade 900ms 200ms var(--enter-ease) both;
+  }
+
+  .aperture-hero__rule--right {
+    animation: aperture-hero-fade 900ms 1780ms var(--enter-ease) both;
+  }
+
+  /* Background texture. It comes last and very softly, so it reads as the page
+     settling rather than as anything asking to be looked at. */
+  .aperture-hero__fragment {
+    animation: aperture-hero-fade 900ms 1850ms var(--enter-ease) both;
+  }
+
+  .aperture-recent__more {
+    margin-top: 1.5rem;
+  }
+
+  .aperture-ways {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin-inline: calc(var(--gutter) * -1);
+    background: var(--surface-raised);
+    border-block: 1px solid var(--line);
+  }
+
+  .aperture-ways a {
+    position: relative;
+    display: grid;
+    min-height: 12rem;
+    align-content: space-between;
+    padding: 1.5rem var(--gutter);
+    border-right: 1px solid var(--line);
+    overflow: hidden;
+    isolation: isolate;
+    text-decoration: none;
+  }
+
+  .aperture-ways a:last-child {
+    border-right: 0;
+  }
+
+  .aperture-ways a::before {
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    background: var(--accent-field);
+    content: "";
+    transform: translateY(calc(100% - 0.35rem));
+    transition: transform var(--motion-medium) var(--motion-ease);
+  }
+
+  .aperture-ways a:hover::before,
+  .aperture-ways a:focus-visible::before {
+    transform: translateY(0);
+  }
+
+  .aperture-ways a:hover,
+  .aperture-ways a:focus-visible {
+    color: var(--accent-field-ink);
+    outline-offset: -4px;
+  }
+
+  .aperture-ways small,
+  .aperture-ways i {
+    color: var(--ink-faint);
+    font-family: var(--font-data);
+    font-size: 0.58rem;
+    font-style: normal;
+  }
+
+  .aperture-ways span {
+    align-self: end;
+    margin-top: 2.5rem;
+    font-family: var(--font-display);
+    font-size: clamp(1.5rem, 2.5vw, 2.4rem);
+    font-weight: 630;
+    letter-spacing: -0.055em;
+    line-height: 1;
+  }
+
+  .aperture-ways i {
+    margin-top: 0.6rem;
+  }
+
+  .aperture-ways b {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    font-weight: 400;
+  }
+
+  .aperture-ways a:hover :is(small, i),
+  .aperture-ways a:focus-visible :is(small, i) {
+    color: color-mix(in srgb, var(--accent-field-ink) 68%, transparent);
+  }
+
+  /* Half a section gap on each side, so two adjacent sections add up to one
+     192px rhythm rather than the 384px that a full `clamp(6rem, 12vw, 12rem)`
+     on both produced. Keeping it symmetric — rather than top-only — is what
+     gives the section boundary rules (`.aperture-ledger` draws one top and
+     bottom) clear air above and below instead of sitting against the text. */
+  .aperture-recent,
+  .aperture-field,
+  .aperture-ledger,
+  .aperture-colophon {
+    padding-block: clamp(3rem, 6vw, 6rem);
+  }
+
+  /* Last section on the page: the footer carries the site's own pre-footer
+     offset (`margin-top: clamp(4rem, 10vw, 10rem)` in public.css), so a bottom
+     counterpart here would stack a second gap onto it. */
+  .aperture-colophon {
+    padding-bottom: 0;
+  }
+
+  /* Kicker and heading stack on one left edge; the note takes the right column.
+     The heading used to sit in the middle column of three, which put it adrift
+     between a short kicker and a long note and read as a centring that had
+     missed. Nothing here was ever actually centred — every `text-align` is
+     `start` — so the fix is to remove the indent, not to add alignment. */
+  .aperture-recent > header,
+  .aperture-field > header,
+  .aperture-ledger > header,
+  .aperture-colophon > header {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(16rem, 0.75fr);
+    column-gap: clamp(2rem, 5vw, 6rem);
+    align-items: start;
+    margin-bottom: clamp(2.5rem, 4.5vw, 4.5rem);
+  }
+
+  .aperture-recent > header > p,
+  .aperture-field > header > p,
+  .aperture-ledger > header > p,
+  .aperture-colophon > header > p {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .aperture-recent > header h2,
+  .aperture-field > header h2,
+  .aperture-ledger > header h2,
+  .aperture-colophon > header h2 {
+    grid-column: 1;
+    grid-row: 2;
+    margin-top: 1.25rem;
+  }
+
+  .aperture-recent > header > span,
+  .aperture-field > header > span,
+  .aperture-ledger > header > span,
+  .aperture-colophon > header > span {
+    grid-column: 2;
+    grid-row: 1 / 3;
+  }
+
+  /* The note sits down on the heading's last line rather than floating up beside
+     the kicker. `end` drops it to the bottom of the heading's row, but that
+     aligns boxes, not ink: the note's 1.8 leading and the display face's deeper
+     descent left its glyphs 15px high of the heading's. The pull is in `em` of
+     the note, whose size is fixed, so it holds across the heading's whole clamp
+     range — the heading's own half-leading varies by about a pixel end to end.
+     Excludes the ledger, whose header is block-stacked in a narrow column. */
+  .aperture-recent > header > span,
+  .aperture-field > header > span,
+  .aperture-colophon > header > span {
+    align-self: end;
+    margin-bottom: -1.26em;
+  }
+
+  .aperture-recent > header > p,
+  .aperture-field > header > p,
+  .aperture-ledger > header > p,
+  .aperture-colophon > header > p {
+    color: var(--ink-faint);
+    font-family: var(--font-data);
+    font-size: 0.6rem;
+  }
+
+  /* Sized for CJK, which these headings are in every locale that matters here.
+     At 7rem a five-character heading ran 560px and broke across two lines inside
+     a 454px column, orphaning the last glyph; the tracking and leading were tuned
+     for Latin display type and made the wrap collide besides. 4.5rem fits 存了些什么
+     on one line, and the looser values let a genuinely long heading — この場所に
+     ついて — wrap without the two lines touching. */
+  .aperture-recent > header h2,
+  .aperture-field > header h2,
+  .aperture-ledger > header h2,
+  .aperture-colophon > header h2 {
+    font-family: var(--font-display);
+    font-size: clamp(2.4rem, 4.6vw, 4.5rem);
+    font-weight: 670;
+    letter-spacing: -0.04em;
+    line-height: 1.06;
+  }
+
+  .aperture-recent > header > span,
+  .aperture-field > header > span,
+  .aperture-ledger > header > span,
+  .aperture-colophon > header > span {
+    max-width: 34rem;
+    color: var(--ink-muted);
+    font-family: var(--font-reading);
+    font-size: 0.9rem;
+    line-height: 1.8;
+  }
+
+  .aperture-recent ol,
+  .aperture-field ol,
+  .aperture-ledger ol {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /* Full width, flush left. `width: min(68rem, 86%); margin-left: auto` inset the
+     whole list 240px from the section edge, which — stacked on the row's own
+     9rem date column — left every title floating near the middle of the page. */
+  .aperture-recent ol {
+    width: 100%;
+  }
+
+  .aperture-recent li {
+    border-top: 1px solid var(--line);
+  }
+
+  .aperture-recent li:last-child {
+    border-bottom: 1px solid var(--line);
+  }
+
+  /* Date, title, summary all start on the section's own left edge; only the
+     arrow holds the right. The date used to occupy a 9rem leading column, which
+     pushed every title a further 176px in. */
+  .aperture-recent li a {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 1.5rem;
+    gap: 0.7rem 2rem;
+    /* The three lines total about 122px, so 10rem left 19px of slack above and
+       below and read as the block sitting low in its row. 8.5rem keeps the row
+       comfortably taller than its content without the content floating in it. */
+    min-height: 8.5rem;
+    align-content: center;
+    /* Inset from the row's own rule, which stays on the `li` at the list's full
+       width. The panel therefore lights up *inside* the hairline instead of
+       overhanging it, and the text and arrow sit within the field rather than on
+       its edges — the same 1.25rem the writing index, the archive and the
+       taxonomy rows use. An earlier pass bled the panel outward instead, which
+       left it visibly wider than the divider above and below it. */
+    padding-inline: 1.25rem;
+    isolation: isolate;
+    text-decoration: none;
+  }
+
+  /* One gesture for every list row on the site. The panel is parked at zero
+     width against the row's right edge, grows from the left on hover, and
+     retreats the way it came — the same `::before` the writing index, the
+     archive and the taxonomy pages use in public.css. Before this, the home's
+     rows were the only ones that changed colour instantly or, in the case of
+     the post rows, did not respond at all. */
+  .aperture-recent li a::before,
+  .aperture-field ol a::before,
+  .aperture-ledger__years a::before {
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    background: var(--accent-field);
+    content: "";
+    transform: scaleX(0);
+    transform-origin: right center;
+    transition: transform var(--motion-medium) var(--motion-ease);
+  }
+
+  .aperture-recent li a:hover::before,
+  .aperture-recent li a:focus-visible::before,
+  .aperture-field ol a:hover::before,
+  .aperture-field ol a:focus-visible::before,
+  .aperture-ledger__years a:hover::before,
+  .aperture-ledger__years a:focus-visible::before {
+    transform: scaleX(1);
+    transform-origin: left center;
+  }
+
+  .aperture-recent li a:hover,
+  .aperture-recent li a:focus-visible,
+  .aperture-field ol a:hover,
+  .aperture-field ol a:focus-visible,
+  .aperture-ledger__years a:hover,
+  .aperture-ledger__years a:focus-visible {
+    color: var(--accent-field-ink);
+    outline-offset: -4px;
+  }
+
+  /* The metadata on a lit row keeps its rank: it steps up to the field's ink
+     but stays under the title, exactly as the other pages' rows do. */
+  .aperture-recent li a:hover :is(time, p),
+  .aperture-recent li a:focus-visible :is(time, p),
+  .aperture-field ol a:hover small,
+  .aperture-field ol a:focus-visible small,
+  .aperture-ledger__years a:hover small,
+  .aperture-ledger__years a:focus-visible small {
+    color: color-mix(in srgb, var(--accent-field-ink) 70%, transparent);
+  }
+
+  .aperture-recent time {
+    grid-column: 1;
+    color: var(--ink-faint);
+    font-family: var(--font-data);
+    font-size: 0.62rem;
+  }
+
+  .aperture-recent h3 {
+    grid-column: 1;
+    font-family: var(--font-display);
+    font-size: clamp(1.6rem, 3vw, 2.9rem);
+    font-weight: 640;
+    letter-spacing: -0.035em;
+    line-height: 1.14;
+  }
+
+  .aperture-recent h3 + p {
+    grid-column: 1;
+    max-width: 44rem;
+    color: var(--ink-muted);
+    font-size: 0.78rem;
+  }
+
+  /* The arrow spans all three rows, and Chromium charges a spanning item's size
+     to the first track it covers. At the inherited 1.65 line-height its 16px
+     glyph made a 26.4px box, which stretched the 16.4px date row by 10px and
+     opened a gap under the date that nothing occupied. Holding the arrow to its
+     own line closes that gap; the row keeps its 8.5rem height, so the section
+     rhythm is unchanged. */
+  .aperture-recent i {
+    grid-column: 2;
+    grid-row: 1 / -1;
+    align-self: center;
+    font-style: normal;
+    line-height: 1;
+    transition: transform var(--motion-fast) var(--motion-ease);
+  }
+
+  /* The arrow steps the way it points, exactly as the writing index and taxonomy
+     arrows do. It keeps the field's ink outright rather than the 70% the other
+     marks take: it is the row's verb, not its metadata. */
+  .aperture-recent li a:hover i,
+  .aperture-recent li a:focus-visible i {
+    transform: translate(0.25rem, -0.25rem);
+  }
+
+  .aperture-field {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .aperture-field::before {
+    position: absolute;
+    z-index: -1;
+    top: 0;
+    right: 8%;
+    width: clamp(4rem, 12vw, 11rem);
+    height: 100%;
+    background: var(--surface-soft);
+    content: "";
+  }
+
+  .aperture-field__body {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(18rem, 0.85fr);
+    gap: clamp(4rem, 10vw, 12rem);
+  }
+
+  .aperture-field__label {
+    display: flex;
+    min-height: 4rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+    border-bottom: 1px solid var(--ink);
+  }
+
+  .aperture-field__label h3 {
+    font-size: 0.75rem;
+    font-weight: 620;
+  }
+
+  /* Sits inside a content-width flex row, so the action's `space-between` has no
+     slack to distribute and the label and arrow stay together on their own gap. */
+  .aperture-field__label .aperture-action {
+    min-height: 0;
+    gap: 0.55rem;
+  }
+
+  /* The divider belongs to the row, not to the link inside it: on the `li` it
+     spans the column exactly like the label's rule above, so the two run to the
+     same length. On the link it inherited the link's inset and came up short. */
+  .aperture-field ol li {
+    border-bottom: 1px solid var(--line);
+  }
+
+  .aperture-field ol a {
+    position: relative;
+    display: flex;
+    min-height: 6rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+    padding-inline: 1.25rem;
+    isolation: isolate;
+    text-decoration: none;
+  }
+
+  .aperture-field ol a span {
+    font-family: var(--font-display);
+    font-size: clamp(1.6rem, 3.5vw, 3.3rem);
+    font-weight: 630;
+    letter-spacing: -0.06em;
+  }
+
+  .aperture-field ol a small {
+    color: var(--ink-faint);
+    font-family: var(--font-data);
+    font-size: 0.6rem;
+  }
+
+
+  .aperture-field__tags > div:last-child {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding-top: 2rem;
+  }
+
+  /* Tags are set as type on their own lines, not as rows, so a panel behind a
+     ragged edge would fight the column beside it. They take the tags
+     directory's gesture instead — a hovered tag slides along its own axis —
+     which is motion in the same family without needing a box. The transform
+     applies because these are flex items of the column above, not inline
+     boxes, which would have ignored it. */
+  .aperture-field__tags > div:last-child a {
+    margin-left: calc((var(--tag-offset, 0) % 3) * clamp(0rem, 3vw, 3rem));
+    color: var(--ink-muted);
+    font-family: var(--font-display);
+    font-size: clamp(1.2rem, 2.4vw, 2.2rem);
+    font-weight: 560;
+    line-height: 1.6;
+    text-decoration-color: transparent;
+    transition:
+      transform var(--motion-medium) var(--motion-ease),
+      color var(--motion-fast) var(--motion-ease),
+      text-decoration-color var(--motion-fast) var(--motion-ease);
+  }
+
+  .aperture-field__tags > div:last-child a:hover,
+  .aperture-field__tags > div:last-child a:focus-visible {
+    transform: translateX(0.4rem);
+    color: var(--accent);
+    text-decoration-color: currentColor;
+  }
+
+  /* No section boundary rules. The ledger was the only one of the four that drew
+     them, which made the page's section grammar inconsistent, and its top rule
+     landed against the tint band `.aperture-field::before` leaves behind. Every
+     section is now separated by the same 192px of space and nothing else. */
+  .aperture-ledger {
+    display: grid;
+    grid-template-columns: minmax(18rem, 0.8fr) minmax(0, 1.2fr);
+    gap: clamp(4rem, 10vw, 12rem);
+  }
+
+  .aperture-ledger > header {
+    display: block;
+    margin: 0;
+  }
+
+  .aperture-ledger > header h2 {
+    margin-top: 1.5rem;
+  }
+
+  .aperture-ledger > header > span {
+    display: block;
+    margin-top: 2rem;
+  }
+
+  /* Years carry the same "enter here" grammar as the categories in 内容星图:
+     a large numeral, a quiet count, one hairline per row. */
+  .aperture-ledger__years {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid var(--ink);
+  }
+
+  .aperture-ledger__years li + li {
+    border-top: 1px solid var(--line);
+  }
+
+  .aperture-ledger__years a {
+    position: relative;
+    display: flex;
+    min-height: 6rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+    padding-inline: 1.25rem;
+    isolation: isolate;
+    text-decoration: none;
+  }
+
+  .aperture-ledger__years a span {
+    font-family: var(--font-display);
+    font-size: clamp(1.6rem, 3.5vw, 3.3rem);
+    font-weight: 630;
+    letter-spacing: -0.06em;
+  }
+
+  .aperture-ledger__years a small {
+    color: var(--ink-faint);
+    font-family: var(--font-data);
+    font-size: 0.6rem;
+  }
+
+
+  /* Facts, not a scoreboard: each row states one thing about the archive and
+     reads the same whether the count is 1 or 400. */
+  .aperture-ledger__facts {
+    margin: 3rem 0 0;
+  }
+
+  /* Dividers between the facts, none trailing the last — the same rule the rest
+     of the page's lists follow, and it stops the section from ending on a line
+     with only the inter-section gap under it. */
+  .aperture-ledger__facts > div + div {
+    border-top: 1px solid var(--line);
+  }
+
+  /* Padding rather than `min-height`: baseline alignment parks the text at the
+     top of a min-height box, so the last row left 35px of dead space under the
+     section's final ink and made this gap read wider than the others. Symmetric
+     padding gives the same row height with the ink centred in it. */
+  .aperture-ledger__facts > div {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 2rem;
+    padding-block: 1.05rem;
+  }
+
+  .aperture-ledger__facts dt,
+  .aperture-ledger__facts dd {
+    margin: 0;
+  }
+
+  .aperture-ledger__facts dt {
+    color: var(--ink-muted);
+    font-size: 0.78rem;
+  }
+
+  .aperture-ledger__facts dd {
+    color: var(--ink);
+    font-family: var(--font-data);
+    font-size: 0.72rem;
+  }
+
+  .aperture-colophon__body {
+    display: grid;
+    grid-template-columns: minmax(18rem, 1fr) minmax(16rem, 0.8fr);
+    gap: clamp(3rem, 7vw, 8rem);
+    padding-top: clamp(3rem, 6vw, 5rem);
+  }
+
+  /* The author column runs the same head/body/link rhythm as the calendar
+     beside it, so the two halves of the colophon read as one pair rather than
+     as two unrelated blocks. */
+  .aperture-colophon__author {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .aperture-colophon__author-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding-bottom: 0.8rem;
+    border-bottom: 1px solid var(--ink);
+  }
+
+  .aperture-colophon__author-head h3 {
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+
+  .aperture-colophon__author-head span {
+    color: var(--ink-faint);
+    font-family: var(--font-data);
+    font-size: 0.6rem;
+  }
+
+  .aperture-colophon__people {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /* Two entries with no rule between them do not need a rule's worth of padding
+     either; 1.6rem on each put 91px between Morii's line and Enouia's name. */
+  .aperture-colophon__people li {
+    padding-block: 0.9rem;
+  }
+
+  .aperture-colophon__people h4 {
+    font-family: var(--font-display);
+    font-size: clamp(1.3rem, 2.6vw, 1.85rem);
+    font-weight: 600;
+    letter-spacing: -0.04em;
+    line-height: 1.1;
+  }
+
+  .aperture-colophon__people p {
+    max-width: 32rem;
+    margin-top: 0.6rem;
+    color: var(--ink-muted);
+    font-family: var(--font-reading);
+    font-size: 0.85rem;
+    line-height: 1.8;
+  }
+
+
+  .aperture-colophon__calendar-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding-bottom: 0.8rem;
+    border-bottom: 1px solid var(--ink);
+  }
+
+  .aperture-colophon__calendar-head h3 {
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+
+  .aperture-colophon__calendar-head span {
+    color: var(--ink-faint);
+    font-family: var(--font-data);
+    font-size: 0.6rem;
+  }
+
+  /* Native selects, stripped back to type. They keep the keyboard and
+     screen-reader behaviour a custom listbox would have to rebuild, and the
+     appearance reset takes away the OS chrome that would otherwise read as the
+     bordered control DESIGN.md rules out. */
+  .aperture-calendar__picker {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+  }
+
+  /* The affordance, borrowed from `.a-writing-filter` on the writing index: a
+     standing hairline under the control and a caret beside it. Without both, a
+     select stripped of its OS chrome is indistinguishable from a label. */
+  .aperture-calendar__field {
+    position: relative;
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    border-bottom: 1px solid var(--line);
+    transition: border-color var(--motion-fast) var(--motion-ease);
+  }
+
+  .aperture-calendar__field:hover,
+  .aperture-calendar__field:focus-within {
+    border-bottom-color: var(--accent-field);
+  }
+
+  .aperture-calendar__picker select {
+    /* Room for the caret, which overlays the select's right edge rather than
+       sitting beside it, so a click anywhere on the control still opens it. */
+    padding: 0.15rem 1.05rem 0.15rem 0.1rem;
+    border: 0;
+    border-radius: 0;
+    appearance: none;
+    background: transparent;
+    color: var(--ink);
+    font-family: var(--font-data);
+    font-size: 0.62rem;
+    cursor: pointer;
+    transition: color var(--motion-fast) var(--motion-ease);
+  }
+
+  .aperture-calendar__caret {
+    position: absolute;
+    right: 0;
+    width: 0.72rem;
+    fill: none;
+    stroke: var(--ink-muted);
+    stroke-linecap: round;
+    stroke-width: 1.7;
+    pointer-events: none;
+    transition: stroke var(--motion-fast) var(--motion-ease);
+  }
+
+  .aperture-calendar__field:hover .aperture-calendar__caret,
+  .aperture-calendar__field:focus-within .aperture-calendar__caret {
+    stroke: var(--ink);
+  }
+
+  /* The focus ring is the one place the control is allowed to draw a box: it is
+     state, not decoration, and removing it would strand keyboard users. */
+  .aperture-calendar__picker select:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  /* The option list itself is drawn by the OS, so it needs explicit colours to
+     stay legible against a dark page. */
+  .aperture-calendar__picker option {
+    background: var(--surface-raised);
+    color: var(--ink);
+  }
+
+  .aperture-calendar {
+    padding-block: 1rem;
+  }
+
+  .aperture-calendar__week,
+  .aperture-calendar__days {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+
+  .aperture-calendar__week span {
+    color: var(--ink-faint);
+    font-family: var(--font-data);
+    font-size: 0.6rem;
+    text-align: center;
+  }
+
+  .aperture-calendar__days {
+    margin-top: 0.35rem;
+  }
+
+  .aperture-calendar__days time,
+  .aperture-calendar__days > span {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-height: 2.1rem;
+    color: var(--ink-faint);
+    font-family: var(--font-data);
+    font-size: 0.62rem;
+  }
+
+  .aperture-calendar__days time.is-active {
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  .aperture-calendar__days time i {
+    position: absolute;
+    bottom: 0.1rem;
+    width: 0.25rem;
+    height: 0.25rem;
+    background: var(--accent);
+    border-radius: 50%;
+  }
+
+  /* `.aperture-calendar`'s own 1rem of bottom padding is the whole separation
+     here. An extra 1.75rem margin was tried and taken back out — with the list
+     capped at two entries the block is short enough that the larger gap left a
+     hole in the middle of the column. */
+  .aperture-colophon__latest {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid var(--line);
+  }
+
+  /* Same rule as the people list: dividers between entries, nothing trailing. */
+  .aperture-colophon__latest li + li {
+    border-top: 1px solid var(--line);
+  }
+
+  .aperture-colophon__latest li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 1rem;
+    align-items: center;
+    min-height: 2.8rem;
+  }
+
+  .aperture-colophon__latest a {
+    overflow: hidden;
+    font-size: 0.75rem;
+    text-decoration: none;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .aperture-colophon__latest a:hover {
+    color: var(--accent);
+  }
+
+  .aperture-colophon__latest time {
+    color: var(--ink-faint);
+    font-family: var(--font-data);
+    font-size: 0.62rem;
+  }
+
+  /* Shown when the chosen month has nothing. It occupies the list's own top
+     rule so the column's structure does not jump as months change. */
+  .aperture-calendar__empty {
+    min-height: 2.8rem;
+    padding-top: 0.9rem;
+    border-top: 1px solid var(--line);
+    color: var(--ink-faint);
+    font-size: 0.75rem;
+  }
+
+  /* The overflow action replaces a third and fourth link rather than sitting
+     under them, so it takes the list's row rhythm instead of the actions'
+     larger spacing. */
+  .aperture-calendar__more {
+    min-height: 2.8rem;
+    border-top: 1px solid var(--line);
+  }
+
+  .aperture-colophon__calendar {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Three peers sharing the column rhythm of the ways nav, set well clear of the
+     list above so the separation is space rather than another line. Both columns
+     of the colophon use this wrapper — the calendar's lone action included — so
+     the spacing sits on the container in both and the two columns' actions land
+     on the same baseline. */
+  .aperture-colophon__actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0 2rem;
+    margin-top: auto;
+    padding-top: clamp(3rem, 5vw, 4.5rem);
+  }
+
+  .aperture-colophon__actions--single {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 70rem) {
+  @layer components {
+    /* Tablet keeps the whole grammar — cut type, panel, one marginal note —
+       and only gives the panel more of the width back. */
+    .aperture-hero__stage {
+      /* The panel is flush to the stage's right edge here, and that is arithmetic
+         rather than a stylistic choice. 見たものを sets 412.7px of ink at this
+         size, there are only 389.2px between the stage edge and the old panel
+         start, and the run cannot move left because 見 already meets the vertical
+         note. So the whole shortfall has to come out of the right margin — and
+         the right note is `display: none` at this width, so nothing lives there
+         to lose. Width is unchanged: `--panel-start` gains what `--panel-end`
+         gives up. */
+      --panel-start: 48%;
+      --panel-end: 0%;
+      /* The panel gives the register line its own band here: it reaches
+         further right than on desktop, so it can no longer start level with it. */
+      --panel-top: 4%;
+      --type-size: clamp(2.6rem, 9.8cqw, 9rem);
+      --note-size: clamp(0.78rem, 1.85cqw, 1.2rem);
+
+      aspect-ratio: 1450 / 960;
+    }
+
+    /* Re-derived from the desktop field: the solid run still stops just short of
+       the panel edge and the two lines keep their vertical centres. */
+    .aperture-hero__phrase--primary {
+      top: 18.9%;
+      left: 1%;
+    }
+
+    .aperture-hero__phrase--primary-echo {
+      top: 27.6%;
+      left: 24%;
+    }
+
+    .aperture-hero__phrase--secondary {
+      top: 62.5%;
+      left: 1%;
+    }
+
+    .aperture-hero__phrase--secondary-echo {
+      top: 71.1%;
+      left: 27%;
+    }
+
+    .aperture-hero__note--right,
+    .aperture-hero__rule--right,
+    .aperture-hero__fragment--wide {
+      display: none;
+    }
+
+    .aperture-ways {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .aperture-ways a:nth-child(2) {
+      border-right: 0;
+    }
+
+    .aperture-ways a:nth-child(-n + 2) {
+      border-bottom: 1px solid var(--line);
+    }
+
+    /* Column 1 carries the kicker and the heading here too, so it stays the wide
+       one. It was 0.35fr back when column 1 held only the kicker. */
+    .aperture-recent > header,
+    .aperture-field > header,
+    .aperture-ledger > header,
+    .aperture-colophon > header {
+      grid-template-columns: minmax(0, 1fr) minmax(11rem, 0.55fr);
+    }
+  }
+}
+
+@media (max-width: 48rem) {
+  @layer components {
+    /* Phones get their own composition rather than a shrunken desktop one. The
+       panel bleeds off the right edge and carries the hero; the second line of
+       type runs under its top edge, so the solid glyphs are cut horizontally
+       and the outline glyphs continue across in the panel ink. The first line
+       runs off the right of the viewport on purpose. */
+    .aperture-hero {
+      padding-block: clamp(0.75rem, 3vw, 1.25rem) 0;
+    }
+
+    .aperture-hero__stage {
+      --panel-start: 22%;
+      --panel-end: calc(var(--gutter) * -1);
+      --panel-top: 41%;
+      --type-size: clamp(3rem, 19cqw, 7.6rem);
+      --note-size: clamp(0.72rem, 3.2cqw, 0.98rem);
+
+      aspect-ratio: auto;
+      height: min(41rem, calc(100svh - 7rem));
+      min-height: 33rem;
+    }
+
+    /* An ascending run makes its FIRST character the low point, so these are the
+       runs' floors, not their tops — raise one and the whole run drops. */
+    .aperture-hero__phrase--primary {
+      top: 14%;
+      left: 0.5%;
+    }
+
+    .aperture-hero__phrase--primary-echo {
+      top: 24%;
+      left: 42%;
+    }
+
+    .aperture-hero__phrase--secondary {
+      top: 40%;
+      left: 0.5%;
+    }
+
+    /* Clears the panel's register line, which sits about 59% down the stage
+       at this width. */
+    .aperture-hero__phrase--secondary-echo {
+      top: 43%;
+      left: 45%;
+    }
+
+    .aperture-hero__note--left {
+      top: 60%;
+      left: 1%;
+    }
+
+    /* The second statement crosses the panel's top-right corner here, so the
+       corner mark would read as a collision rather than a register mark. */
+    .aperture-hero__note--right,
+    .aperture-hero__rule,
+    .aperture-hero__fragment,
+    .aperture-hero__corner {
+      display: none;
+    }
+
+    /* The second outline run crosses well into the panel at this width, so the
+       register line starts below where 残す。 lands rather than under it. */
+    .aperture-identity {
+      padding: 30cqh 9cqw 5cqh;
+    }
+
+    .aperture-identity__register {
+      font-size: clamp(0.6rem, 4.1cqw, 0.8rem);
+    }
+
+    .aperture-identity h2 {
+      font-size: clamp(2.2rem, 21cqw, 4.4rem);
+    }
+
+    .aperture-identity__body p {
+      font-size: clamp(0.7rem, 4.4cqw, 0.9rem);
+      line-height: 1.9;
+    }
+
+    .aperture-identity > a {
+      font-size: clamp(0.68rem, 4cqw, 0.86rem);
+    }
+
+    .aperture-ways {
+      grid-template-columns: 1fr;
+    }
+
+    .aperture-ways a,
+    .aperture-ways a:nth-child(2) {
+      min-height: 8.5rem;
+      border-right: 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .aperture-recent > header,
+    .aperture-field > header,
+    .aperture-ledger > header,
+    .aperture-colophon > header {
+      display: block;
+    }
+
+    .aperture-recent > header h2,
+    .aperture-field > header h2,
+    .aperture-ledger > header h2,
+    .aperture-colophon > header h2 {
+      margin-top: 1.2rem;
+      font-size: clamp(3.5rem, 17vw, 6rem);
+    }
+
+    .aperture-recent > header > span,
+    .aperture-field > header > span,
+    .aperture-ledger > header > span,
+    .aperture-colophon > header > span {
+      display: block;
+      margin-top: 1.5rem;
+    }
+
+    .aperture-colophon__body {
+      grid-template-columns: 1fr;
+    }
+
+    /* Three columns leave 92px each here, which wraps "关于 Moriium" onto a
+       second line. One per row instead — the arrow stays at the right edge and
+       each label gets the full measure. */
+    .aperture-colophon__actions {
+      grid-template-columns: minmax(0, 1fr);
+      padding-top: clamp(2rem, 8vw, 3rem);
+    }
+
+    .aperture-recent ol {
+      width: 100%;
+    }
+
+    .aperture-recent li a {
+      grid-template-columns: 1fr auto;
+      gap: 0.8rem;
+      padding-block: 1.5rem;
+    }
+
+    .aperture-recent h3,
+    .aperture-recent h3 + p {
+      grid-column: 1;
+    }
+
+    .aperture-recent h3 + p {
+      margin-top: 0;
+    }
+
+    .aperture-recent i {
+      grid-column: 2;
+      grid-row: 1 / 4;
+    }
+
+    .aperture-field::before {
+      right: 0;
+      width: 22%;
+    }
+
+    .aperture-field__body,
+    .aperture-ledger {
+      grid-template-columns: 1fr;
+    }
+
+    .aperture-field__tags {
+      margin-top: 4rem;
+    }
+
+    .aperture-ledger {
+      gap: 4rem;
+    }
+
+    .aperture-colophon__calendar {
+      margin-top: 3rem;
+    }
+  }
+}
+
+/* Reduced motion keeps the page arriving, just not moving: one short fade for
+   everything, no stagger, no travel, no blur. The site-wide rule in public.css
+   collapses duration and delay for every animation, so these selectors carry two
+   classes to outrank its single-class `*`, and the keyframe lands on
+   `--glyph-opacity` so outline characters still rest at their own strength
+   instead of being promoted to full. */
+@media (prefers-reduced-motion: reduce) {
+  @layer components {
+    @keyframes aperture-hero-quiet {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: var(--glyph-opacity, 1);
+      }
+    }
+
+    .public-site .aperture-hero__glyph,
+    .public-site .aperture-hero__note,
+    .public-site .aperture-hero__rule,
+    .public-site .aperture-hero__fragment,
+    .public-site .aperture-hero__window,
+    .public-site .aperture-identity__register,
+    .public-site .aperture-identity h2,
+    .public-site .aperture-identity__body p,
+    .public-site .aperture-identity > a span,
+    .public-site .aperture-identity > a::before,
+    .public-site .aperture-identity > a i {
+      animation: aperture-hero-quiet 320ms linear both !important;
+    }
+  }
+}

@@ -29,6 +29,12 @@ importers:
       '@fontsource-variable/noto-sans-sc':
         specifier: 5.3.0
         version: 5.3.0
+      '@fontsource-variable/noto-serif-jp':
+        specifier: 5.3.0
+        version: 5.3.0
+      '@fontsource-variable/noto-serif-sc':
+        specifier: 5.3.0
+        version: 5.3.0
       '@fontsource-variable/sora':
         specifier: 5.3.0
         version: 5.3.0
@@ -93,6 +99,9 @@ importers:
       '@astrojs/check':
         specifier: 0.9.10
         version: 0.9.10(prettier@3.9.6)(typescript@6.0.3)
+      '@fontsource/shippori-mincho':
+        specifier: 5.3.0
+        version: 5.3.0
       '@types/node':
         specifier: 24.13.3
         version: 24.13.3
@@ -532,11 +541,20 @@ packages:
   '@fontsource-variable/noto-sans-sc@5.3.0':
     resolution: {integrity: sha512-lNar1dF7Ik/lHNPo/7JWG0TolXY29LtsqYgMvEysooZ5bsO9uH4shJmRrwyJ3PjyTPljhpMJEK0jDuLSU4vJ1w==}
 
+  '@fontsource-variable/noto-serif-jp@5.3.0':
+    resolution: {integrity: sha512-+kD6gj7RhZ8bjA8WxT5UxnwqWUCcFhCaM2t30zjKTS1sAXbDmJEdj+mrCEYIof1SjDy43VElQQCITouTvrGNuA==}
+
+  '@fontsource-variable/noto-serif-sc@5.3.0':
+    resolution: {integrity: sha512-7LcN2NEf4HDjoSkGWc79WqDDyMK8JvSPdA/gsHjJpZ8l9A9mcK/GQTazp3klmkBwJooy0eqeNvlmaZFXPupHrA==}
+
   '@fontsource-variable/sora@5.3.0':
     resolution: {integrity: sha512-h8kHta4Z8SkfUGeI82TUy1n3rbrKpBRGwuk4t4qCwto5oEHxlbOFD2yGP+Df5fbmTXwKGn+o667vYp0E4K8Whw==}
 
   '@fontsource/ibm-plex-mono@5.3.0':
     resolution: {integrity: sha512-eTgnZjZEGk1QtD3ZstF+Vclo2HLAni8YMy34/DxllwZvyz1lR/1RF/xTiAquOBO7MvqBx8D2Ig2WCPMVfdZu7Q==}
+
+  '@fontsource/shippori-mincho@5.3.0':
+    resolution: {integrity: sha512-S41kRxQuubAaYss+LeXu0IOc02RQwsPaJbR1cWZx4VV15hXaYZViH3WAve9HpDVFqKYd/BVk86Bg7lp9ytV3KQ==}
 
   '@iconify/types@2.0.0':
     resolution: {integrity: sha512-+wluvCrRhXrhyOmRDJ3q8mux9JkKy5SJ/v8ol2tu4FVjyYvtEzkc/3pK15ET6RKg4b4w4BmTk1+gsCUhf21Ykg==}
@@ -3380,9 +3398,15 @@ snapshots:
 
   '@fontsource-variable/noto-sans-sc@5.3.0': {}
 
+  '@fontsource-variable/noto-serif-jp@5.3.0': {}
+
+  '@fontsource-variable/noto-serif-sc@5.3.0': {}
+
   '@fontsource-variable/sora@5.3.0': {}
 
   '@fontsource/ibm-plex-mono@5.3.0': {}
+
+  '@fontsource/shippori-mincho@5.3.0': {}
 
   '@iconify/types@2.0.0': {}
 

@@ -1,0 +1,10 @@
+{
+  "source": "@fontsource/shippori-mincho 5.3.0, japanese subsets",
+  "family": "Shippori Mincho",
+  "weights": [
+    400,
+    600
+  ],
+  "characters": "、。いうかすたつでにのまめもよるれを中完戻拾断旅時未残片見記録間集",
+  "unicodeRange": "U+3001-3002, U+3044, U+3046, U+304B, U+3059, U+305F, U+3064, U+3067, U+306B, U+306E, U+307E, U+3081-3082, U+3088, U+308B-308C, U+3092, U+4E2D, U+5B8C, U+623B, U+62FE, U+65AD, U+65C5, U+6642, U+672A, U+6B8B, U+7247, U+898B, U+8A18, U+9332, U+9593, U+96C6"
+}

@@ -1,8 +1,8 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import '../../styles/public-home.css';
 import { SITE, UI, type Language } from '../../data/site';
 import { formatDate, getListedPosts, postPath, uniqueTaxonomy } from '../../utils/content';
-import '../../styles/prototypes.css';
 
 export function getStaticPaths() {
   return SITE.languages.map((lang) => ({ params: { lang }, props: { lang } }));
@@ -11,233 +11,618 @@ export function getStaticPaths() {
 const { lang } = Astro.props as { lang: Language };
 const ui = UI[lang];
 const posts = await getListedPosts(lang);
-const latestPosts = posts.slice(0, 4);
-const featuredPosts = [...new Map(posts.map((post) => [post.data.category, post])).values()].slice(0, 3);
+const recentPosts = posts.slice(0, 4);
 const categories = uniqueTaxonomy(posts, 'category').map((name) => ({
   name,
   count: posts.filter((post) => post.data.category === name).length,
 }));
-const tags = uniqueTaxonomy(posts, 'tags');
+const tags = uniqueTaxonomy(posts, 'tags').slice(0, 8);
 
-const calendarDate = posts[0]?.data.publishedAt ?? new Date();
-const calendarYear = calendarDate.getFullYear();
-const calendarMonth = calendarDate.getMonth();
-const calendarDays = Array.from(
-  { length: new Date(calendarYear, calendarMonth + 1, 0).getDate() },
-  (_, index) => index + 1,
+// The ledger is derived entirely from the posts, so it cannot go stale the way
+// a hand-written "currently" list does. Years descend; the oldest post sets the
+// date the archive starts from.
+const yearGroups = [...Map.groupBy(posts, (post) => post.data.publishedAt.getFullYear()).entries()].sort(
+  ([a], [b]) => b - a,
 );
-const calendarOffset = new Date(calendarYear, calendarMonth, 1).getDay();
+const oldestPost = posts.at(-1);
+const startedLabel = oldestPost
+  ? new Intl.DateTimeFormat(ui.locale, { year: 'numeric', month: 'long' }).format(oldestPost.data.publishedAt)
+  : '—';
+
+// Calendar: show the most recent month that has a post, falling back to now.
+const calendarAnchor = posts[0]?.data.publishedAt ?? new Date();
+const calendarYear = calendarAnchor.getFullYear();
+const calendarMonth = calendarAnchor.getMonth(); // 0-indexed
+const daysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
+const firstWeekday = new Date(calendarYear, calendarMonth, 1).getDay(); // 0=Sun
 const activeDays = new Set(
   posts
-    .filter((post) => post.data.publishedAt.getFullYear() === calendarYear && post.data.publishedAt.getMonth() === calendarMonth)
-    .map((post) => post.data.publishedAt.getDate()),
+    .filter((p) => {
+      const d = p.data.publishedAt;
+      return d.getFullYear() === calendarYear && d.getMonth() === calendarMonth;
+    })
+    .map((p) => p.data.publishedAt.getDate()),
 );
-const calendarMonthLabel = new Intl.DateTimeFormat(ui.locale, { year: 'numeric', month: 'long' }).format(calendarDate);
-const shortDate = (date: Date) => date.toISOString().slice(0, 10).replaceAll('-', '.');
-const monthDay = (date: Date) => new Intl.DateTimeFormat(ui.locale, { month: '2-digit', day: '2-digit' }).format(date);
+// At most two links under the grid; a month with more gets an overflow action
+// instead of a longer list.
+const CALENDAR_LINK_LIMIT = 2;
+// The overflow action belongs to a month that actually ran long, so it appears
+// only from the third post on. Deriving it from the link cap alone would make
+// the rule an accident of that cap: at a cap of one, a two-post month would
+// start advertising a remainder.
+const CALENDAR_MORE_MIN = 3;
+const calendarMonthPosts = posts.filter((p) => {
+  const d = p.data.publishedAt;
+  return d.getFullYear() === calendarYear && d.getMonth() === calendarMonth;
+});
+const calendarRecentPosts = calendarMonthPosts.slice(0, CALENDAR_LINK_LIMIT);
+const calendarOverflow = calendarMonthPosts.length - calendarRecentPosts.length;
+const calendarShowMore = calendarMonthPosts.length >= CALENDAR_MORE_MIN && calendarOverflow > 0;
+
+// The picker spans every year the archive covers, so a reader can walk back
+// through empty months as well as ones with posts.
+const archiveYears = yearGroups.map(([year]) => year);
+const newestYear = archiveYears[0] ?? calendarYear;
+const oldestYear = archiveYears.at(-1) ?? calendarYear;
+const calendarYears = Array.from({ length: newestYear - oldestYear + 1 }, (_, i) => newestYear - i);
+const monthNameFormatter = new Intl.DateTimeFormat(ui.locale, { month: 'long' });
+const calendarMonths = Array.from({ length: 12 }, (_, i) => ({
+  value: i,
+  label: monthNameFormatter.format(new Date(2026, i, 1)),
+}));
+
+// Every listed post as [ISO date, title, href], read by the calendar script to
+// re-render a month without a round trip. Compact tuples rather than objects:
+// this rides along in the HTML, so its weight is the reader's.
+const calendarData = posts.map((p) => [
+  `${p.data.publishedAt.getFullYear()}-${String(p.data.publishedAt.getMonth() + 1).padStart(2, '0')}-${String(p.data.publishedAt.getDate()).padStart(2, '0')}`,
+  p.data.title,
+  postPath(p),
+]);
+
+// Four runs, and each one is a single line of type — not a row of individually
+// placed characters. Every glyph in a run shares one font-size, one line box and
+// one baseline, which is what makes the em-box top edges and bottom edges of a
+// run land on two exactly parallel lines. Nothing here carries a per-glyph size,
+// angle or vertical offset, and nothing should: the moment one character gets
+// its own `top` or `rotate`, those two edges break and the run stops reading as
+// a line and starts reading as five decorations.
+//
+// Three per-glyph values, all deliberately narrow:
+//
+// `nudge` is horizontal spacing, in em against the run's own font-size, spent as
+// `margin-left` — layout, not transform. A margin moves the character along the
+// run's own axis inside the shared line box, so the two em-box edges stay where
+// they were. A `translateX` would need each glyph to be its own box.
+//
+// `at` and `drift` belong to the entrance only and leave nothing behind: `at` is
+// when this character starts, in ms after its run begins, and `drift` is a tiny
+// sideways offset it travels in from, in em.
+//
+// The `at` values are uneven on purpose, and the unevenness is not decoration.
+// An even step reads as a machine counting off characters. These are grouped
+// into the breaths the phrase actually has — 見た | もの | を and 未完 | のまま —
+// with a short rest between groups and a tighter step inside one, so the run
+// reads as writing rather than as a list. 見 and 未 anchor their runs and do not
+// drift at all; the kana after them do.
+//
+// A glyph may otherwise differ from its neighbours in colour and stroke only.
+// `を` is set as an outline but still belongs to 見たもの's line box, so it keeps
+// that run's baseline rather than becoming a fifth object with a position of its
+// own — and it enters on that run's schedule, not with the outline runs.
+//
+// The rest of the geometry lives in the stylesheet: the run rotates, an inner
+// wrapper shears. See `.aperture-hero__phrase` in public-home.css.
+const heroTitle = [
+  {
+    line: 'primary',
+    glyphs: [
+      { char: '見', treatment: 'solid', nudge: 0, at: 0, drift: 0 },
+      { char: 'た', treatment: 'solid', nudge: 0.055, at: 85, drift: -0.03 },
+      { char: 'も', treatment: 'solid', nudge: 0.045, at: 250, drift: 0.025 },
+      { char: 'の', treatment: 'solid', nudge: 0.055, at: 330, drift: -0.02 },
+      { char: 'を', treatment: 'outline', nudge: -0.055, at: 480, drift: 0.035 },
+    ],
+  },
+  {
+    line: 'primary-echo',
+    glyphs: [
+      { char: '記', treatment: 'outline', nudge: 0, at: 0, drift: 0.02 },
+      { char: 'す', treatment: 'outline', nudge: 0.041, at: 150, drift: -0.025 },
+      { char: '。', treatment: 'outline', nudge: 0.025, at: 330, drift: 0.03 },
+    ],
+  },
+  {
+    line: 'secondary',
+    glyphs: [
+      { char: '未', treatment: 'solid', nudge: 0, at: 0, drift: 0 },
+      { char: '完', treatment: 'solid', nudge: 0.055, at: 80, drift: 0.02 },
+      { char: 'の', treatment: 'solid', nudge: 0.045, at: 230, drift: -0.018 },
+      { char: 'ま', treatment: 'solid', nudge: 0.055, at: 305, drift: 0.022 },
+      { char: 'ま', treatment: 'solid', nudge: 0.045, at: 375, drift: -0.015 },
+    ],
+  },
+  {
+    line: 'secondary-echo',
+    glyphs: [
+      { char: '残', treatment: 'outline', nudge: 0, at: 0, drift: 0.02 },
+      { char: 'す', treatment: 'outline', nudge: 0.041, at: 140, drift: -0.025 },
+      { char: '。', treatment: 'outline', nudge: 0.025, at: 310, drift: 0.03 },
+    ],
+  },
+] as const;
+
+// Background texture only. `ink` is the percentage of ink mixed into the canvas,
+// so no fragment reaches a tenth of the page contrast.
+const heroFragments = [
+  { char: '残る', x: 36, y: -1.6, size: 3.1, ink: 7, fuzz: 0.7, tier: 'wide' },
+  { char: '戻る', x: 95.1, y: 16, size: 3.5, ink: 11, fuzz: 0.4, tier: 'wide' },
+  { char: '記録', x: 15, y: 44, size: 2.9, ink: 8, fuzz: 0.9, tier: 'core' },
+  { char: '旅の断片', x: 98.5, y: 63, size: 1.4, ink: 6, fuzz: 0.7, tier: 'wide' },
+  { char: '拾い集める', x: 1.1, y: 11.5, size: 0.72, ink: 9, fuzz: 0.3, tier: 'core' },
+  { char: '未完のまま', x: 26, y: 61, size: 0.68, ink: 7, fuzz: 0.4, tier: 'core' },
+  { char: 'いつか戻る', x: 97.5, y: 88, size: 0.68, ink: 8, fuzz: 0.3, tier: 'wide' },
+] as const;
+
+// The display type is Japanese in every language: it is the hero's image, read
+// as form rather than as a sentence, and `aria-label` on the h1 carries the
+// text for anyone not reading it visually. The panel's own copy is a different
+// thing — ordinary prose the reader is meant to read — so it is localised in
+// `copy` below and follows the page language.
+const heroCopy = {
+  title: '見たものを記す。未完のまま残す。',
+  leftNote: '時間の中で、拾い集める。',
+  rightNote: 'いつか戻れるように。',
+} as const;
 
 const copy = {
   zh: {
-    thesis: ['想到什么，', '就慢慢写下来。'],
-    intro: 'Moriium 是我的个人博客。这里没有固定主题，也不赶更新；文章、照片和路上的见闻，想整理时就放进来。',
-    enter: '看看文章', featured: '精选文章', featuredLabel: 'Featured',
-    latest: '最近文章', latestNote: '新的排在前面，旧的可以从归档、分类和标签里找。', all: '全部文章',
-    glance: 'Moriium 近况', glanceNote: '文章有多少，最近写了什么，都列在这里。',
-    author: 'Morii 和 Enouia 一起维护 Moriium。Morii 写文章、拍照片；Enouia 整理内容，也负责把网站搭起来、照看好。',
-    about: '关于我', stats: '站点统计', currentIndex: '截至目前', posts: '文章', directions: '分类', tagIndex: '标签', languages: '语言',
-    calendar: '更新日历', archive: '完整归档', updatedDay: '日有文章更新',
-    discover: '随便逛逛', discoverNote: '按分类找，或者翻翻旧文章。', byCategory: '分类', themes: '个', browseTheme: '查看',
-    now: '现在', nowItems: [
-      ['2026.08', '还在重做这个网站', '先把页面和写作流程理顺，功能一项一项补。'],
-      ['2026.08', '日本旅行的照片还在整理', '路线和现场笔记都在，等照片理好再慢慢写。'],
+    heroIdentity: '文字・照片・旅途的记录',
+    heroBody: ['文字、照片与旅途的断片，', '在这里慢慢地整理。'],
+    routes: [
+      ['Writing', '写下的', '全部公开文章'],
+      ['Archive', '回看的', '按年份寻找'],
+      ['Subjects', '反复出现的', '分类与标签'],
+      ['About', '这个地方', 'Moriium 是什么'],
     ],
-    siteIndex: '站内入口', archiveTitle: '文章归档', archiveNote: '按年份翻看文章', taxonomyTitle: '分类与标签', taxonomyNote: '按主题或标签查找', rssTitle: 'RSS 订阅', rssNote: '有新文章时直接收到',
-    aboutKicker: '04 / About', aboutTitle: '这里没有更新计划。',
-    aboutText: 'Moriium 是我放文章的地方。写什么、多久更新都不固定；归档、分类和 RSS 留着，方便以后自己找，也方便愿意来看的人订阅。',
-    aboutSite: '关于 Moriium', browse: '看看分类', subscribe: '订阅 RSS', coverLabel: '精选',
+    recent: '前几页', recentNote: '最近公开、但不必立刻读完的文字。', all: '查看全部',
+    field: '内容星图', fieldNote: '分类是较大的方向，标签是文章之间偶然形成的连线。',
+    category: '主要方向', tags: '交叉索引', posts: (count: number) => `${count} 篇`,
+    allCategories: '全部分类', allTags: '全部标签',
+    ledger: '存了些什么', ledgerNote: '按年份看，以及这个档案从什么时候开始。',
+    ledgerYears: '年份', ledgerEntries: (count: number) => `${count} 篇`,
+    factStarted: '开始于', factPosts: '文章',
+    colophon: '关于这里',
+    colophonNote: '谁在写，什么时候更新过。',
+    authorTitle: '维护者',
+    authorNames: 'Morii & Enouia',
+    people: [
+      ['Morii', '写文章，拍照片。路上的见闻也放在这里。'],
+      ['Enouia', '整理内容，也负责把网站搭起来、照看好。'],
+    ],
+    authorAbout: '关于',
+    calendarTitle: '更新日历',
+    calendarWeekdays: ['日', '一', '二', '三', '四', '五', '六'],
+    calendarDayActive: (day: number | string) => `${day}日有文章更新`,
+    calendarPickYear: '选择年份', calendarPickMonth: '选择月份',
+    calendarEmpty: '这个月没有更新。',
+    calendarMore: (count: number | string) => `这个月还有 ${count} 篇`,
+    fullArchive: '完整归档',
+    rss: '订阅 RSS', about: '关于 Moriium',
   },
   ja: {
-    thesis: ['思いついたことを、', 'ゆっくり書いていく。'],
-    intro: 'Moriium は私の個人ブログです。テーマも更新頻度も決めていません。文章や写真、旅先で見たことを、整理したくなったときに残します。',
-    enter: '記事を見る', featured: '注目の記事', featuredLabel: 'Featured',
-    latest: '最近の記事', latestNote: '新しい記事から並んでいます。過去の記事はアーカイブ、カテゴリー、タグから探せます。', all: 'すべての記事',
-    glance: 'Moriium のいま', glanceNote: '記事数と最近の更新をまとめています。',
-    author: 'Morii と Enouia で Moriium を運営しています。Morii が文章を書き、写真を撮り、Enouia が内容を整理してサイトを整えます。',
-    about: '私について', stats: 'サイト統計', currentIndex: '現在', posts: '記事', directions: 'カテゴリー', tagIndex: 'タグ', languages: '言語',
-    calendar: '更新カレンダー', archive: '全アーカイブ', updatedDay: '日に記事を更新',
-    discover: 'もう少し見る', discoverNote: 'カテゴリーや過去の記事から探せます。', byCategory: 'カテゴリー', themes: '件', browseTheme: '見る',
-    now: 'いま', nowItems: [
-      ['2026.08', 'サイトを作り直しています', 'ページと執筆の流れを整え、機能を一つずつ追加しています。'],
-      ['2026.08', '日本旅行の写真を整理中', 'ルートとメモは残っています。写真が整ったら少しずつ書きます。'],
+    heroIdentity: '文字・写真・旅の記録',
+    heroBody: ['文字と写真と旅の断片を、', 'ここでゆっくりと整理していく。'],
+    routes: [
+      ['Writing', '書いたもの', '公開中の記事'],
+      ['Archive', '振り返るもの', '年から探す'],
+      ['Subjects', '繰り返すもの', 'カテゴリーとタグ'],
+      ['About', 'この場所', 'Moriium について'],
     ],
-    siteIndex: 'サイト内', archiveTitle: '記事アーカイブ', archiveNote: '年ごとに記事を見る', taxonomyTitle: 'カテゴリーとタグ', taxonomyNote: 'テーマやタグから探す', rssTitle: 'RSS', rssNote: '新しい記事を受け取る',
-    aboutKicker: '04 / About', aboutTitle: '更新予定は決めていません。',
-    aboutText: 'Moriium は私が文章を置くための場所です。何を書くかも、いつ更新するかも決めていません。アーカイブ、カテゴリー、RSS は、自分と読者があとから探せるように残しています。',
-    aboutSite: 'Moriium について', browse: 'カテゴリーを見る', subscribe: 'RSS を購読', coverLabel: '注目',
+    recent: '前の頁', recentNote: '最近公開した、急いで読み終えなくてもよい文章。', all: 'すべて見る',
+    field: '内容の星図', fieldNote: 'カテゴリーは大きな方向、タグは記事のあいだに偶然生まれた線です。',
+    category: '主な方向', tags: '交差する索引', posts: (count: number) => `${count} 件`,
+    allCategories: 'カテゴリー一覧', allTags: 'タグ一覧',
+    ledger: '残っているもの', ledgerNote: '年ごとの記事と、このアーカイブが始まった時期。',
+    ledgerYears: '年', ledgerEntries: (count: number) => `${count} 件`,
+    factStarted: '開始', factPosts: '記事',
+    colophon: 'この場所について',
+    colophonNote: '誰が書いているか、いつ更新されたか。',
+    authorTitle: '運営',
+    authorNames: 'Morii & Enouia',
+    people: [
+      ['Morii', '文章を書き、写真を撮る。旅の記録もここに置いています。'],
+      ['Enouia', '内容を整理し、サイトの構築と管理を担当しています。'],
+    ],
+    authorAbout: 'について',
+    calendarTitle: '更新カレンダー',
+    calendarWeekdays: ['日', '月', '火', '水', '木', '金', '土'],
+    calendarDayActive: (day: number | string) => `${day}日に記事が更新されました`,
+    calendarPickYear: '年を選ぶ', calendarPickMonth: '月を選ぶ',
+    calendarEmpty: 'この月の更新はありません。',
+    calendarMore: (count: number | string) => `この月はあと ${count} 件`,
+    fullArchive: 'アーカイブ',
+    rss: 'RSS を購読', about: 'Moriium について',
   },
   en: {
-    thesis: ['I write things down', 'when I feel like it.'],
-    intro: 'Moriium is my personal blog. It has no fixed subject or schedule. I use it for articles, photographs, and notes from the road.',
-    enter: 'Read the posts', featured: 'Featured post', featuredLabel: 'Featured',
-    latest: 'Latest posts', latestNote: 'New posts come first. Older ones are in the archive, categories, and tags.', all: 'All posts',
-    glance: 'Moriium now', glanceNote: 'A quick count and the latest updates.',
-    author: 'Morii and Enouia run Moriium together. Morii writes and takes photographs; Enouia organizes the work and looks after the site.',
-    about: 'About me', stats: 'Site count', currentIndex: 'Now', posts: 'Posts', directions: 'Categories', tagIndex: 'Tags', languages: 'Languages',
-    calendar: 'Update calendar', archive: 'Full archive', updatedDay: ' has an update',
-    discover: 'Look around', discoverNote: 'Browse by category or open an older post.', byCategory: 'Categories', themes: 'total', browseTheme: 'View',
-    now: 'Now', nowItems: [
-      ['2026.08', 'Rebuilding this site', 'I am sorting out the pages and writing flow, then adding features one at a time.'],
-      ['2026.08', 'Sorting the Japan photographs', 'The route and notes are ready. I will write when the photographs are in order.'],
+    heroIdentity: 'Words · Photographs · Travel',
+    heroBody: ['Fragments of writing, photographs', 'and travel, gathered here slowly.'],
+    routes: [
+      ['Writing', 'Things written', 'Every public post'],
+      ['Archive', 'Things revisited', 'Find a year'],
+      ['Subjects', 'Things recurring', 'Categories and tags'],
+      ['About', 'This place', 'What Moriium is'],
     ],
-    siteIndex: 'On this site', archiveTitle: 'Archive', archiveNote: 'Browse posts by year', taxonomyTitle: 'Categories and tags', taxonomyNote: 'Find posts by subject', rssTitle: 'RSS', rssNote: 'Get new posts directly',
-    aboutKicker: '04 / About', aboutTitle: 'There is no posting schedule.',
-    aboutText: 'Moriium is where I keep my writing. The subject and timing vary. The archive, categories, and RSS are here so both I and my readers can find things later.',
-    aboutSite: 'About Moriium', browse: 'Browse categories', subscribe: 'Subscribe by RSS', coverLabel: 'Feature',
+    recent: 'Previous pages', recentNote: 'Recently published writing that does not ask to be finished at once.', all: 'See all writing',
+    field: 'A map of the work', fieldNote: 'Categories mark broad directions; tags are lines that happen to form between posts.',
+    category: 'Main directions', tags: 'Cross-index', posts: (count: number) => `${count} ${count === 1 ? 'post' : 'posts'}`,
+    allCategories: 'All categories', allTags: 'All tags',
+    ledger: 'What is kept here', ledgerNote: 'By year, and when this archive starts from.',
+    ledgerYears: 'Years', ledgerEntries: (count: number) => `${count} ${count === 1 ? 'entry' : 'entries'}`,
+    factStarted: 'Started', factPosts: 'Posts',
+    colophon: 'About this place',
+    colophonNote: 'Who writes here, and when it was last updated.',
+    authorTitle: 'Maintainers',
+    authorNames: 'Morii & Enouia',
+    people: [
+      ['Morii', 'Writes and photographs. Travel notes end up here too.'],
+      ['Enouia', 'Organises the content, and builds and looks after the site.'],
+    ],
+    authorAbout: 'About',
+    calendarTitle: 'Update calendar',
+    calendarWeekdays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+    calendarDayActive: (day: number | string) => `Post updated on day ${day}`,
+    calendarPickYear: 'Choose a year', calendarPickMonth: 'Choose a month',
+    calendarEmpty: 'Nothing was published this month.',
+    calendarMore: (count: number | string) => `${count} more this month`,
+    fullArchive: 'Full archive',
+    rss: 'Subscribe by RSS', about: 'About Moriium',
   },
 } as const;
 const c = copy[lang];
+const routeHrefs = [`/${lang}/writing/`, `/${lang}/archive/`, `/${lang}/categories/`, `/${lang}/about/`];
 ---
 
-<BaseLayout lang={lang} bodyClass="concept-a">
-  <div class="a-home">
-    <section class="a-opening" aria-labelledby="a-opening-title">
-      <header class="a-opening__mast">
-        <h1 id="a-opening-title" lang="en">Moriium</h1>
-        <p class="a-opening__thesis">{c.thesis[0]}<br />{c.thesis[1]}</p>
-        <p class="a-opening__intro">{c.intro}</p>
-        <a class="a-opening__entry" href={`/${lang}/writing/`}>{c.enter} <span aria-hidden="true">↘</span></a>
-      </header>
-
-      {featuredPosts.length > 0 && (
-        <section class="a-feature-reel" data-feature-reel aria-label={c.featured}>
-          <div class="a-feature-reel__slides" aria-live="polite">
-            {featuredPosts.map((post, index) => (
-              <article class="a-feature-slide" data-feature-slide hidden={index > 0}>
-                <a href={postPath(post)} aria-label={`${ui.read}: ${post.data.title}`}>
-                  {post.collection === 'posts' && post.data.cover ? (
-                    <figure class="a-feature-visual a-feature-visual--photo">
-                      <img src={post.data.cover} alt={post.data.coverAlt ?? ''} />
-                      <figcaption><span>{c.coverLabel} #{String(index + 1).padStart(2, '0')}</span><span>{shortDate(post.data.publishedAt)}</span></figcaption>
-                    </figure>
-                  ) : (
-                    <div class="a-feature-visual a-feature-visual--build" aria-hidden="true">
-                      <p>MORIIUM / {post.data.category}</p><strong>{post.data.title}</strong>
-                      <code>{post.data.category} · {post.data.tags.slice(0, 2).join(' · ') || SITE.name}</code>
-                      <span>{String(index + 1).padStart(2, '0')} / {post.data.lang.toUpperCase()}</span>
-                    </div>
-                  )}
-                  <div class="a-feature-slide__copy">
-                    <p><span>{post.data.category}</span><time datetime={post.data.publishedAt.toISOString()}>{shortDate(post.data.publishedAt)}</time></p>
-                    <h2>{post.data.title}</h2>
-                    <p>{post.data.summary}</p>
-                  </div>
-                </a>
-              </article>
-            ))}
-          </div>
-          <nav class="a-feature-reel__controls" aria-label={c.featured}>
-            <span>{c.featuredLabel}</span>
-            <div>{featuredPosts.map((post, index) => <button type="button" data-feature-control aria-pressed={index === 0 ? 'true' : 'false'} aria-label={`${c.featured}: ${post.data.title}`}>{String(index + 1).padStart(2, '0')}</button>)}</div>
-          </nav>
-        </section>
-      )}
-    </section>
-
-    <section class="a-home-section" id="writing" aria-labelledby="a-latest-title">
-      <header class="a-section-heading">
-        <p><span>01</span> Writing</p>
-        <div><h2 id="a-latest-title">{c.latest}</h2><p>{c.latestNote}</p></div>
-        <a href={`/${lang}/writing/`}>{c.all} →</a>
-      </header>
-      <ol class="prototype-posts a-post-index">
-        {latestPosts.map((post, index) => (
-          <li class="prototype-post"><a href={postPath(post)}>
-            <span>{String(index + 1).padStart(2, '0')}</span>
-            <div><h3>{post.data.title}</h3><p>{post.data.summary}</p></div>
-            <span>{post.data.category}</span>
-            <time datetime={post.data.publishedAt.toISOString()}>{formatDate(post.data.publishedAt, ui.locale)}</time>
-            <span class="a-post-index__arrow" aria-hidden="true">↗</span>
-          </a></li>
+<BaseLayout lang={lang}>
+  <div class="aperture-home">
+    <section class="aperture-hero" aria-labelledby="home-title">
+      <div class="aperture-hero__stage">
+        {heroFragments.map((fragment) => (
+          <span
+            class={`aperture-hero__fragment aperture-hero__fragment--${fragment.tier}`}
+            style={`--x:${fragment.x};--y:${fragment.y};--size:${fragment.size};--ink-share:${fragment.ink};--fuzz:${fragment.fuzz}`}
+            aria-hidden="true"
+          >{fragment.char}</span>
         ))}
-      </ol>
+
+        <span class="aperture-hero__rule aperture-hero__rule--left" aria-hidden="true"></span>
+        <span class="aperture-hero__rule aperture-hero__rule--right" aria-hidden="true"></span>
+        <p class="aperture-hero__note aperture-hero__note--left" lang="ja" aria-hidden="true">{heroCopy.leftNote}</p>
+        <p class="aperture-hero__note aperture-hero__note--right" lang="ja" aria-hidden="true">{heroCopy.rightNote}</p>
+
+        <div class="aperture-hero__thesis">
+          <h1 id="home-title" lang="ja" aria-label={heroCopy.title}>
+            {heroTitle.map(({ line, glyphs }) => (
+              <span class={`aperture-hero__phrase aperture-hero__phrase--${line}`} aria-hidden="true">
+                <span class="aperture-hero__slant">
+                  {glyphs.map(({ char, treatment, nudge, at, drift }) => (
+                    <span
+                      class={`aperture-hero__glyph aperture-hero__glyph--${treatment}`}
+                      style={`--nudge:${nudge};--at:${at};--drift:${drift}`}
+                    >{char}</span>
+                  ))}
+                </span>
+              </span>
+            ))}
+          </h1>
+        </div>
+
+        <div class="aperture-hero__window">
+          <span class="aperture-hero__shutter" aria-hidden="true"></span>
+          <span class="aperture-hero__corner" aria-hidden="true"></span>
+          <div class="aperture-identity">
+            <p class="aperture-identity__register">{c.heroIdentity}</p>
+            <div class="aperture-identity__body">
+              <h2 lang="en">Moriium</h2>
+              <p>{c.heroBody.map((line) => <span>{line}</span>)}</p>
+            </div>
+            <a href={`/${lang}/writing/`}><span>{ui.read}</span><i aria-hidden="true">↗</i></a>
+          </div>
+        </div>
+
+        <div class="aperture-hero__overprint" aria-hidden="true">
+          {heroTitle.map(({ line, glyphs }) => (
+            <span class={`aperture-hero__phrase aperture-hero__phrase--${line}`}>
+              <span class="aperture-hero__slant">
+                {glyphs.map(({ char, treatment, nudge, at, drift }) => (
+                  <span
+                    class={`aperture-hero__glyph aperture-hero__glyph--${treatment}`}
+                    style={`--nudge:${nudge};--at:${at};--drift:${drift}`}
+                  >{char}</span>
+                ))}
+              </span>
+            </span>
+          ))}
+        </div>
+      </div>
     </section>
 
-    <section class="a-home-utility" aria-labelledby="a-utility-title">
-      <header class="a-section-heading a-section-heading--compact">
-        <p><span>02</span> At a glance</p>
-        <div><h2 id="a-utility-title">{c.glance}</h2><p>{c.glanceNote}</p></div>
+    <nav class="aperture-ways" aria-label={ui.primaryNav}>
+      {c.routes.map(([label, title, note], index) => (
+        <a href={routeHrefs[index]}>
+          <small>{label}</small><span>{title}</span><i>{note}</i><b aria-hidden="true">↗</b>
+        </a>
+      ))}
+    </nav>
+
+    {recentPosts.length > 0 && (
+      <section class="aperture-recent" aria-labelledby="home-recent-title">
+        <header><p>Writing / Recent</p><h2 id="home-recent-title">{c.recent}</h2><span>{c.recentNote}</span></header>
+        <ol>
+          {recentPosts.map((post) => (
+            <li><a href={postPath(post)}>
+              <time datetime={post.data.publishedAt.toISOString()}>{formatDate(post.data.publishedAt, ui.locale)}</time>
+              <h3>{post.data.title}</h3><p>{post.data.summary}</p><i aria-hidden="true">↗</i>
+            </a></li>
+          ))}
+        </ol>
+        <a class="aperture-action aperture-recent__more" href={`/${lang}/writing/`}>
+          <span>{c.all}</span><i aria-hidden="true">↗</i>
+        </a>
+      </section>
+    )}
+
+    <section class="aperture-field" aria-labelledby="home-field-title">
+      <header>
+        <p>Index / Coordinates</p>
+        <h2 id="home-field-title">{c.field}</h2>
+        <span>{c.fieldNote}</span>
       </header>
-      <div class="a-home-utility__grid">
-        <section class="a-profile-panel" aria-labelledby="a-profile-title">
-          <div class="a-profile-panel__body"><h3 id="a-profile-title">Morii &amp; Enouia</h3><p>{c.author}</p></div>
-          <nav aria-label={c.about}><a href={`/${lang}/about/`}>{c.about}</a><a href="https://github.com/Morii9961">GitHub</a><a href={`/${lang}/rss.xml`}>RSS</a></nav>
+      <div class="aperture-field__body">
+        <section aria-labelledby="home-categories-title">
+          <div class="aperture-field__label"><h3 id="home-categories-title">{c.category}</h3><a class="aperture-action" href={`/${lang}/categories/`}><span>{c.allCategories}</span><i aria-hidden="true">↗</i></a></div>
+          <ol>{categories.map((category) => <li><a href={`/${lang}/categories/${encodeURIComponent(category.name)}/`}><span>{category.name}</span><small>{c.posts(category.count)}</small></a></li>)}</ol>
         </section>
-        <section class="a-stats-panel" aria-labelledby="a-stats-title">
-          <header><h3 id="a-stats-title">{c.stats}</h3><p>{c.currentIndex}</p></header>
-          <dl>
-            <div><dt>{c.posts}</dt><dd>{String(posts.length).padStart(2, '0')}</dd></div>
-            <div><dt>{c.directions}</dt><dd>{String(categories.length).padStart(2, '0')}</dd></div>
-            <div><dt>{c.tagIndex}</dt><dd>{String(tags.length).padStart(2, '0')}</dd></div>
-            <div><dt>{c.languages}</dt><dd>{String(SITE.languages.length).padStart(2, '0')}</dd></div>
-          </dl>
-        </section>
-        <section class="a-activity-panel" aria-labelledby="a-activity-title">
-          <header><div><h3 id="a-activity-title">{c.calendar}</h3><p>{calendarMonthLabel}</p></div><a href={`/${lang}/archive/`}>{c.archive} →</a></header>
-          <div class="a-activity-calendar" aria-label={`${c.calendar}: ${calendarMonthLabel}`}>
-            <div class="a-activity-calendar__week" aria-hidden="true"><span>{lang === 'en' ? 'S' : '日'}</span><span>{lang === 'en' ? 'M' : '一'}</span><span>{lang === 'en' ? 'T' : '二'}</span><span>{lang === 'en' ? 'W' : '三'}</span><span>{lang === 'en' ? 'T' : '四'}</span><span>{lang === 'en' ? 'F' : '五'}</span><span>{lang === 'en' ? 'S' : '六'}</span></div>
-            <div class="a-activity-calendar__days">
-              {Array.from({ length: calendarOffset }).map(() => <span aria-hidden="true"></span>)}
-              {calendarDays.map((day) => {
-                const date = new Date(calendarYear, calendarMonth, day);
-                const datetime = date.toISOString().slice(0, 10);
-                return activeDays.has(day)
-                  ? <time class="is-active" datetime={datetime} title={`${day}${c.updatedDay}`}>{day}<i aria-hidden="true"></i></time>
-                  : <time datetime={datetime}>{day}</time>;
-              })}
-            </div>
-          </div>
-          <ol class="a-activity-panel__latest">{posts.slice(0, 3).map((post) => <li><a href={postPath(post)}>{post.data.title}</a><time datetime={post.data.publishedAt.toISOString()}>{monthDay(post.data.publishedAt)}</time></li>)}</ol>
+        <section class="aperture-field__tags" aria-labelledby="home-tags-title">
+          <div class="aperture-field__label"><h3 id="home-tags-title">{c.tags}</h3><a class="aperture-action" href={`/${lang}/tags/`}><span>{c.allTags}</span><i aria-hidden="true">↗</i></a></div>
+          <div>{tags.map((tag, index) => <a href={`/${lang}/tags/${encodeURIComponent(tag)}/`} style={`--tag-offset: ${index}`}># {tag}</a>)}</div>
         </section>
       </div>
     </section>
 
-    <section class="a-discovery" aria-labelledby="a-discovery-title">
-      <header class="a-section-heading a-section-heading--compact">
-        <p><span>03</span> Discover</p>
-        <div><h2 id="a-discovery-title">{c.discover}</h2><p>{c.discoverNote}</p></div>
+    <section class="aperture-ledger" aria-labelledby="home-ledger-title">
+      <header><p>Archive / Ledger</p><h2 id="home-ledger-title">{c.ledger}</h2><span>{c.ledgerNote}</span></header>
+      <div class="aperture-ledger__body">
+        {yearGroups.length > 0 && (
+          <ol class="aperture-ledger__years" aria-label={c.ledgerYears}>
+            {yearGroups.map(([year, entries]) => (
+              <li>
+                <a href={`/${lang}/archive/#archive-${year}`}>
+                  <span>{year}</span>
+                  <small>{c.ledgerEntries(entries.length)}</small>
+                </a>
+              </li>
+            ))}
+          </ol>
+        )}
+        <dl class="aperture-ledger__facts">
+          <div><dt>{c.factStarted}</dt><dd>{startedLabel}</dd></div>
+          <div><dt>{c.factPosts}</dt><dd>{c.ledgerEntries(posts.length)}</dd></div>
+        </dl>
+      </div>
+    </section>
+
+    <section class="aperture-colophon" aria-labelledby="home-colophon-title">
+      <header>
+        <p>Moriium / Colophon</p>
+        <h2 id="home-colophon-title">{c.colophon}</h2>
+        <span>{c.colophonNote}</span>
       </header>
-      <section class="a-categories" aria-labelledby="a-categories-title">
-        <header><h3 id="a-categories-title">{c.byCategory}</h3><p>{categories.length} {c.themes}</p></header>
-        <ul>{categories.map((category) => <li><a href={`/${lang}/categories/${encodeURIComponent(category.name)}/`}><span>{category.name}</span><small>{c.browseTheme}</small><strong>{String(category.count).padStart(2, '0')}</strong></a></li>)}</ul>
-      </section>
-      <section class="a-now" aria-labelledby="a-now-title">
-        <header><h3 id="a-now-title">{c.now}</h3><p>Now / 2026.08</p></header>
-        <ol>{c.nowItems.map(([date, title, note]) => <li><time>{date}</time><h4>{title}</h4><p>{note}</p></li>)}</ol>
-      </section>
-      <nav class="a-site-index" aria-label={c.siteIndex}>
-        <p>{c.siteIndex}</p>
-        <a href={`/${lang}/archive/`}><span>{c.archiveTitle}</span><small>{c.archiveNote}</small></a>
-        <a href={`/${lang}/categories/`}><span>{c.taxonomyTitle}</span><small>{c.taxonomyNote}</small></a>
-        <a href={`/${lang}/rss.xml`}><span>{c.rssTitle}</span><small>{c.rssNote}</small></a>
-      </nav>
-    </section>
 
-    <section class="a-about" aria-labelledby="a-about-title">
-      <p class="prototype-kicker">{c.aboutKicker}</p>
-      <h2 id="a-about-title">{c.aboutTitle}</h2>
-      <div><p>{c.aboutText}</p><nav aria-label={c.about}><a href={`/${lang}/about/`}>{c.aboutSite}</a><a href={`/${lang}/categories/`}>{c.browse}</a><a href={`/${lang}/rss.xml`}>{c.subscribe}</a></nav></div>
-    </section>
+      <div class="aperture-colophon__body">
+        <div class="aperture-colophon__author">
+          <div class="aperture-colophon__author-head">
+            <h3>{c.authorTitle}</h3>
+            <span>{c.authorNames}</span>
+          </div>
+          <ol class="aperture-colophon__people">
+            {c.people.map(([name, role]) => (
+              <li>
+                <h4>{name}</h4>
+                <p>{role}</p>
+              </li>
+            ))}
+          </ol>
+          <nav class="aperture-colophon__actions" aria-label={c.authorAbout}>
+            <a class="aperture-action" href={`/${lang}/about/`}>
+              <span>{c.about}</span><i aria-hidden="true">↗</i>
+            </a>
+            <a class="aperture-action" href="https://github.com/Morii9961">
+              <span>GitHub</span><i aria-hidden="true">↗</i>
+            </a>
+            <a class="aperture-action" href={`/${lang}/rss.xml`}>
+              <span>{c.rss}</span><i aria-hidden="true">↗</i>
+            </a>
+          </nav>
+        </div>
 
-    <script>
-      const reel = document.querySelector<HTMLElement>('[data-feature-reel]');
-      const slides = [...(reel?.querySelectorAll<HTMLElement>('[data-feature-slide]') ?? [])];
-      const controls = [...(reel?.querySelectorAll<HTMLButtonElement>('[data-feature-control]') ?? [])];
-      controls.forEach((control, index) => {
-        control.addEventListener('click', () => {
-          slides.forEach((slide, slideIndex) => { slide.hidden = slideIndex !== index; });
-          controls.forEach((button, buttonIndex) => button.setAttribute('aria-pressed', String(buttonIndex === index)));
-        });
-      });
-    </script>
+        <div
+          class="aperture-colophon__calendar"
+          data-calendar
+          data-year={calendarYear}
+          data-month={calendarMonth}
+          data-archive={`/${lang}/archive/`}
+          data-limit={CALENDAR_LINK_LIMIT}
+          data-more-min={CALENDAR_MORE_MIN}
+          data-day-title={c.calendarDayActive('{day}')}
+          data-more-template={c.calendarMore('{count}')}
+        >
+          <div class="aperture-colophon__calendar-head">
+            <h3>{c.calendarTitle}</h3>
+            {/* Two native selects: they carry keyboard and screen-reader behaviour
+                for free, and the stylesheet strips the OS chrome back to type. */}
+            {/* Underline plus caret, the same affordance the writing index's
+                filter uses. A bare styled select reads as a label, not a
+                control — the hairline and the chevron are what say it opens. */}
+            <div class="aperture-calendar__picker">
+              <label class="visually-hidden" for="calendar-year">{c.calendarPickYear}</label>
+              <span class="aperture-calendar__field">
+                <select id="calendar-year" data-calendar-year>
+                  {calendarYears.map((year) => (
+                    <option value={year} selected={year === calendarYear}>{year}</option>
+                  ))}
+                </select>
+                <svg class="aperture-calendar__caret" viewBox="0 0 24 24" aria-hidden="true"><path d="m5.5 9 6.5 6.5L18.5 9"></path></svg>
+              </span>
+              <label class="visually-hidden" for="calendar-month">{c.calendarPickMonth}</label>
+              <span class="aperture-calendar__field">
+                <select id="calendar-month" data-calendar-month>
+                  {calendarMonths.map((month) => (
+                    <option value={month.value} selected={month.value === calendarMonth}>{month.label}</option>
+                  ))}
+                </select>
+                <svg class="aperture-calendar__caret" viewBox="0 0 24 24" aria-hidden="true"><path d="m5.5 9 6.5 6.5L18.5 9"></path></svg>
+              </span>
+            </div>
+          </div>
+          <div class="aperture-calendar" aria-label={c.calendarTitle}>
+            <div class="aperture-calendar__week" aria-hidden="true">
+              {c.calendarWeekdays.map((d) => <span>{d}</span>)}
+            </div>
+            <div class="aperture-calendar__days" data-calendar-days aria-live="polite">
+              {Array.from({ length: firstWeekday }).map(() => <span aria-hidden="true"></span>)}
+              {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) =>
+                activeDays.has(day)
+                  ? <time class="is-active" datetime={`${calendarYear}-${String(calendarMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`} title={c.calendarDayActive(day)}>{day}<i aria-hidden="true"></i></time>
+                  : <time datetime={`${calendarYear}-${String(calendarMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`}>{day}</time>
+              )}
+            </div>
+          </div>
+
+          <ol class="aperture-colophon__latest" data-calendar-list hidden={calendarRecentPosts.length === 0}>
+            {calendarRecentPosts.map((post) => (
+              <li>
+                <a href={postPath(post)}>{post.data.title}</a>
+                <time>{`${String(calendarMonth + 1).padStart(2, '0')}/${String(post.data.publishedAt.getDate()).padStart(2, '0')}`}</time>
+              </li>
+            ))}
+          </ol>
+          <p class="aperture-calendar__empty" data-calendar-empty hidden={calendarRecentPosts.length > 0}>{c.calendarEmpty}</p>
+          <a
+            class="aperture-action aperture-calendar__more"
+            data-calendar-more
+            href={`/${lang}/archive/#archive-${calendarYear}`}
+            hidden={!calendarShowMore}
+          >
+            <span data-calendar-more-label>{c.calendarMore(calendarOverflow)}</span><i aria-hidden="true">↗</i>
+          </a>
+
+          {/* Data, not code: `is:inline` keeps Astro from trying to bundle it, and
+              a JSON block carries no weight against the eager-script budget. */}
+          <script is:inline type="application/json" data-calendar-posts set:html={JSON.stringify(calendarData)}></script>
+          <div class="aperture-colophon__actions aperture-colophon__actions--single">
+            <a class="aperture-action" href={`/${lang}/archive/`}>
+              <span>{c.fullArchive}</span><i aria-hidden="true">↗</i>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
   </div>
+
+  {/* The month rendered on the server is the one a reader without JavaScript
+      keeps: the selects only gain behaviour here, and everything they change is
+      re-derivable from the JSON above. */}
+  <script>
+    type Entry = [string, string, string];
+
+    const root = document.querySelector<HTMLElement>('[data-calendar]');
+    const yearSelect = root?.querySelector<HTMLSelectElement>('[data-calendar-year]');
+    const monthSelect = root?.querySelector<HTMLSelectElement>('[data-calendar-month]');
+    const grid = root?.querySelector<HTMLElement>('[data-calendar-days]');
+    const list = root?.querySelector<HTMLOListElement>('[data-calendar-list]');
+    const empty = root?.querySelector<HTMLElement>('[data-calendar-empty]');
+    const more = root?.querySelector<HTMLAnchorElement>('[data-calendar-more]');
+    const moreLabel = root?.querySelector<HTMLElement>('[data-calendar-more-label]');
+    const payload = root?.querySelector<HTMLScriptElement>('[data-calendar-posts]');
+
+    if (root && yearSelect && monthSelect && grid && list && empty && more && moreLabel && payload) {
+      let entries: Entry[] = [];
+      try {
+        entries = JSON.parse(payload.textContent || '[]') as Entry[];
+      } catch {
+        entries = [];
+      }
+
+      const limit = Number(root.dataset.limit) || 2;
+      const moreMin = Number(root.dataset.moreMin) || 3;
+      const archive = root.dataset.archive || '';
+      const dayTitle = root.dataset.dayTitle || '';
+      const moreTemplate = root.dataset.moreTemplate || '';
+      const pad = (n: number) => String(n).padStart(2, '0');
+
+      const render = () => {
+        const year = Number(yearSelect.value);
+        const month = Number(monthSelect.value);
+        const prefix = `${year}-${pad(month + 1)}`;
+        const inMonth = entries.filter((e) => e[0].startsWith(prefix));
+        const active = new Set(inMonth.map((e) => Number(e[0].slice(8, 10))));
+
+        // Built with DOM calls rather than innerHTML, for two reasons: post
+        // titles reach this code as data and must not be parsed as markup, and
+        // an `href="..."` written as a template literal here would end up in the
+        // page source, where scripts/check-links.mjs reads it as a real link and
+        // reports the unresolved `${...}` as broken.
+        const el = <K extends keyof HTMLElementTagNameMap>(tag: K, attrs: Record<string, string> = {}, text?: string) => {
+          const node = document.createElement(tag);
+          for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, value);
+          if (text !== undefined) node.textContent = text;
+          return node;
+        };
+
+        // Grid. `new Date(y, m + 1, 0)` is the last day of the chosen month.
+        const days = new Date(year, month + 1, 0).getDate();
+        const lead = new Date(year, month, 1).getDay();
+        const cells = document.createDocumentFragment();
+        for (let i = 0; i < lead; i += 1) cells.append(el('span', { 'aria-hidden': 'true' }));
+        for (let day = 1; day <= days; day += 1) {
+          const stamp = `${prefix}-${pad(day)}`;
+          if (active.has(day)) {
+            const cell = el('time', { class: 'is-active', datetime: stamp, title: dayTitle.replace('{day}', String(day)) }, String(day));
+            cell.append(el('i', { 'aria-hidden': 'true' }));
+            cells.append(cell);
+          } else {
+            cells.append(el('time', { datetime: stamp }, String(day)));
+          }
+        }
+        grid.replaceChildren(cells);
+
+        // Links, capped. Anything past the cap becomes one action instead.
+        const shown = inMonth.slice(0, limit);
+        const items = document.createDocumentFragment();
+        for (const entry of shown) {
+          const item = el('li');
+          item.append(el('a', { href: entry[2] }, entry[1]));
+          item.append(el('time', {}, `${pad(month + 1)}/${entry[0].slice(8, 10)}`));
+          items.append(item);
+        }
+        list.replaceChildren(items);
+        list.hidden = shown.length === 0;
+        empty.hidden = shown.length > 0;
+
+        // The href tracks the year even while the action is hidden, so it can
+        // never be shown pointing at the previously selected one.
+        // Same rule as the server render: a month advertises a remainder only
+        // once it has reached the third post.
+        const overflow = inMonth.length - shown.length;
+        const showMore = inMonth.length >= moreMin && overflow > 0;
+        more.href = `${archive}#archive-${year}`;
+        more.hidden = !showMore;
+        if (showMore) moreLabel.textContent = moreTemplate.replace('{count}', String(overflow));
+      };
+
+      yearSelect.addEventListener('change', render);
+      monthSelect.addEventListener('change', render);
+    }
+  </script>
 </BaseLayout>

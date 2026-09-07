@@ -9,7 +9,16 @@
 
   html {
     color-scheme: light dark;
-    scroll-behavior: smooth;
+  }
+
+  /* Smooth scrolling has to be asked for here rather than switched off later:
+     the site-wide reduced-motion reset only reaches `.public-site *`, and the
+     element that actually scrolls the document is `html`, which sits outside
+     it. Declared as an opt-in so no reset has to catch it. */
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
   }
 
   body,
@@ -478,10 +487,13 @@
     font-size: 1.1rem;
   }
 
+  /* `anywhere` also contributes a zero min-content width, which lets a flex or
+     grid track collapse around prose that has not overflowed yet. `break-word`
+     breaks the same unbreakable words without volunteering the column. */
   .article-body {
     padding-bottom: var(--space-6);
     font-size: clamp(1rem, 1.2vw, 1.1rem);
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
   }
 
   .article-body > * + * {
@@ -749,7 +761,12 @@
 }
 
 @layer utilities {
-  .visually-hidden {
+  /* `.sr-only` is not ours to name: remark-gfm hard-codes it on the heading it
+     generates above a footnote section. Without a definition that heading was
+     rendering at full size, in English, with the article h2 rule above it, in
+     the middle of a Chinese post. */
+  .visually-hidden,
+  .sr-only {
     position: absolute;
     width: 1px;
     height: 1px;
