@@ -578,7 +578,7 @@
 
   .a-directory__section-head,
   .a-taxonomy-detail__head,
-  .a-about-page__principles > header {
+  .a-about-page__head {
     display: grid;
     grid-template-columns: minmax(10rem, 0.5fr) minmax(0, 1fr);
     min-height: 5rem;
@@ -589,7 +589,7 @@
 
   .a-directory__section-head h2,
   .a-taxonomy-detail__head h2,
-  .a-about-page__principles > header h2 {
+  .a-about-page__head h2 {
     font-family: var(--font-display);
     font-size: 1.1rem;
     font-weight: 620;
@@ -598,7 +598,7 @@
 
   .a-directory__section-head p,
   .a-taxonomy-detail__head p,
-  .a-about-page__principles > header p {
+  .a-about-page__head p {
     color: var(--ink-faint);
     font-family: var(--font-data);
     font-size: 0.62rem;
@@ -835,7 +835,8 @@
   .prototype-posts,
   .a-archive ol,
   .a-taxonomy-posts,
-  .a-about-page__principles ol {
+  .a-about-page__rows,
+  .a-about-page__axis {
     margin: 0;
     padding: 0;
     list-style: none;
@@ -1357,10 +1358,10 @@
 
   .a-about-page__statement h2 {
     font-family: var(--font-display);
-    font-size: clamp(2.5rem, 6vw, 6rem);
+    font-size: clamp(2rem, 4.4vw, 4rem);
     font-weight: 650;
-    letter-spacing: -0.075em;
-    line-height: 0.98;
+    letter-spacing: -0.05em;
+    line-height: 1.12;
   }
 
   .a-about-page__statement > div {
@@ -1374,68 +1375,195 @@
     margin-top: 1.4rem;
   }
 
-  .a-about-page__principles {
-    padding-block: clamp(5rem, 9vw, 9rem);
-  }
-
-  .a-about-page__principles li {
+  /* The rule sits between rows rather than under every one, so the band's own
+     boundary stays the heavier mark and the list does not read as seven cells.
+     It also starts after the number, which is what makes that column a margin. */
+  .a-about-page__rows li {
     display: grid;
-    grid-template-columns: 4rem minmax(0, 1fr);
+    grid-template-columns: var(--about-label, 7rem) minmax(0, 1fr);
     gap: 2rem;
-    padding: 2.5rem 0 2.5rem calc(var(--rule-offset, 0) * 1rem);
-    border-bottom: 1px solid var(--line);
+    padding-block: 1.6rem;
   }
 
-  .a-about-page__principles li > span {
+  .a-about-page__rows li + li {
+    position: relative;
+  }
+
+  .a-about-page__rows li + li::before {
+    position: absolute;
+    top: 0;
+    right: 0;
+    /* the label column plus its gap: the rule begins where the words do */
+    left: calc(var(--about-label, 7rem) + 2rem);
+    height: 1px;
+    background: var(--line-soft);
+    content: "";
+  }
+
+  .a-about-page__rows li > span {
+    padding-top: 0.4em;
     color: var(--accent);
     font-family: var(--font-data);
     font-size: 0.62rem;
   }
 
-  .a-about-page__principles h3 {
+  .a-about-page__rows h3 {
     font-family: var(--font-display);
-    font-size: clamp(1.5rem, 3vw, 2.8rem);
+    font-size: clamp(1.1rem, 1.8vw, 1.5rem);
     font-weight: 620;
-    letter-spacing: -0.05em;
+    letter-spacing: -0.02em;
   }
 
-  .a-about-page__principles li p {
-    max-width: 46rem;
-    margin-top: 0.7rem;
+  .a-about-page__rows li p {
+    max-width: 40em;
+    margin-top: 0.6rem;
     color: var(--ink-muted);
-    font-size: 0.85rem;
+    font-family: var(--font-reading);
+    font-size: 0.95rem;
+    line-height: 1.8;
   }
 
-  .a-about-page__links {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    background: var(--accent-field);
-    color: var(--accent-field-ink);
+  /* Every band below the statement runs on one grid, so a reader crossing the
+     page keeps meeting the same left edge. The band rule is the boundary; the
+     rules inside a band start after the number column, which is what lets that
+     column read as a margin rather than as a first cell. */
+  .a-about-page__band {
+    padding-block: clamp(4rem, 8vw, 8rem);
+    border-bottom: 1px solid var(--line-soft);
   }
 
-  .a-about-page__links a {
+  /* The size ladder is spent on the hero, so a heading inside a band changes
+     face and weight at reading size instead of jumping in size. */
+  .a-about-page__sub {
     display: flex;
-    min-height: 12rem;
-    flex-direction: column;
-    justify-content: space-between;
-    padding: 2rem;
-    border-right: 1px solid color-mix(in srgb, var(--accent-field-ink) 22%, transparent);
-    text-decoration: none;
-  }
-
-  .a-about-page__links a:last-child {
-    border-right: 0;
-  }
-
-  .a-about-page__links span {
+    align-items: center;
+    gap: 0.85rem;
+    margin-top: 3rem;
+    margin-left: var(--about-indent, calc(var(--about-label, 7rem) + 2rem));
     font-family: var(--font-display);
-    font-size: clamp(1.5rem, 3vw, 2.6rem);
+    font-size: 1rem;
     font-weight: 620;
-    letter-spacing: -0.05em;
   }
 
-  .a-about-page__links small {
-    color: color-mix(in srgb, var(--accent-field-ink) 65%, transparent);
+  .a-about-page__band > p {
+    max-width: 40em;
+    margin-top: 1.1rem;
+    margin-left: var(--about-indent, calc(var(--about-label, 7rem) + 2rem));
+    color: var(--ink-muted);
+    font-family: var(--font-reading);
+    font-size: 0.95rem;
+    line-height: 1.85;
+  }
+
+  /* The aperture's small echo. The hero carries the page's one large blue
+     field; this is the same colour at the opposite scale, measured in
+     characters rather than pixels, and it appears exactly once. */
+  .a-about-page__slab {
+    width: 5ch;
+    height: 3px;
+    flex: none;
+    background: var(--accent-field);
+  }
+
+  /* The dated record stands on the archive's own axis: one hairline, the date
+     ranged right onto it with its own mark, the sentence starting past it. */
+  .a-about-page__axis li {
+    display: grid;
+    grid-template-columns: var(--about-label, 7rem) minmax(0, 1fr);
+    align-items: baseline;
+    column-gap: 2rem;
+    padding-block: 1.3rem;
+  }
+
+  .a-about-page__axis time {
+    position: relative;
+    padding-right: 2rem;
+    border-right: 1px solid var(--line);
+    color: var(--ink-muted);
+    font-family: var(--font-data);
+    font-size: 0.68rem;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+
+  .a-about-page__axis time::after {
+    position: absolute;
+    top: 0.5em;
+    right: -3px;
+    width: 5px;
+    height: 2px;
+    background: var(--accent);
+    content: '';
+  }
+
+  .a-about-page__axis p {
+    max-width: 40em;
+    color: var(--ink-muted);
+    font-family: var(--font-reading);
+    font-size: 0.95rem;
+    line-height: 1.8;
+  }
+
+  /* A block of short facts is subordinated by taking width away, never by
+     adding a container: a box would read as a widget on a page that has none.
+     One hairline above and below, and nothing between the rows. */
+  .a-about-page__inset {
+    max-inline-size: 34em;
+    margin-top: 1.4rem;
+    margin-left: var(--about-indent, calc(var(--about-label, 7rem) + 2rem));
+    padding-block: 0.4rem;
+    border-top: 1px solid var(--line-soft);
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  .a-about-page__inset div {
+    display: grid;
+    grid-template-columns: var(--about-label, 7rem) minmax(0, 1fr);
+    gap: 2rem;
+    padding-block: 0.95rem;
+  }
+
+  .a-about-page__inset dt {
+    color: var(--ink-faint);
+    font-family: var(--font-data);
+    font-size: 0.62rem;
+    line-height: 1.9;
+  }
+
+  .a-about-page__inset dd {
+    color: var(--ink-muted);
+    font-family: var(--font-reading);
+    font-size: 0.92rem;
+    line-height: 1.8;
+  }
+
+  .a-about-page__inset dd strong {
+    display: block;
+    color: var(--ink);
+    font-family: var(--font-interface);
+    font-size: 0.86rem;
+    font-weight: 600;
+  }
+
+  .a-about-page__channels dd a {
+    display: block;
+    color: var(--accent);
+    font-family: var(--font-data);
+    font-size: 0.68rem;
+  }
+
+  .a-about-page__feeds {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 2.25rem;
+    margin-top: 1.6rem;
+    margin-left: var(--about-indent, calc(var(--about-label, 7rem) + 2rem));
+  }
+
+  /* Nothing here solicits, so the page ends on one way back and a measured
+     amount of nothing rather than on a call to action. */
+  .a-about-page__end {
+    padding-block: clamp(4rem, 9vw, 9rem);
   }
 }
 
@@ -1566,7 +1694,7 @@
 
     .a-directory__section-head,
     .a-taxonomy-detail__head,
-    .a-about-page__principles > header {
+    .a-about-page__head {
       grid-template-columns: 1fr auto;
     }
 
@@ -1644,14 +1772,30 @@
       grid-template-columns: 1fr;
     }
 
-    .a-about-page__links {
-      grid-template-columns: 1fr;
+    /* The label column narrows to what an ISO date actually needs, and the
+       prose stops being indented into it — at this width the shared axis costs
+       more measure than the alignment is worth. */
+    .a-about-page {
+      --about-label: 5.5rem;
+      --about-indent: 0rem;
     }
 
-    .a-about-page__links a {
-      min-height: 8rem;
-      border-right: 0;
-      border-bottom: 1px solid color-mix(in srgb, var(--accent-field-ink) 22%, transparent);
+    .a-about-page__rows li,
+    .a-about-page__axis li,
+    .a-about-page__inset div {
+      column-gap: 1rem;
+    }
+
+    .a-about-page__rows li + li::before {
+      left: calc(var(--about-label) + 1rem);
+    }
+
+    .a-about-page__axis time {
+      padding-right: 1rem;
+    }
+
+    .a-about-page__feeds {
+      gap: 0 1.5rem;
     }
 
     /* One column: the heading, then the two controls under it. Ordered after

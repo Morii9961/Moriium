@@ -8,9 +8,10 @@ The 2026-09-01 frontend branch implements the **Blue Aperture** public design la
 
 - a compact publication header with a Sora wordmark, visible route state, and 44-pixel search, theme, and language targets;
 - an asymmetric home built around one fixed 深渊蓝 Moriium identity aperture, two glyph-composed Japanese statements, selective outline overprint, true vertical marginal notes, route edges, a content map, and a work-in-progress register;
-- independent Writing, Archive, Categories, Tags, and About routes that reuse the aperture as a spatial rule rather than a card component;
+- independent Writing, Archive, Categories, and Tags routes that reuse the aperture as a spatial rule rather than a card component;
+- an About page composed as an editorial document rather than an index: the directory hero, then a statement at second voice, then five bands — what the archive keeps, a dated record on the archive's own date axis, a colophon, the site principles, and subscription and contact. Every band shares one label track (`--about-label`, 7rem) and one content edge, and prose is indented into that content column by `--about-indent` so labels and words each keep a single left edge. The page carries no counts, no avatar, no freshness stamp and no third-party request;
 - a Writing index whose section head carries two controls written in the site's rule-and-word grammar rather than as filled buttons: a category and tag filter that stays a disclosure of real taxonomy links without JavaScript, and a second opener for the same global search dialog;
-- long-form article pages with a narrow blue title band, 48rem prose measure, 76rem cover track, desktop outline and context rails, and single-column mobile reading;
+- long-form article pages with a narrow blue title band, an opening sized by its own content, a 48rem prose measure centred on the page, a 76rem cover track, one sticky outline hanging in the left margin, and single-column mobile reading;
 - global static search and light/dark controls, with the generated index and search module still loading only after the reader opens search.
 
 All production public routes import `src/styles/public.css`. The home adds `src/styles/public-home.css`, and the article layout adds `src/styles/public-reading.css`. `src/styles/prototypes.css` remains isolated to `/design/` comparison history.
@@ -103,6 +104,8 @@ Two constraints fight the composition and win, both geometry rather than taste:
 - **`mix-blend-mode: difference` does not work for the outline runs.** A #9AA7BD hairline at 0.55 opacity differenced against the panel composites to roughly #525861, about 2:1 against the panel itself, so the outline disappears exactly where it is meant to turn light. The clipped overprint layer keeps the ink exact and is what ships.
 
 Typography reuses installed local packages: Sora for the wordmark, Noto Sans SC for interface and display text, LXGW WenKai Screen with platform Mincho/Song/Georgia fallbacks for summaries and prose, and IBM Plex Mono for dates and metadata. The home hero adds one display face, Shippori Mincho, self-hosted as a 33-glyph subset (see **Home hero geometry**). No UI dependency was added.
+
+The About page's three rule tiers are worth stating because they are reused: a band boundary is a full-width rule, a row inside a band is a rule inset past the label track (`.a-about-page__rows li + li::before`, offset by `--about-label` plus its gap), and a section head is a rule cut to the width of its own words. A block of short facts is subordinated by width alone — `.a-about-page__inset` is capped at `34em` with a hairline above and below and nothing between its rows — because a border, fill or radius there would read as a widget on a page that has none. The hero carries the page's one large blue field and the colophon carries a single 5ch slab of the same colour: two aperture events at opposite scales, and no third.
 
 Structural surfaces stay square. The search dialog uses a 2px radius and is the only public surface with a substantial shadow. Cover media, ledgers, article sections, taxonomy indexes, and navigation use spacing and one-pixel rules instead of elevation.
 
