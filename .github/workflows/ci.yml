@@ -52,6 +52,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_CACHE_FRESH: ${{ steps.github-card-cache.outputs.cache-hit }}
+          # Astro reads the session driver's directory at build time, not at
+          # process start (ADR 0002 section 21.4). Left unset, the Linux default
+          # /var/lib/moriium/sessions is baked into the bundle, and the runner
+          # cannot create it -- so the built-artifact test's login answered with
+          # an empty 500 as soon as it tried to write a session. The deploy
+          # artifact is source, rebuilt on the VPS, so this value stays in CI.
+          MORIIUM_SESSION_DIRECTORY: ${{ runner.temp }}/moriium-sessions
 
       - name: Confirm static output contains no protected source directory
         shell: bash
