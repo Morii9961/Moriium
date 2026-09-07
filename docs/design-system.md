@@ -6,7 +6,7 @@
 
 The 2026-09-01 frontend branch implements the **Blue Aperture** public design layer, independent from the archived A/B/C study stylesheet:
 
-- a compact publication header with a Sora wordmark, visible route state, and 44-pixel search, theme, and language targets;
+- a compact publication header with a serif wordmark, visible route state, and 44-pixel search, theme, and language targets;
 - an asymmetric home built around one fixed 深渊蓝 Moriium identity aperture, two glyph-composed Japanese statements, selective outline overprint, true vertical marginal notes, route edges, a content map, and a work-in-progress register;
 - independent Writing, Archive, Categories, and Tags routes that reuse the aperture as a spatial rule rather than a card component;
 - an About page composed as an editorial document rather than an index: the directory hero, then a statement at second voice, then five bands — what the archive keeps, a dated record on the archive's own date axis, a colophon, the site principles, and subscription and contact. Every band shares one label track (`--about-label`, 7rem) and one content edge, and prose is indented into that content column by `--about-indent` so labels and words each keep a single left edge. The page carries no counts, no avatar, no freshness stamp and no third-party request;
@@ -17,6 +17,17 @@ The 2026-09-01 frontend branch implements the **Blue Aperture** public design la
 All production public routes import `src/styles/public.css`. The home adds `src/styles/public-home.css`, and the article layout adds `src/styles/public-reading.css`. `src/styles/prototypes.css` remains isolated to `/design/` comparison history.
 
 ### Current implementation values
+
+On 2026-09-07, Morii selected the final Juanshou study's typography from
+`archive/design-ui-comparison-recovery-2026-08-31` after a local preview.
+All public pages now use locally bundled Noto Serif SC Variable for Chinese
+and English (including its Latin glyphs), and Noto Serif JP Variable for
+Japanese. Titles, navigation, prose, search, and wordmarks share this choice;
+metadata keeps IBM Plex Mono with the page's serif as its CJK fallback.
+Both new Fontsource dependencies are pinned to 5.3.0, matching the archive.
+The home hero's large Japanese lettering, vertical notes, and background
+fragments retain Shippori Mincho. Archived comparison studies and author-admin
+typography remain separate from this public frontend selection.
 
 These values record the branch implementation. They do not replace the canonical palettes or freeze future identity decisions.
 

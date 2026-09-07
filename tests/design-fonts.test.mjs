@@ -91,10 +91,10 @@ test('production shell loads the public typography and editorial frame', async (
     read('src/styles/public.css'),
   ]);
 
-  assert.match(layout, /@fontsource-variable\/noto-sans-sc\/wght\.css/);
-  assert.match(layout, /@fontsource-variable\/sora\/wght\.css/);
+  assert.match(layout, /@fontsource-variable\/noto-serif-sc\/wght\.css/);
+  assert.match(layout, /@fontsource-variable\/noto-serif-jp\/wght\.css/);
   assert.match(layout, /@fontsource\/ibm-plex-mono\/latin-400\.css/);
-  assert.match(layout, /lxgw-wenkai-screen-webfont\/lxgwwenkaigbscreen\.css/);
+  assert.doesNotMatch(layout, /lxgw-wenkai|noto-sans-sc|sora/);
 
   for (const marker of ['site-actions', 'theme-icon--sun', 'theme-icon--moon', 'site-footer__identity']) {
     assert.match(layout, new RegExp(marker));
@@ -104,7 +104,8 @@ test('production shell loads the public typography and editorial frame', async (
   assert.doesNotMatch(layout, /public-(?:home|reading)\.css/);
   assert.match(layout, /bodyClass = 'public-site'/);
   assert.match(styles, /--surface:\s*var\(--moriium-light-canvas\)/);
-  assert.match(styles, /--font-display:\s*"Noto Sans SC Variable",\s*"Sora Variable"/);
+  assert.match(styles, /--font-display:\s*var\(--font-serif\)/);
+  assert.match(styles, /:root:lang\(ja\)\s*{\s*--font-serif:\s*"Noto Serif JP Variable"/);
   assert.match(styles, /\.public-site \.site-header__inner\s*{[^}]*grid-template-columns:\s*minmax\(12rem, 1fr\) auto minmax\(12rem, 1fr\)/s);
   assert.match(styles, /\.public-site \.site-footer__name\s*{[^}]*color:\s*var\(--accent-field-ink\)/s);
   assert.match(styles, /\.a-directory__stats div\s*{[^}]*padding-inline:\s*clamp\(1rem, 2vw, 1\.5rem\)/s);

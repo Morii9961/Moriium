@@ -31,11 +31,16 @@
     --accent-field: var(--moriium-blue-primary);
     --accent-field-ink: #f6f7ff;
     --focus: #244f82;
-    --font-interface: "Noto Sans SC Variable", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
-    --font-display: "Noto Sans SC Variable", "Sora Variable", "Hiragino Sans", system-ui, sans-serif;
-    --font-reading: "LXGW WenKai Screen", "Yu Mincho", "Songti SC", Georgia, serif;
-    --font-wordmark: "Sora Variable", "Noto Sans SC Variable", sans-serif;
-    --font-data: "IBM Plex Mono", "Noto Sans SC Variable", ui-monospace, monospace;
+    /* Morii selected the archived Juanshou typography on 2026-09-07.
+       English uses the SC family's Latin glyphs, as in that study. */
+    --font-serif: "Noto Serif SC Variable", "Songti SC", serif;
+    --font-interface: var(--font-serif);
+    --font-display: var(--font-serif);
+    --font-reading: var(--font-serif);
+    --font-wordmark: var(--font-serif);
+    --font-data: "IBM Plex Mono", ui-monospace, var(--font-serif);
+    --font-sans: var(--font-serif);
+    --font-mono: var(--font-data);
     --layout-reading: 48rem;
     --layout-media: 62rem;
     --layout-gallery: 76rem;
@@ -44,6 +49,10 @@
     --motion-fast: 220ms;
     --motion-medium: 520ms;
     --motion-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  :root:lang(ja) {
+    --font-serif: "Noto Serif JP Variable", "Hiragino Mincho ProN", serif;
   }
 
   :root[data-theme='dark'] {
