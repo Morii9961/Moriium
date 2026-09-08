@@ -46,7 +46,7 @@
 .activity-cell[data-level='2'] { background: var(--activity-2); }
 .activity-cell[data-level='3'] { background: var(--activity-3); }
 .activity-cell[data-level='4'] { background: var(--activity-4); }
-.activity-cell--outside { visibility: hidden; }
+.activity-cell--future { background: transparent; box-shadow: inset 0 0 0 1px var(--line-soft); }
 .activity-cell[data-date] { cursor: crosshair; }
 .activity-cell.is-selected { outline: 2px solid var(--focus); outline-offset: 1px; }
 .activity-chart__legend { display: flex; flex-wrap: wrap; gap: 0.6rem 1rem; margin-top: 1rem; color: var(--ink-muted); font: 0.6875rem var(--font-data); }
@@ -60,6 +60,10 @@
 .activity-chart__footer { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; column-gap: 1.5rem; margin-top: 0.9rem; color: var(--ink-muted); font-size: 0.75rem; }
 .activity-chart__footer > p { margin: 0; }
 .activity-chart__footer details { min-width: 0; }
+.activity-chart__statistics { display: flex; flex-wrap: wrap; gap: 0.75rem 2rem; margin-block: 0.75rem; }
+.activity-chart__statistics dt { font-size: 0.75rem; }
+.activity-chart__statistics dd { margin: 0.25rem 0 0; color: var(--ink); font: 0.75rem var(--font-data); overflow-wrap: anywhere; }
+.activity-chart__method { max-width: 65em; font-size: 0.75rem; }
 .activity-chart__footer details[open] { width: 100%; }
 .activity-chart__footer summary { cursor: pointer; min-height: 44px; padding-block: 0.75rem; text-decoration: underline; text-underline-offset: 0.25em; }
 .activity-chart__table { max-height: 20rem; overflow: auto; border-block: 1px solid var(--line); }
@@ -69,6 +73,7 @@
 .activity-chart__table td { text-align: right; }
 @media (max-width: 46rem) {
   .activity-calendar { display: grid; gap: 1.15rem; }
+  .activity-calendar__edge-month { display: none; }
   .activity-calendar__part + .activity-calendar__part .activity-calendar__weekdays,
   .activity-calendar__continued-month { visibility: visible; }
   .activity-chart__year-heading { align-items: flex-start; }

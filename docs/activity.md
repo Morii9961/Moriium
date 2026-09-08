@@ -123,9 +123,11 @@ for it.
   hold disjoint conversations, so ccusage's per-run deduplication is enough; it matters,
   because the raw rows trebled the total in a hand check. Remote Cowork sessions run in
   Anthropic's cloud, leave nothing on this computer and are therefore never counted.
-- The public calendar resolves every absent date to zero. This is a presentation
-  choice: the retained snapshot still stores only the daily values returned by each
-  source. Previously collected values survive later log cleanup.
+- Elapsed dates without source records display and count as zero. Cross-year
+  padding follows its adjacent region: zero fill at the start, and faint outlines
+  at the end while the year is still in progress. Future dates retain faint solid
+  outlines and cannot be selected. Neither state adds a legend label. Previously collected values
+  survive later log cleanup.
 - `src/data/activity.json` is the archive of record, not a cache of the last year.
   Collected days are kept from 2026-01-01 onward and none is ever dropped for age.
   Every source deletes its own logs eventually, so a day discarded here cannot be
@@ -156,6 +158,22 @@ Run `node --test tests/activity.test.mjs`, `pnpm check`, `pnpm test`, `pnpm buil
 `pnpm links`, and `pnpm split`. Check all three languages, both themes and widths
 375, 390, 768, 1024 and 1440. Serve the static client output with the Node app
 stopped to verify the public route has no runtime dependency on the admin.
+
+## Statistics and date boundaries
+
+The current year adds recorded active days in the inclusive 30-day interval ending
+on the build date in Asia/Shanghai. This interval may cross New Year; historical
+year panels omit it. The disclosure prints the interval and build date alongside
+the source collection timestamp. Source day buckets retain their original zones.
+A static page keeps these dates until rebuilt; it does not imply live collection.
+
+Year totals and active-day counts cover elapsed dates through the build date;
+absent records are treated as zero. The active-day average divides that total by days with positive values.
+The peak shows the earliest date when multiple days share the maximum. No active
+days means no average or peak; absent records contribute zero.
+The current day can be incomplete. These are usage records, not productivity scores.
+Keyboard entry starts at the latest recorded day; missing elapsed days remain
+inspectable as zero, while future and padding cells are excluded from selection.
 
 ## Sources and reuse
 

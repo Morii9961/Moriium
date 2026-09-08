@@ -149,8 +149,11 @@ Natural-year views begin at 2026 and always run from January through December.
 A native select switches the enhanced
 view, while the unenhanced HTML keeps every year visible. Below 46rem, each year
 splits at a week boundary into two chronological halves. The two AI calendars
-share fixed thresholds; absent and not-yet-reached dates use the zero-value
-surface. Daily tables provide a text alternative to colour and remain
+share fixed thresholds. Elapsed dates without records count as zero and use the
+zero-value fill. Leading padding uses the same fill; trailing padding matches
+the adjacent future outlines until the year has ended. The future-date legend
+label is omitted. Only elapsed dates are interactive.
+Daily tables provide a text alternative to colour and remain
 available without JavaScript.
 
 The three language routes were checked locally in both themes, with responsive
@@ -163,6 +166,16 @@ activity module is 1,526 bytes in this build and is absent from the home pages.
 This is local implementation evidence, not deployment acceptance. Data
 collection and interpretation are documented in
 [`activity.md`](activity.md).
+
+The date-state refinement adds the current year's recorded 30-day active count,
+with active-day average, daily peak and date boundaries inside the disclosure.
+Keyboard entry selects the latest recorded date. Mobile suppresses the duplicate
+month label at the end of the first half; the second half retains that label.
+The refinement passed `pnpm verify` (312 passed, one skipped, one TODO, zero
+failures), followed by a fresh type check and build after the final presentation
+adjustments. The date-state and statistics suite contains 13 passing tests.
+The earlier bundle-size and stopped-server observations above belong to the
+initial activity implementation, not a fresh deployment acceptance.
 
 ## Implementation rule
 

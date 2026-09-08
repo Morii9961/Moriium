@@ -25,6 +25,6 @@ const years = activityYears(today);
     </span>
   </div>
   <div id="about-activity-charts" class="about-activity__charts">
-    {SOURCES.map((source) => <ActivityHeatmap source={source} snapshot={data.sources[source]} lang={lang} years={years} />)}
+    {SOURCES.map((source) => <ActivityHeatmap source={source} snapshot={data.sources[source]} lang={lang} years={years} asOf={today} />)}
   </div>
 </section>

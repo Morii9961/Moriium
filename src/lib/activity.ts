@@ -18,7 +18,7 @@ export interface ActivityData {
 }
 export type CalendarCell =
   | { date: string; value: number; state: 'known' }
-  | { date: string; value: null; state: 'outside' };
+  | { date: string; value: null; state: 'outside' | 'future' };
 
 export function validDate(value: unknown): value is string {
   return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)
@@ -64,9 +64,10 @@ export function shiftDate(date: string, days: number): string {
   return result.toISOString().slice(0, 10);
 }
 
-/** Every date in the selected year is displayed; absent source values resolve to zero. */
-export function calendarDays(snapshot: ActivitySnapshot | null, year: number) {
+/** Keep whole weeks; elapsed dates without records display as zero. */
+export function calendarDays(snapshot: ActivitySnapshot | null, year: number, asOf = dateInShanghai()) {
   if (!Number.isInteger(year) || year < 1000 || year > 9999) throw new Error('Invalid calendar year.');
+  if (!validDate(asOf)) throw new Error('Invalid activity date.');
   const start = `${year}-01-01`;
   const end = `${year}-12-31`;
   const first = shiftDate(start, -((new Date(start).getUTCDay() + 6) % 7));
@@ -77,9 +78,23 @@ export function calendarDays(snapshot: ActivitySnapshot | null, year: number) {
     const outside = date < start || date > end;
     cells.push(outside
       ? { date, value: null, state: 'outside' }
+      : date > asOf ? { date, value: null, state: 'future' }
       : { date, value: values.get(date) ?? 0, state: 'known' });
   }
   return { start, end, cells };
+}
+
+export function activityStats(snapshot: ActivitySnapshot | null, year: number, asOf: string) {
+  const calendar = calendarDays(snapshot, year, asOf);
+  const days = calendar.cells.filter((cell) => cell.state === 'known');
+  const activeDays = days.filter((cell) => cell.value > 0);
+  const total = days.reduce((sum, cell) => sum + cell.value, 0);
+  const recentStart = shiftDate(asOf, -29);
+  const recentDays = snapshot?.days.filter((day) => day.date >= recentStart && day.date <= asOf) ?? [];
+  const recentActive = recentDays.filter((day) => day.value > 0).length;
+  const peak = activeDays.reduce<(typeof activeDays)[number] | null>((best, day) => !best || day.value > best.value ? day : best, null);
+  return { ...calendar, days, total, active: activeDays.length, recentStart, recentActive,
+    average: activeDays.length ? total / activeDays.length : null, peak };
 }
 
 export const TOKEN_THRESHOLDS = [1_000_000, 50_000_000, 150_000_000] as const;

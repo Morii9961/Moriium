@@ -118,8 +118,8 @@ Collection timestamps disclose snapshot age and do not imply a page update.
 | [ccusage JSON output](https://ccusage.com/guide/json-output) | Reuse maintained local-log parsing rather than publishing raw session data. | Pin the external CLI to 20.0.20 for Claude Code and local Cowork, then export a strict daily-value allowlist. |
 | Current Moriium About page and `DESIGN.md` | Keep the established label axis, restrained rules and canonical blue family. | Use one shared static component; no copied upstream UI, new visual system or animation. |
 
-Morii later chose a simpler display rule: every absent or not-yet-reached date is
-shown as zero, so the public chart no longer distinguishes missing records. Both
+An earlier iteration used a simpler display rule: every absent or not-yet-reached
+date was shown as zero, so that chart did not distinguish missing records. Both
 AI charts keep the same thresholds for cross-source comparison: an empty top Codex
 level reflects the current distribution rather than a styling defect. Natural-year
 calendars begin at 2026 and always include January through December. The mobile
@@ -132,3 +132,24 @@ inspection. Validation is recorded in [`design-system.md`](design-system.md).
 ### Earlier About implementation snapshot
 
 The production About page at `/{zh,ja,en}/about/` keeps its directory hero — Morii chose to retain the large title — and therefore spends the page's single display step there. Below it the statement drops to a second voice, and five bands run on one shared label axis: what the archive keeps, a dated record, the colophon, the site principles, and subscription and contact. Measured on the running site at 1440 pixels, every label sits at x=58 and every piece of content at x=202, in both grid bands and prose. The dated record stands on the same axis grammar as the archive index. Contact is one annotated line per channel stating its expectation rather than an icon row, and it names corrections by pull request, which is the only reader-response route available to a site that has banned comments and accounts permanently.
+
+### Activity date states and statistics refinement — 2026-09-08
+
+Morii approved replacing that zero-fill rule after reviewing the running About
+page at `http://127.0.0.1:4176/zh/about/#about-activity-title`. Hidden cross-year
+padding left stepped corners, and future dates looked like recorded inactivity.
+The approved refinement retains full-year alignment with faint outlined padding
+and future cells, dotted missing cells, and filled explicit zeroes. No global
+identity tokens or animation change. The current year adds a 30-day active count;
+active-day average, peak and calculation notes stay inside the daily disclosure.
+The About page prose remains unchanged.
+
+Morii refined this decision after viewing the preview: elapsed dates without
+records now count as zero, and cross-year padding uses the ordinary zero fill.
+The missing-data legend is removed. Future dates retain their outlined state;
+padding remains decorative and does not enter the selected year's statistics.
+
+A further preview correction makes trailing padding match the adjacent future
+region's outline while the year is in progress; leading padding remains filled.
+Morii also removed the future-date legend label. Date interaction and statistics
+still exclude future and padding cells.
