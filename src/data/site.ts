@@ -42,6 +42,8 @@ export const UI = {
       resultSuffix: ' 篇文章',
     },
     footer: {
+      index: '索引',
+      backToTop: '回到页首',
       rights: '文章、照片与其他内容保留所有权利。',
     },
     protected: {
@@ -90,6 +92,8 @@ export const UI = {
       resultSuffix: ' 件',
     },
     footer: {
+      index: '索引',
+      backToTop: 'ページ上部へ',
       rights: '文章、写真、その他のコンテンツの権利は作者に帰属します。',
     },
     protected: {
@@ -138,6 +142,8 @@ export const UI = {
       resultSuffix: ' results',
     },
     footer: {
+      index: 'Index',
+      backToTop: 'Back to top',
       rights: 'Writing, photographs, and other content: all rights reserved.',
     },
     protected: {

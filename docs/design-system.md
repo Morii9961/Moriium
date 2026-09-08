@@ -177,6 +177,32 @@ adjustments. The date-state and statistics suite contains 13 passing tests.
 The earlier bundle-size and stopped-server observations above belong to the
 initial activity implementation, not a fresh deployment acceptance.
 
+## Public footer — 2026-09-08
+
+The public footer now uses one explicit type role per element. Its linked
+Moriium wordmark is the closing visual anchor and cannot inherit metadata sizing
+from sibling order. A ruled directory below it contains Home, Writing, Archive,
+Categories, Tags, and About. A second group keeps all three language entries and
+the current language's RSS feed available, including below the header's mobile
+language breakpoint. A native anchor returns to the page top. Copyright and
+rights text close the field on a separate baseline.
+
+The footer remains static HTML and adds no client script, dependency, card,
+shadow, gradient, or new palette value. Desktop uses the wide publication frame;
+mobile collapses the directory to two link columns while preserving 44-pixel
+targets and visible focus treatment.
+
+## Native page transitions — 2026-09-08
+
+Public routes opt into the browser's native same-origin cross-document view
+transition. The root view uses the existing 220-millisecond fast timing and
+Moriium ease-out curve, producing a short cross-fade while preserving ordinary
+document navigation. Unsupported browsers keep the normal immediate navigation;
+reduced-motion mode shortens the transition to an effectively instant swap.
+
+This does not install Astro's client router, add a public script, persist page
+state, or change the prerendered route contract.
+
 ## Implementation rule
 
 When the implementation and `DESIGN.md` disagree, follow `DESIGN.md` and update this status record. Do not silently promote a prototype, generic skill recommendation, or reference-site pattern into Moriium's site-wide language.
