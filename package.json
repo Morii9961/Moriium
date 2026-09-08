@@ -9,6 +9,8 @@
     "pnpm": ">=11.22 <12"
   },
   "scripts": {
+    "activity:collect": "node scripts/collect-activity.mjs",
+    "activity:refresh": "node scripts/refresh-activity.mjs",
     "dev": "astro dev",
     "start": "astro dev",
     "sync": "astro sync",

@@ -1,0 +1,30 @@
+---
+import ActivityHeatmap from './ActivityHeatmap.astro';
+import raw from '../data/activity.json';
+import { SOURCES, activityYears, validateActivity, dateInShanghai } from '../lib/activity';
+import { activityCopy } from '../data/activity-copy';
+import type { Language } from '../data/site';
+import '../styles/activity.css';
+interface Props { lang: Language }
+const { lang } = Astro.props;
+const c = activityCopy[lang];
+const data = validateActivity(raw);
+const today = dateInShanghai();
+const years = activityYears(today);
+---
+<section class="a-about-page__band about-activity" data-activity-root aria-labelledby="about-activity-title">
+  <header class="a-about-page__head"><h2 id="about-activity-title">{c.title}</h2><p>{c.subtitle}</p></header>
+  <p class="about-activity__intro">{c.intro}</p>
+  <div class="about-activity__year-control" hidden data-activity-year-control>
+    <label for="about-activity-year">{c.year}</label>
+    <span class="about-activity__year-field">
+      <select id="about-activity-year" aria-label={c.yearSelect} aria-controls="about-activity-charts" data-activity-year-select>
+        {years.map((year) => <option value={year}>{year}</option>)}
+      </select>
+      <span aria-hidden="true">⌄</span>
+    </span>
+  </div>
+  <div id="about-activity-charts" class="about-activity__charts">
+    {SOURCES.map((source) => <ActivityHeatmap source={source} snapshot={data.sources[source]} lang={lang} years={years} />)}
+  </div>
+</section>

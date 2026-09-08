@@ -1,6 +1,7 @@
 ---
 import type { GetStaticPaths } from 'astro';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
+import AboutActivity from '../../../components/AboutActivity.astro';
 import { SITE, type Language } from '../../../data/site';
 
 export const getStaticPaths: GetStaticPaths = () =>
@@ -149,6 +150,8 @@ const pad = (value: number) => String(value + 1).padStart(2, '0');
         ))}
       </dl>
     </section>
+
+    <AboutActivity lang={lang} />
 
     <section class="a-about-page__band" aria-labelledby="about-reach">
       <header class="a-about-page__head"><h2 id="about-reach">{c.reach}</h2><p>{c.reachNote}</p></header>

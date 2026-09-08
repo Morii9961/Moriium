@@ -104,6 +104,31 @@ Morii asked for a broad survey of how other blogs build an About page before reb
 - Live third-party requests on the page. Fuwari and Cirry both call the GitHub API from their About page so its content changes without the author writing anything.
 - Mandatory-avatar blogrolls and reciprocal-exchange machinery.
 
-### Implemented
+### About activity addition — 2026-09-08
+
+Morii explicitly requested three daily calendars for GitHub, account-side Codex
+activity and retained local Claude Code logs. This adds author activity to the
+About page; the earlier rejection of reader counters and analytics still applies.
+Collection timestamps disclose snapshot age and do not imply a page update.
+
+| Reference inspected | Extracted principle | Decision |
+| --- | --- | --- |
+| [GitHub contribution calendar schema](https://docs.github.com/en/graphql/reference/users#contributioncalendar) | Daily dates and contribution counts are sufficient for a calendar. | Collect only the official daily aggregates; make no reader-side GitHub request. |
+| [Codex app-server](https://developers.openai.com/codex/app-server) | The account usage method keeps authentication inside the installed CLI. | Use the server-side daily buckets for every Codex surface without exposing credentials to the repository. |
+| [ccusage JSON output](https://ccusage.com/guide/json-output) | Reuse maintained local-log parsing rather than publishing raw session data. | Pin the external CLI to 20.0.20 for Claude Code and local Cowork, then export a strict daily-value allowlist. |
+| Current Moriium About page and `DESIGN.md` | Keep the established label axis, restrained rules and canonical blue family. | Use one shared static component; no copied upstream UI, new visual system or animation. |
+
+Morii later chose a simpler display rule: every absent or not-yet-reached date is
+shown as zero, so the public chart no longer distinguishes missing records. Both
+AI charts keep the same thresholds for cross-source comparison: an empty top Codex
+level reflects the current distribution rather than a styling defect. Natural-year
+calendars begin at 2026 and always include January through December. The mobile
+calendar splits into consecutive halves instead of requiring horizontal scrolling.
+A native year selector appears
+only after enhancement; without scripts, every year and disclosure table remains
+available. The About-only module also adds pointer, keyboard and date-input
+inspection. Validation is recorded in [`design-system.md`](design-system.md).
+
+### Earlier About implementation snapshot
 
 The production About page at `/{zh,ja,en}/about/` keeps its directory hero — Morii chose to retain the large title — and therefore spends the page's single display step there. Below it the statement drops to a second voice, and five bands run on one shared label axis: what the archive keeps, a dated record, the colophon, the site principles, and subscription and contact. Measured on the running site at 1440 pixels, every label sits at x=58 and every piece of content at x=202, in both grid bands and prose. The dated record stands on the same axis grammar as the archive index. Contact is one annotated line per channel stating its expectation rather than an icon row, and it names corrections by pull request, which is the only reader-response route available to a site that has banned comments and accounts permanently.

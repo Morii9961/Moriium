@@ -1,0 +1,89 @@
+---
+import { calendarDays, intensity, TOKEN_THRESHOLDS, type ActivitySnapshot, type ActivitySource, type CalendarCell } from '../lib/activity';
+import { activityCopy } from '../data/activity-copy';
+import type { Language } from '../data/site';
+interface Props { source: ActivitySource; snapshot: ActivitySnapshot | null; lang: Language; years: number[] }
+const { source, snapshot, lang, years } = Astro.props;
+const c = activityCopy[lang];
+const title = { github: 'GitHub', codex: 'Codex', claude: 'Claude Code' }[source];
+const id = `activity-${source}`;
+const locale = { zh: 'zh-CN', ja: 'ja-JP', en: 'en-US' }[lang];
+const number = new Intl.NumberFormat(locale);
+const compact = new Intl.NumberFormat(locale, { notation: 'compact', maximumFractionDigits: 1 });
+const month = new Intl.DateTimeFormat(locale, { month: 'short', timeZone: 'UTC' });
+const weekday = new Intl.DateTimeFormat(locale, { weekday: 'narrow', timeZone: 'UTC' });
+const unit = source === 'github' ? c.contributions : c.tokens;
+const labels = source === 'github' ? ['1–2', '3–9', '10–24', '≥25'] : [
+  `1–<${compact.format(TOKEN_THRESHOLDS[0])}`,
+  `${compact.format(TOKEN_THRESHOLDS[0])}–<${compact.format(TOKEN_THRESHOLDS[1])}`,
+  `${compact.format(TOKEN_THRESHOLDS[1])}–<${compact.format(TOKEN_THRESHOLDS[2])}`,
+  `≥${compact.format(TOKEN_THRESHOLDS[2])}`,
+];
+const label = (cell: CalendarCell) => `${cell.date} · ${number.format(cell.value ?? 0)} ${unit}`;
+const calendars = years.map((year) => {
+  const { start, end, cells } = calendarDays(snapshot, year);
+  const days = cells.filter((cell) => cell.state === 'known');
+  const total = days.reduce((sum, cell) => sum + cell.value, 0);
+  const active = days.filter((cell) => cell.value > 0).length;
+  const split = Math.ceil(cells.length / 7 / 2) * 7;
+  return { year, start, end, days, total, active, parts: [cells.slice(0, split), cells.slice(split)] };
+});
+---
+
+<article class="activity-chart" data-activity-chart aria-labelledby={`${id}-title`}>
+  <header class="activity-chart__heading">
+    <h3 id={`${id}-title`}><span class="activity-chart__mark" aria-hidden="true"></span>{title}</h3>
+  </header>
+  {calendars.map(({ year, start, end, days, total, active, parts }) => {
+    const yearId = `${id}-${year}`;
+    return (
+      <section class="activity-chart__year" data-activity-year={year} aria-labelledby={`${yearId}-title`}>
+        <header class="activity-chart__year-heading">
+          <h4 id={`${yearId}-title`}>{year}</h4>
+          <p><span aria-label={`${c.total}: ${number.format(total)} ${unit}`} title={`${number.format(total)} ${unit}`}>{compact.format(total)} <small>{unit}</small></span><span>{active} <small>{c.active}</small></span></p>
+        </header>
+        <div class="activity-calendar" data-activity-calendar role="group" aria-label={`${title} · ${c.range} ${start} – ${end}`} aria-describedby={`${yearId}-hint`}>
+          {parts.map((part, partIndex) => (
+            <div class="activity-calendar__part" style={`--weeks:${part.length / 7}`}>
+              <div class="activity-calendar__months" aria-hidden="true">
+                {Array.from({ length: part.length / 7 }, (_, week) => {
+                  const firstOfMonth = part.slice(week * 7, week * 7 + 7).find((cell) => cell.date.startsWith(`${year}-`) && cell.date.endsWith('-01'));
+                  const day = firstOfMonth ?? (week === 0 ? part[0] : undefined);
+                  return day ? <span class:list={{ 'activity-calendar__continued-month': partIndex > 0 && week === 0 && !firstOfMonth }} style={`grid-column:${week + 1}`}>{month.format(new Date(day.date))}</span> : null;
+                })}
+              </div>
+              <div class="activity-calendar__weekdays" aria-hidden="true">{Array.from({ length: 7 }, (_, day) => <span>{day % 2 === 0 && day < 5 ? weekday.format(new Date(`2026-09-${String(7 + day).padStart(2, '0')}T00:00:00Z`)) : ''}</span>)}</div>
+              <div class="activity-calendar__cells" aria-hidden="true">
+                {part.map((cell) => <span class:list={['activity-cell', `activity-cell--${cell.state}`]} data-level={intensity(cell.value, source)} data-date={cell.state === 'outside' ? undefined : cell.date} data-label={cell.state === 'outside' ? undefined : label(cell)} title={cell.state === 'outside' ? undefined : label(cell)}></span>)}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div class="activity-chart__legend" aria-label={`${title} · ${unit}`}>
+          <span><i class="activity-cell" data-level="0"></i>0</span>
+          {labels.map((text, index) => <span><i class="activity-cell" data-level={index + 1}></i>{text}</span>)}
+        </div>
+        <output class="activity-chart__readout" for={`${yearId}-date`} data-output aria-live="polite" aria-atomic="true" hidden data-interaction>{c.initial}</output>
+        <footer class="activity-chart__footer">
+          <p>{c.updated} · {snapshot ? <time datetime={snapshot.updatedAt}>{new Intl.DateTimeFormat(locale, { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(snapshot.updatedAt))} UTC+8</time> : '—'}</p>
+          <details>
+            <summary>{c.details}</summary>
+            <div class="activity-chart__interaction" hidden data-interaction>
+              <label for={`${yearId}-date`}>{c.date}<input id={`${yearId}-date`} type="date" min={start} max={end} value={end} data-date-input /></label>
+            </div>
+            <p id={`${yearId}-hint`} class="activity-chart__hint" hidden data-interaction>{c.hint}</p>
+            <div class="activity-chart__table" tabindex="0" role="region" aria-label={`${title} · ${year} · ${c.details}`}>
+              <table><caption>{title} · {start} – {end}</caption><thead><tr><th scope="col">{c.date}</th><th scope="col">{unit}</th></tr></thead>
+                <tbody>{days.toReversed().map((cell) => <tr><th scope="row"><time datetime={cell.date}>{cell.date}</time></th><td>{number.format(cell.value)}</td></tr>)}</tbody>
+              </table>
+            </div>
+          </details>
+        </footer>
+      </section>
+    );
+  })}
+</article>
+
+<script>
+  import '../scripts/activity';
+</script>

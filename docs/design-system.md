@@ -140,6 +140,30 @@ This snapshot describes the current branch code. It does not freeze unresolved i
 
 The `/design/` routes are clean-room comparison evidence, not production approval. The inspected references, extracted principles, rejected recommendations, and resulting decisions belong in [`design-research.md`](design-research.md). Any future promotion or revision must follow `DESIGN.md` and Morii's explicit approval.
 
+## About activity calendars — 2026-09-08
+
+The About page includes Morii's requested GitHub, Codex and Claude Code daily
+calendars. They reuse the existing label axis, interface and data fonts, blue
+tokens and section rules. No new global palette, typography or motion is defined.
+Natural-year views begin at 2026 and always run from January through December.
+A native select switches the enhanced
+view, while the unenhanced HTML keeps every year visible. Below 46rem, each year
+splits at a week boundary into two chronological halves. The two AI calendars
+share fixed thresholds; absent and not-yet-reached dates use the zero-value
+surface. Daily tables provide a text alternative to colour and remain
+available without JavaScript.
+
+The three language routes were checked locally in both themes, with responsive
+checks at 375, 390, 768, 1024 and 1440 CSS pixels. Keyboard selection and date
+input returned the expected daily values. Built HTML keeps the year selector
+hidden before enhancement, leaves every year panel visible and includes the
+native disclosure tables. All three static About routes returned HTTP 200 from
+a separate static server while the built Node server remained stopped. The
+activity module is 1,526 bytes in this build and is absent from the home pages.
+This is local implementation evidence, not deployment acceptance. Data
+collection and interpretation are documented in
+[`activity.md`](activity.md).
+
 ## Implementation rule
 
 When the implementation and `DESIGN.md` disagree, follow `DESIGN.md` and update this status record. Do not silently promote a prototype, generic skill recommendation, or reference-site pattern into Moriium's site-wide language.
