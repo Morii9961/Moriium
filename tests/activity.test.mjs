@@ -3,7 +3,7 @@ import test from 'node:test';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { ACTIVITY_START_YEAR, activityYears, calendarDays, validateActivity, intensity, dateInShanghai } from '../src/lib/activity.ts';
+import { ACTIVITY_START_YEAR, activityYears, calendarDays, activityStats, validateActivity, intensity, dateInShanghai } from '../src/lib/activity.ts';
 import { importUsage, importGitHub } from '../scripts/lib/activity-import.ts';
 import { coworkConfigDirs } from '../scripts/lib/cowork.ts';
 import { importCodexUsage } from '../scripts/lib/codex-usage.ts';
@@ -62,29 +62,49 @@ test('year choices start at the archive floor and grow newest-first', () => {
   assert.throws(() => activityYears('not-a-date'));
 });
 
-test('missing and future dates resolve to zero while cross-year padding stays outside', () => {
-  const snapshot = { updatedAt, timezone: 'Asia/Shanghai', metric: 'tokens', days: [{ date: '2026-09-07', value: 0 }] };
-  const { cells, end } = calendarDays(snapshot, 2026);
-  assert.equal(end, '2026-12-31');
-  assert.equal(cells.find((cell) => cell.date === '2025-12-29').state, 'outside');
-  assert.deepEqual(cells.find((cell) => cell.date === '2026-01-01'), { date: '2026-01-01', value: 0, state: 'known' });
-  assert.equal(cells.find((cell) => cell.date === '2026-09-07').state, 'known');
-  assert.deepEqual(cells.find((cell) => cell.date === '2026-09-06'), { date: '2026-09-06', value: 0, state: 'known' });
-  assert.deepEqual(cells.find((cell) => cell.date === '2026-12-31'), { date: '2026-12-31', value: 0, state: 'known' });
-  assert.equal(cells.find((cell) => cell.date === '2027-01-03').state, 'outside');
-  assert.equal(cells.some((cell) => cell.state === 'unknown'), false);
+test('calendar distinguishes recorded zero, missing, future and cross-year padding', () => {
+  const snapshot = { updatedAt, timezone: 'Asia/Shanghai', metric: 'tokens', days: [
+    { date: '2026-09-07', value: 0 }, { date: '2026-09-09', value: 50 },
+  ] };
+  const { cells } = calendarDays(snapshot, 2026, '2026-09-08');
+  const cell = (date) => cells.find((item) => item.date === date);
+  assert.deepEqual(cell('2026-09-07'), { date: '2026-09-07', value: 0, state: 'known' });
+  assert.deepEqual(cell('2026-09-06'), { date: '2026-09-06', value: null, state: 'unknown' });
+  assert.equal(cell('2026-09-08').state, 'unknown');
+  assert.deepEqual(cell('2026-09-09'), { date: '2026-09-09', value: null, state: 'future' });
+  assert.equal(cell('2026-12-31').state, 'future');
+  assert.equal(cell('2025-12-29').state, 'outside');
+  assert.equal(cell('2027-01-03').state, 'outside');
+  assert.throws(() => calendarDays(snapshot, 2026, 'invalid'));
   assert.equal(dateInShanghai(new Date('2026-09-06T16:01:00Z')), '2026-09-07');
 });
 
-test('activity page omits the retired missing-data legend and source notes', async () => {
-  const [chart, section, styles, copy] = await Promise.all([
-    readFile(new URL('../src/components/ActivityHeatmap.astro', import.meta.url), 'utf8'),
-    readFile(new URL('../src/components/AboutActivity.astro', import.meta.url), 'utf8'),
-    readFile(new URL('../src/styles/activity.css', import.meta.url), 'utf8'),
-    readFile(new URL('../src/data/activity-copy.ts', import.meta.url), 'utf8'),
-  ]);
-  for (const source of [chart, section, styles, copy]) {
-    assert.doesNotMatch(source, /activity-cell--unknown|about-activity__note|noteCodex|noteClaude|noteShared/);
+test('statistics use an inclusive 30-day window across years and exclude future records', () => {
+  const snapshot = { updatedAt, timezone: 'Asia/Shanghai', metric: 'tokens', days: [
+    { date: '2026-12-10', value: 500 }, { date: '2026-12-11', value: 30 },
+    { date: '2027-01-01', value: 10 }, { date: '2027-01-02', value: 20 },
+    { date: '2027-01-03', value: 0 }, { date: '2027-01-09', value: 20 },
+    { date: '2027-01-10', value: 900 },
+  ] };
+  const stats = activityStats(snapshot, 2027, '2027-01-09');
+  assert.equal(stats.recentStart, '2026-12-11');
+  assert.equal(stats.recentActive, 4);
+  assert.equal(stats.total, 50);
+  assert.equal(stats.active, 3);
+  assert.equal(stats.average, 50 / 3);
+  assert.equal(stats.peak.date, '2027-01-02');
+  assert.equal(stats.peak.value, 20);
+  assert.equal(stats.days.length, 4);
+});
+
+test('empty and zero-only snapshots do not fabricate averages or peaks', () => {
+  for (const snapshot of [null, { updatedAt, timezone: 'Asia/Shanghai', metric: 'tokens', days: [{ date: '2026-09-07', value: 0 }] }]) {
+    const stats = activityStats(snapshot, 2026, '2026-09-08');
+    assert.equal(stats.total, 0);
+    assert.equal(stats.active, 0);
+    assert.equal(stats.recentActive, 0);
+    assert.equal(stats.average, null);
+    assert.equal(stats.peak, null);
   }
 });
 

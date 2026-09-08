@@ -7,7 +7,7 @@ const enhanceCalendar = (calendar: HTMLElement) => {
   const cells = Array.from(calendar.querySelectorAll<HTMLElement>('[data-date]'));
   if (!panel || !input || !output || !cells.length) return;
 
-  let selected = cells.length - 1;
+  let selected = Math.max(0, cells.findIndex((cell) => cell.dataset.date === input.value));
   const show = (index: number, announce = true) => {
     selected = Math.max(0, Math.min(cells.length - 1, index));
     const cell = cells[selected]!;
