@@ -123,10 +123,11 @@ for it.
   hold disjoint conversations, so ccusage's per-run deduplication is enough; it matters,
   because the raw rows trebled the total in a hand check. Remote Cowork sessions run in
   Anthropic's cloud, leave nothing on this computer and are therefore never counted.
-- Explicit source zeroes use the zero-value fill. Missing records have dotted
-  outlines and never become zeroes. Future dates and cross-year padding have faint
-  solid outlines without date interaction. Previously collected values survive
-  later log cleanup.
+- Elapsed dates without source records display and count as zero. Cross-year
+  padding follows its adjacent region: zero fill at the start, and faint outlines
+  at the end while the year is still in progress. Future dates retain faint solid
+  outlines and cannot be selected. Neither state adds a legend label. Previously collected values
+  survive later log cleanup.
 - `src/data/activity.json` is the archive of record, not a cache of the last year.
   Collected days are kept from 2026-01-01 onward and none is ever dropped for age.
   Every source deletes its own logs eventually, so a day discarded here cannot be
@@ -166,13 +167,13 @@ year panels omit it. The disclosure prints the interval and build date alongside
 the source collection timestamp. Source day buckets retain their original zones.
 A static page keeps these dates until rebuilt; it does not imply live collection.
 
-Year totals and active-day counts include only explicit records on or before the
-build date. The active-day average divides that total by days with positive values.
+Year totals and active-day counts cover elapsed dates through the build date;
+absent records are treated as zero. The active-day average divides that total by days with positive values.
 The peak shows the earliest date when multiple days share the maximum. No active
-days means no average or peak; no records means a dash rather than an inferred zero.
+days means no average or peak; absent records contribute zero.
 The current day can be incomplete. These are usage records, not productivity scores.
-Keyboard entry starts at the latest recorded day; missing days remain inspectable
-as “Not recorded”, while future and padding cells are excluded from selection.
+Keyboard entry starts at the latest recorded day; missing elapsed days remain
+inspectable as zero, while future and padding cells are excluded from selection.
 
 ## Sources and reuse
 

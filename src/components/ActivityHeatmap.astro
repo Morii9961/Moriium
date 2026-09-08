@@ -19,14 +19,14 @@ const labels = source === 'github' ? ['1–2', '3–9', '10–24', '≥25'] : [
   `${compact.format(TOKEN_THRESHOLDS[1])}–<${compact.format(TOKEN_THRESHOLDS[2])}`,
   `≥${compact.format(TOKEN_THRESHOLDS[2])}`,
 ];
-const label = (cell: CalendarCell) => `${cell.date} · ${cell.state === 'known' ? `${number.format(cell.value)} ${unit}` : c.unknown}`;
+const label = (cell: CalendarCell) => `${cell.date} · ${number.format(cell.value ?? 0)} ${unit}`;
 const calendars = years.map((year) => {
   const stats = activityStats(snapshot, year, asOf);
   const { cells } = stats;
   const split = Math.ceil(cells.length / 7 / 2) * 7;
-  const selectable = cells.filter((cell) => cell.state === 'known' || cell.state === 'unknown');
+  const selectable = cells.filter((cell) => cell.state === 'known');
   return { ...stats, year, current: year === Number(asOf.slice(0, 4)),
-    selectionEnd: selectable.at(-1)?.date, initialDate: stats.days.at(-1)?.date ?? selectable.at(-1)?.date,
+    selectionEnd: selectable.at(-1)?.date, initialDate: snapshot?.days.filter((day) => day.date >= stats.start && day.date <= stats.end && day.date <= asOf).at(-1)?.date ?? selectable.at(-1)?.date,
     parts: [cells.slice(0, split), cells.slice(split)] };
 });
 ---
@@ -35,13 +35,13 @@ const calendars = years.map((year) => {
   <header class="activity-chart__heading">
     <h3 id={`${id}-title`}><span class="activity-chart__mark" aria-hidden="true"></span>{title}</h3>
   </header>
-  {calendars.map(({ year, start, end, days, total, active, parts, current, recentStart, recentActive, recentRecorded, average, peak, selectionEnd, initialDate }) => {
+  {calendars.map(({ year, start, end, days, total, active, parts, current, recentStart, recentActive, average, peak, selectionEnd, initialDate }) => {
     const yearId = `${id}-${year}`;
     return (
       <section class="activity-chart__year" data-activity-year={year} aria-labelledby={`${yearId}-title`}>
         <header class="activity-chart__year-heading">
           <h4 id={`${yearId}-title`}>{year}</h4>
-          <p><span aria-label={`${c.total}: ${days.length ? number.format(total) : c.unknown} ${unit}`} title={days.length ? `${number.format(total)} ${unit}` : c.unknown}>{days.length ? compact.format(total) : '—'} <small>{unit}</small></span><span>{days.length ? active : '—'} <small>{c.active}</small></span>{current && <span title={`${recentStart} – ${asOf}`}>{recentRecorded ? recentActive : '—'} <small>{c.recent}</small></span>}</p>
+          <p><span aria-label={`${c.total}: ${number.format(total)} ${unit}`} title={`${number.format(total)} ${unit}`}>{compact.format(total)} <small>{unit}</small></span><span>{active} <small>{c.active}</small></span>{current && <span title={`${recentStart} – ${asOf}`}>{recentActive} <small>{c.recent}</small></span>}</p>
         </header>
         <div class="activity-calendar" data-activity-calendar role="group" aria-label={`${title} · ${c.range} ${start} – ${end}`} aria-describedby={`${yearId}-hint`}>
           {parts.map((part, partIndex) => (
@@ -56,8 +56,8 @@ const calendars = years.map((year) => {
               <div class="activity-calendar__weekdays" aria-hidden="true">{Array.from({ length: 7 }, (_, day) => <span>{day % 2 === 0 && day < 5 ? weekday.format(new Date(`2026-09-${String(7 + day).padStart(2, '0')}T00:00:00Z`)) : ''}</span>)}</div>
               <div class="activity-calendar__cells" aria-hidden="true">
                 {part.map((cell) => {
-                  const selectable = cell.state === 'known' || cell.state === 'unknown';
-                  return <span class:list={['activity-cell', `activity-cell--${cell.state}`]} data-level={intensity(cell.value, source)} data-date={selectable ? cell.date : undefined} data-label={selectable ? label(cell) : undefined} title={selectable ? label(cell) : undefined}></span>;
+                  const selectable = cell.state === 'known';
+                  return <span class:list={['activity-cell', `activity-cell--${cell.state}`, { 'activity-cell--future': cell.state === 'outside' && cell.date > end && end > asOf }]} data-level={intensity(cell.value, source)} data-date={selectable ? cell.date : undefined} data-label={selectable ? label(cell) : undefined} title={selectable ? label(cell) : undefined}></span>;
                 })}
               </div>
             </div>
@@ -66,8 +66,6 @@ const calendars = years.map((year) => {
         <div class="activity-chart__legend" aria-label={`${title} · ${unit}`}>
           <span><i class="activity-cell" data-level="0"></i>0</span>
           {labels.map((text, index) => <span><i class="activity-cell" data-level={index + 1}></i>{text}</span>)}
-          <span><i class="activity-cell activity-cell--unknown"></i>{c.unknown}</span>
-          {current && <span><i class="activity-cell activity-cell--future"></i>{c.future}</span>}
         </div>
         <output class="activity-chart__readout" for={`${yearId}-date`} data-output aria-live="polite" aria-atomic="true" hidden data-interaction>{c.initial}</output>
         <footer class="activity-chart__footer">

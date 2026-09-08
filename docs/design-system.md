@@ -149,9 +149,10 @@ Natural-year views begin at 2026 and always run from January through December.
 A native select switches the enhanced
 view, while the unenhanced HTML keeps every year visible. Below 46rem, each year
 splits at a week boundary into two chronological halves. The two AI calendars
-share fixed thresholds. Explicit zeroes retain their fill; missing dates use
-dotted outlines, while future dates and cross-year padding use faint solid
-outlines to complete the rectangle. Only elapsed dates are interactive.
+share fixed thresholds. Elapsed dates without records count as zero and use the
+zero-value fill. Leading padding uses the same fill; trailing padding matches
+the adjacent future outlines until the year has ended. The future-date legend
+label is omitted. Only elapsed dates are interactive.
 Daily tables provide a text alternative to colour and remain
 available without JavaScript.
 

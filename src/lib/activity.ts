@@ -18,7 +18,7 @@ export interface ActivityData {
 }
 export type CalendarCell =
   | { date: string; value: number; state: 'known' }
-  | { date: string; value: null; state: 'outside' | 'future' | 'unknown' };
+  | { date: string; value: null; state: 'outside' | 'future' };
 
 export function validDate(value: unknown): value is string {
   return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)
@@ -64,7 +64,7 @@ export function shiftDate(date: string, days: number): string {
   return result.toISOString().slice(0, 10);
 }
 
-/** Keep whole weeks, distinguishing reported zeroes from unrecorded and future days. */
+/** Keep whole weeks; elapsed dates without records display as zero. */
 export function calendarDays(snapshot: ActivitySnapshot | null, year: number, asOf = dateInShanghai()) {
   if (!Number.isInteger(year) || year < 1000 || year > 9999) throw new Error('Invalid calendar year.');
   if (!validDate(asOf)) throw new Error('Invalid activity date.');
@@ -79,8 +79,7 @@ export function calendarDays(snapshot: ActivitySnapshot | null, year: number, as
     cells.push(outside
       ? { date, value: null, state: 'outside' }
       : date > asOf ? { date, value: null, state: 'future' }
-      : values.has(date) ? { date, value: values.get(date)!, state: 'known' }
-      : { date, value: null, state: 'unknown' });
+      : { date, value: values.get(date) ?? 0, state: 'known' });
   }
   return { start, end, cells };
 }
@@ -94,7 +93,7 @@ export function activityStats(snapshot: ActivitySnapshot | null, year: number, a
   const recentDays = snapshot?.days.filter((day) => day.date >= recentStart && day.date <= asOf) ?? [];
   const recentActive = recentDays.filter((day) => day.value > 0).length;
   const peak = activeDays.reduce<(typeof activeDays)[number] | null>((best, day) => !best || day.value > best.value ? day : best, null);
-  return { ...calendar, days, total, active: activeDays.length, recentStart, recentActive, recentRecorded: recentDays.length,
+  return { ...calendar, days, total, active: activeDays.length, recentStart, recentActive,
     average: activeDays.length ? total / activeDays.length : null, peak };
 }
 

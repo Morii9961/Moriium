@@ -46,8 +46,7 @@
 .activity-cell[data-level='2'] { background: var(--activity-2); }
 .activity-cell[data-level='3'] { background: var(--activity-3); }
 .activity-cell[data-level='4'] { background: var(--activity-4); }
-.activity-cell--outside, .activity-cell--future { background: transparent; box-shadow: inset 0 0 0 1px var(--line-soft); }
-.activity-cell--unknown { background: transparent; border: 1px dotted var(--line); }
+.activity-cell--future { background: transparent; box-shadow: inset 0 0 0 1px var(--line-soft); }
 .activity-cell[data-date] { cursor: crosshair; }
 .activity-cell.is-selected { outline: 2px solid var(--focus); outline-offset: 1px; }
 .activity-chart__legend { display: flex; flex-wrap: wrap; gap: 0.6rem 1rem; margin-top: 1rem; color: var(--ink-muted); font: 0.6875rem var(--font-data); }

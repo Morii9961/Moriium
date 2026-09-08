@@ -143,3 +143,13 @@ and future cells, dotted missing cells, and filled explicit zeroes. No global
 identity tokens or animation change. The current year adds a 30-day active count;
 active-day average, peak and calculation notes stay inside the daily disclosure.
 The About page prose remains unchanged.
+
+Morii refined this decision after viewing the preview: elapsed dates without
+records now count as zero, and cross-year padding uses the ordinary zero fill.
+The missing-data legend is removed. Future dates retain their outlined state;
+padding remains decorative and does not enter the selected year's statistics.
+
+A further preview correction makes trailing padding match the adjacent future
+region's outline while the year is in progress; leading padding remains filled.
+Morii also removed the future-date legend label. Date interaction and statistics
+still exclude future and padding cells.
