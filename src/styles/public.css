@@ -423,7 +423,7 @@
 
   .public-site .site-footer__masthead {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
     gap: 2rem;
     padding-bottom: clamp(2.5rem, 5vw, 4.5rem);
@@ -435,9 +435,11 @@
     justify-content: space-between;
     gap: 1.5rem;
     min-height: 2.75rem;
-    color: color-mix(in srgb, var(--accent-field-ink) 76%, transparent);
-    font-family: var(--font-data);
-    font-size: 0.68rem;
+    margin-right: clamp(1.5rem, 4vw, 4rem);
+    color: var(--accent-field-ink);
+    font-family: var(--font-interface);
+    font-size: 0.78rem;
+    font-weight: 600;
     text-decoration: none;
     transition: color var(--motion-fast) var(--motion-ease);
   }
@@ -1766,6 +1768,10 @@
     .public-site .site-footer__masthead {
       align-items: flex-end;
       padding-bottom: 2.5rem;
+    }
+
+    .public-site .site-footer__top {
+      margin-right: 0;
     }
 
     .public-site .site-footer__name {
