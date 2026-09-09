@@ -26,13 +26,6 @@ const copy = {
       '没有固定主题，也没有更新计划。内容按时间、分类与标签保存。',
       '公开页面预先生成；受保护文章在本地加密。阅读不需要账户，也不记录访问行为。',
     ],
-    colophon: '站点说明', colophonNote: 'Colophon',
-    facts: [
-      ['字体', '公开页面使用 Noto Serif SC/JP；首页题字使用 Shippori Mincho；日期与数据使用 IBM Plex Mono。'],
-      ['构建', '公开页面预先生成，搜索索引只在打开搜索时载入。'],
-      ['访问', '不使用分析脚本、访问计数或读者账户。'],
-      ['许可', '代码采用 MIT 许可；文章、照片与其他内容保留所有权利。'],
-    ],
     reach: '订阅与其他地址', reachNote: 'Feeds and elsewhere',
     feedBody: '三种语言各有一份 RSS，收录对应语言的公开文章。',
     feedLabel: { zh: '中文 RSS', ja: '日本語 RSS', en: 'English RSS' },
@@ -52,13 +45,6 @@ const copy = {
       'テーマも更新予定も決めていません。内容は日付、カテゴリー、タグで整理しています。',
       '公開ページは事前に生成し、保護記事はローカルで暗号化します。閲覧にアカウントは不要で、アクセスも計測しません。',
     ],
-    colophon: 'サイト情報', colophonNote: 'Colophon',
-    facts: [
-      ['書体', '公開ページは Noto Serif SC/JP、ホームの題字は Shippori Mincho、日付とデータは IBM Plex Mono を使用します。'],
-      ['ビルド', '公開ページは事前に生成し、検索索引は検索を開いたときだけ読み込みます。'],
-      ['アクセス', '解析スクリプト、アクセスカウンター、読者アカウントは使用しません。'],
-      ['ライセンス', 'コードは MIT ライセンス。文章、写真、その他のコンテンツの権利は作者に帰属します。'],
-    ],
     reach: '購読とほかの場所', reachNote: 'Feeds and elsewhere',
     feedBody: '三つの言語にそれぞれ RSS があり、対応する言語の公開記事を収めています。',
     feedLabel: { zh: '中文 RSS', ja: '日本語 RSS', en: 'English RSS' },
@@ -77,13 +63,6 @@ const copy = {
     body: [
       'There is no fixed subject or publishing schedule. Entries are filed by date, category, and tag.',
       'Public pages are built in advance; protected posts are encrypted locally. Reading requires no account and is not tracked.',
-    ],
-    colophon: 'Colophon', colophonNote: 'Site facts',
-    facts: [
-      ['Type', 'Public pages use Noto Serif SC/JP; the home title uses Shippori Mincho; dates and data use IBM Plex Mono.'],
-      ['Build', 'Public pages are built in advance. The search index loads only when search is opened.'],
-      ['Access', 'No analytics, view counters, or reader accounts.'],
-      ['Rights', 'Code is MIT licensed. Writing, photographs, and other content are all rights reserved.'],
     ],
     reach: 'Feeds and elsewhere', reachNote: 'Feeds and elsewhere',
     feedBody: 'Each language has its own feed containing its public posts.',
@@ -110,15 +89,6 @@ const c = copy[lang];
       <p class="prototype-kicker">{c.place}</p>
       <h2 id="about-statement">{c.statement}</h2>
       <div>{c.body.map((paragraph) => <p>{paragraph}</p>)}</div>
-    </section>
-
-    <section class="a-about-page__band a-about-page__colophon" aria-labelledby="about-colophon">
-      <header class="a-about-page__head"><h2 id="about-colophon">{c.colophon}</h2><p>{c.colophonNote}</p></header>
-      <dl class="a-about-page__inset">
-        {c.facts.map(([term, description]) => (
-          <div><dt>{term}</dt><dd>{description}</dd></div>
-        ))}
-      </dl>
     </section>
 
     <AboutActivity lang={lang} />
