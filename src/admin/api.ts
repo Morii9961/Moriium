@@ -142,19 +142,12 @@ const SIGN_IN_NETWORK_MESSAGE = '后台连接失败。请检查网络后重试�
  * routing a rejected credential through it answers a mistyped password with a
  * session problem the author cannot act on.
  *
- * A 403 comes from the Host/Origin boundary. The server says only "请求已拒绝。",
- * which names the refusal without naming its cause, and the cause here is
- * always the address the admin was opened at.
+ * A 403 already arrives explained: the boundary tells an address mismatch
+ * apart from a stale page token, because only the server knows which guard
+ * refused. Passing it through unchanged is the point.
  */
 export function messageForSignInFailure(error: unknown): string {
-  if (error instanceof ApiError) {
-    if (error.status === 403) {
-      return '请求已拒绝：浏览器的来源与后台自身的地址不一致。请用后台实际提供服务的地址打开它，协议、主机名与端口三者都要完全一致。';
-    }
-    return error.message;
-  }
-  if (error instanceof TypeError) return SIGN_IN_NETWORK_MESSAGE;
-  return String(error);
+  return messageForApiFailure(error, SIGN_IN_NETWORK_MESSAGE);
 }
 
 let csrfToken = '';

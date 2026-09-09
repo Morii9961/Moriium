@@ -42,14 +42,13 @@ describe('admin client failure messages', () => {
     assert.doesNotMatch(message, /会话/);
   });
 
-  it('explains a refused origin instead of repeating the bare refusal', () => {
-    // The boundary answers a mismatched Host/Origin with "请求已拒绝。", which
-    // names the refusal and not its cause. Only the address the author opened
-    // can be wrong here, so the message has to say so.
-    const message = messageForSignInFailure(new ApiError(403, '请求已拒绝。'));
+  it('passes the boundary explanation through instead of flattening it', () => {
+    // The two 403 causes are told apart on the server, which is the only side
+    // that knows which guard refused. The client must not collapse them back
+    // into one sentence on the way to the screen.
+    const refusal = '请求已拒绝：请求来源与后台自身的地址不一致。';
 
-    assert.match(message, /地址/);
-    assert.match(message, /端口/);
+    assert.equal(messageForSignInFailure(new ApiError(403, refusal)), refusal);
   });
 
   it('keeps the browser exception out of a sign-in network failure', () => {
