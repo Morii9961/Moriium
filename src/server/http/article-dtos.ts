@@ -16,6 +16,13 @@ export type ArticleDetailDto = {
   readonly audit: readonly AuditEntry[];
   readonly hasUnpublishedChanges: boolean;
   readonly awaitingExport: boolean;
+  /**
+   * The other articles in this translation group.
+   *
+   * The editor offers a translation only into a language the group is still
+   * missing, and it cannot know which those are without seeing the group.
+   */
+  readonly siblings: readonly Pick<Article, 'id' | 'lang' | 'slug'>[];
 };
 
 export type PublicArticleDto = {
@@ -53,6 +60,10 @@ export function toArticleDetailDto(store: ArticleStore, article: Article): Artic
     audit: store.listAudit(article.id),
     hasUnpublishedChanges: store.hasUnpublishedChanges(article.id),
     awaitingExport: store.isAwaitingExport(article.id),
+    siblings: store
+      .listArticles()
+      .filter((entry) => entry.translationKey === article.translationKey && entry.id !== article.id)
+      .map((entry) => ({ id: entry.id, lang: entry.lang, slug: entry.slug })),
   };
 }
 

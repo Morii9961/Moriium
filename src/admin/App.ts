@@ -359,6 +359,21 @@ export default defineComponent({
       }
     }
 
+    /**
+     * Opens a variant the editor just produced.
+     *
+     * The list is refreshed first so the new article is in it; the editor then
+     * loads the draft translation, which is the point of generating one.
+     */
+    async function openTranslated(articleId: number): Promise<void> {
+      try {
+        await refresh();
+      } catch (error) {
+        report(error);
+      }
+      openId.value = articleId;
+    }
+
     async function backToList(): Promise<void> {
       openId.value = null;
       await loadAuthorViews();
@@ -377,6 +392,7 @@ export default defineComponent({
       articles,
       openId,
       creating,
+      openTranslated,
       draft,
       createMode,
       sourceId,
@@ -413,7 +429,7 @@ export default defineComponent({
       </form>
     </div>
 
-    <ArticleEditor v-else-if="openId !== null" :article-id="openId" @back="backToList" />
+    <ArticleEditor v-else-if="openId !== null" :article-id="openId" @back="backToList" @opened="openTranslated" />
 
     <main v-else class="admin-wrap">
       <header class="admin-header">

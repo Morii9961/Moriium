@@ -36,6 +36,11 @@ export const ERROR_CODES = [
   // A release step refused or failed. Like the export, retrying is an operator
   // decision made after reading the message, not something to loop on.
   'release-failed',
+  // The translation service did not answer, or answered something that did not
+  // match what was asked. Not retryable here: the client already retries the
+  // connection several times, so reaching this code means those are spent, and
+  // the variant is simply not produced.
+  'translation-failed',
   'unauthorized',
   'forbidden',
   'validation-failed',

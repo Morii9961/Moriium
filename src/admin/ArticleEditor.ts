@@ -5,6 +5,7 @@ import {
   api,
   messageForApiFailure,
   type ArticleDetail,
+  type Language,
   type MediaAsset,
   type Version,
   type VersionFields,
@@ -68,7 +69,7 @@ export default defineComponent({
   name: 'ArticleEditor',
   components: { EditorContent, MediaLibrary },
   props: { articleId: { type: Number, required: true } },
-  emits: ['back'],
+  emits: ['back', 'opened'],
   setup(props, { emit }) {
     const detail = shallowRef<ArticleDetail | null>(null);
     const fields = ref<VersionFields>(blankFields());
@@ -80,6 +81,7 @@ export default defineComponent({
     const dirty = ref(false);
     const previewHtml = ref('');
     const previewing = ref(false);
+    const translating = ref(false);
     const selectedImage = ref<MoriiumImageAttributes | null>(null);
     const editor = useEditor({ extensions: moriiumExtensions(), content: '' });
     let autosaveTimer: ReturnType<typeof setTimeout> | undefined;
@@ -91,6 +93,24 @@ export default defineComponent({
     const latest = computed(() => detail.value?.latest ?? null);
     const published = computed(() => detail.value?.published ?? null);
     const live = computed(() => detail.value?.live ?? null);
+
+    /**
+     * Languages this article can still be translated into.
+     *
+     * Read from the group rather than guessed. A variant that exists must not
+     * be offered: creating it would collide with the unique
+     * (translation_key, lang) constraint, and a group holding two articles of
+     * one language is what the publish gate refuses anyway.
+     */
+    const missingLanguages = computed<Language[]>(() => {
+      const current = article.value;
+      if (!current) return [];
+      const taken = new Set<string>([
+        current.lang,
+        ...(detail.value?.siblings ?? []).map((entry) => entry.lang),
+      ]);
+      return (['zh', 'ja', 'en'] as Language[]).filter((lang) => !taken.has(lang));
+    });
 
     function report(error: unknown): void {
       failure.value = messageForApiFailure(
@@ -303,6 +323,31 @@ export default defineComponent({
       }
     }
 
+    /**
+     * Asks the service for this article in another language.
+     *
+     * The result is a draft in its own right, so the editor moves to it rather
+     * than staying here: a translation nobody looks at is exactly what the
+     * labelling rule exists to prevent, and the whole point of this flow is
+     * that Morii reads it before it is published.
+     */
+    async function translateInto(to: Language): Promise<void> {
+      translating.value = true;
+      failure.value = '';
+      status.value = `正在生成 ${to} 译文…`;
+      try {
+        const created = await api.translate(props.articleId, to);
+        status.value = `已生成 ${to} 译文草稿 #${created.version.id}，请校对后再发布。`;
+        emit('opened', created.article.id);
+      } catch (error) {
+        // Fail closed: nothing was written, so the variant simply stays absent.
+        status.value = '';
+        report(error);
+      } finally {
+        translating.value = false;
+      }
+    }
+
     function openVersion(version: Version): void {
       if (busy.value || saving.value) return;
       fields.value = toFields(version);
@@ -357,6 +402,9 @@ export default defineComponent({
       dirty,
       previewHtml,
       previewing,
+      translating,
+      missingLanguages,
+      translateInto,
       selectedImage,
       editor,
       scheduleAutosave,
@@ -434,6 +482,17 @@ export default defineComponent({
             <button type="button" class="primary" :disabled="busy || saving || !latest" @click="publishCurrent">发布当前内容</button>
             <button v-if="published" type="button" class="danger" :disabled="busy || saving" @click="unpublish">撤下文章</button>
           </div>
+
+          <div v-if="missingLanguages.length > 0" class="editor-actions translate-actions">
+            <span class="note">生成译文（草稿，需你校对后再发布）</span>
+            <button
+              v-for="lang in missingLanguages"
+              :key="lang"
+              type="button"
+              :disabled="busy || saving || translating"
+              @click="translateInto(lang)"
+            >译成 {{ lang }}</button>
+          </div>
         </section>
 
         <aside class="editor-aside">
@@ -443,6 +502,8 @@ export default defineComponent({
               <dt>translationKey</dt><dd>{{ article.translationKey }}</dd>
               <dt>语言</dt><dd>{{ article.lang }}</dd>
               <dt>slug</dt><dd>{{ article.slug }}</dd>
+              <dt v-if="article.machineTranslatedFrom">译自</dt>
+              <dd v-if="article.machineTranslatedFrom">{{ article.machineTranslatedFrom }}（机器翻译）</dd>
             </dl>
             <p class="note">语言、translationKey 与 slug 建立后不可修改，以保持翻译关系与公开 URL 稳定。</p>
           </section>

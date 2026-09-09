@@ -129,6 +129,20 @@
     text-wrap: pretty;
   }
 
+  /* A stated fact about the text, not a warning about it. A rule and muted
+     ink put it in the editorial voice the rest of the page uses; a coloured
+     callout box would argue with DESIGN.md and overstate the point. */
+  .a-article__machine-translation {
+    max-width: 34rem;
+    margin-top: 1.25rem;
+    padding-left: 0.875rem;
+    border-left: 2px solid var(--line);
+    color: var(--ink-faint);
+    font-family: var(--font-data);
+    font-size: 0.8125rem;
+    line-height: 1.7;
+  }
+
   .a-article__facts {
     z-index: 1;
     grid-column: 10 / 13;

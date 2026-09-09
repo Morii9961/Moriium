@@ -17,7 +17,7 @@ import {
   startDatabaseBackupScheduler,
 } from '../src/server/backup/database-backup.ts';
 import { drillDatabaseRestore } from '../src/server/backup/restore-drill.ts';
-import { openDatabase } from '../src/server/db/open.ts';
+import { MIGRATIONS, openDatabase } from '../src/server/db/open.ts';
 import { AdminError } from '../src/server/errors.ts';
 import { parseRestoreDrillCommand } from '../scripts/drill-database-restore.mjs';
 
@@ -186,7 +186,10 @@ describe('the restore drill', () => {
     });
 
     assert.equal(result.negativeControlRejected, true);
-    assert.equal(result.migrationVersion, 1);
+    // Bound to the migration list, not to a number: the drill proves the
+    // restored copy is migrated to the current schema, and pinning a literal
+    // would fail every time a migration is added without saying anything.
+    assert.equal(result.migrationVersion, MIGRATIONS.at(-1).id);
     assert.ok(result.durationMs >= 0);
     assert.equal(result.workspace, undefined, 'the disposable restored copy is removed by default');
   });

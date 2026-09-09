@@ -69,8 +69,14 @@ export function toMarkdownFile(article: Article, version: Version): string {
   fields.push(
     line('lang', scalar(article.lang)),
     line('translationKey', scalar(article.translationKey)),
-    line('category', scalar(version.category)),
   );
+  // Only present on a variant a machine produced. Emitting it unconditionally
+  // as null would put the field on articles Morii wrote, and the notice reads
+  // from its presence.
+  if (article.machineTranslatedFrom !== null) {
+    fields.push(line('machineTranslation', scalar(article.machineTranslatedFrom)));
+  }
+  fields.push(line('category', scalar(version.category)));
   if (version.tags.length === 0) {
     fields.push(line('tags', '[]'));
   } else {

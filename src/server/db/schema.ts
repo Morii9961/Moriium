@@ -11,6 +11,25 @@
 // removed; this module is the only copy. Keep it SQL and this header, nothing
 // else.
 
+/**
+ * Migration 002: record which variants a machine produced.
+ *
+ * On `articles` rather than `versions` because it describes the variant, not a
+ * revision of it, exactly like `lang` and `slug`. A machine-translated article
+ * that Morii then rewrites line by line is still a variant that began as a
+ * translation, and the reader notice is about where the text came from.
+ *
+ * Holds the source language rather than the source article id: the notice the
+ * reader sees names a language, and the article it came from is already
+ * reachable through the shared translation key. Nullable, because an article
+ * Morii wrote has no source to name.
+ */
+export const MACHINE_TRANSLATION_SQL = `
+ALTER TABLE articles
+  ADD COLUMN machine_translated_from TEXT
+  CHECK (machine_translated_from IS NULL OR machine_translated_from IN ('zh', 'ja', 'en'));
+`;
+
 export const SCHEMA_SQL = `-- Moriium admin database, migration 001.
 --
 -- ADR 0002 sections 6.3 and 6.4. Never edit this file to change an existing

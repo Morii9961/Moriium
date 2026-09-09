@@ -12,6 +12,10 @@ export const sharedMetadata = z.object({
   updatedAt: z.coerce.date().optional(),
   lang: language,
   translationKey: z.string().min(1),
+  // The language this variant was machine translated from, absent when a
+  // person wrote it. `AGENTS.md` permits machine translation only when the
+  // page says so, and this field is what every surface reads to say it.
+  machineTranslation: language.optional(),
   category: z.string().min(1),
   tags: z.array(z.string().min(1)).default([]),
   cover: z.string().optional(),

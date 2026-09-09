@@ -38,6 +38,11 @@ export type Article = {
   publishedVersionId: number | null;
   /** What the built site is actually serving. Trails publishing until an export succeeds. */
   liveVersionId: number | null;
+  /**
+   * The language a machine translated this variant from, or null when a person
+   * wrote it. The reader notice and the feed marker both read this.
+   */
+  machineTranslatedFrom: Language | null;
 };
 
 /** The frontmatter of one saved version. Mirrors sharedMetadata in src/content-schema.ts. */
@@ -71,6 +76,8 @@ export type NewArticle = {
   translationKey: string;
   lang: Language;
   slug: string;
+  /** Set only by the translation flow, which is the sole producer of one. */
+  machineTranslatedFrom?: Language | null;
 } & Omit<SaveInput, 'kind'>;
 
 export type AuditEntry = {
@@ -92,6 +99,7 @@ type ArticleRow = {
   created_at: string;
   published_version_id: number | null;
   live_version_id: number | null;
+  machine_translated_from: string | null;
 };
 
 type VersionRow = {
@@ -151,6 +159,7 @@ function toArticle(row: ArticleRow): Article {
     createdAt: row.created_at,
     publishedVersionId: row.published_version_id,
     liveVersionId: row.live_version_id,
+    machineTranslatedFrom: (row.machine_translated_from as Language | null) ?? null,
   };
 }
 
@@ -404,9 +413,9 @@ export class ArticleStore {
     try {
       const result = this.#db
         .prepare(
-          'INSERT INTO articles (translation_key, lang, slug, created_at) VALUES (?, ?, ?, ?)',
+          'INSERT INTO articles (translation_key, lang, slug, created_at, machine_translated_from) VALUES (?, ?, ?, ?, ?)',
         )
-        .run(input.translationKey, input.lang, input.slug, at);
+        .run(input.translationKey, input.lang, input.slug, at, input.machineTranslatedFrom ?? null);
       articleId = Number(result.lastInsertRowid);
     } catch (cause) {
       throw new AdminError(

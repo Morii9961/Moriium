@@ -9,7 +9,7 @@ import { adminJson } from '../../../server/http/boundary.ts';
 
 export const prerender = false;
 
-const ARTICLE_PATH = /^(\d+)(?:\/(versions|autosave|preview|publish|rollback|unpublish))?$/;
+const ARTICLE_PATH = /^(\d+)(?:\/(versions|autosave|preview|publish|rollback|unpublish|translate))?$/;
 
 const handle: APIRoute = async ({ request, session, params }) => {
   if (!session) return adminJson({ error: '会话存储不可用。' }, 500);

@@ -13,6 +13,8 @@ export type Article = {
   readonly createdAt: string;
   readonly publishedVersionId: number | null;
   readonly liveVersionId: number | null;
+  /** The language a machine translated this variant from, else null. */
+  readonly machineTranslatedFrom: Language | null;
 };
 
 export type VersionFields = {
@@ -83,6 +85,8 @@ export type ArticleDetail = {
   readonly audit: AuditEntry[];
   readonly hasUnpublishedChanges: boolean;
   readonly awaitingExport: boolean;
+  /** The other articles sharing this translationKey. */
+  readonly siblings: readonly { readonly id: number; readonly lang: Language; readonly slug: string }[];
 };
 
 export type MediaAsset = {
@@ -272,6 +276,10 @@ export const api = {
 
   unpublish(id: number, note?: string): Promise<{ article: Article }> {
     return send('POST', `/api/articles/${id}/unpublish/`, note === undefined ? {} : { note });
+  },
+
+  translate(id: number, to: Language): Promise<{ article: Article; version: Version }> {
+    return send('POST', `/api/articles/${id}/translate/`, { to });
   },
 
   preview(id: number, markdown: string): Promise<{ html: string }> {

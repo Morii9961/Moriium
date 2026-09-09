@@ -103,7 +103,7 @@ describe('the admin database', () => {
     const shared = schema.slice(schema.indexOf('const sharedMetadata'), schema.indexOf('publicPostMetadataSchema'));
     const declared = [...shared.matchAll(/^\s{2}([a-zA-Z]+):/gm)].map((match) => match[1]);
 
-    assert.equal(declared.length, 14, `expected 14 frontmatter fields, parsed ${declared.join(', ')}`);
+    assert.equal(declared.length, 15, `expected 15 frontmatter fields, parsed ${declared.join(', ')}`);
 
     const db = freshDatabase();
     const columns = new Set(
@@ -124,6 +124,16 @@ describe('the admin database', () => {
         // per version.
         const articleColumns = db.prepare('PRAGMA table_info(articles)').all().map((c) => c.name);
         assert.ok(articleColumns.includes(snake(field)), `articles must carry ${snake(field)}`);
+        continue;
+      }
+      if (field === 'machineTranslation') {
+        // Also identity: it describes where the variant came from, not what a
+        // particular revision of it says.
+        const articleColumns = db.prepare('PRAGMA table_info(articles)').all().map((c) => c.name);
+        assert.ok(
+          articleColumns.includes('machine_translated_from'),
+          'articles must record the language a variant was translated from',
+        );
         continue;
       }
       assert.ok(columns.has(snake(field)), `versions must carry ${snake(field)} for frontmatter ${field}`);

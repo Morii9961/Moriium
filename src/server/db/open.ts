@@ -15,7 +15,7 @@ import { AdminError } from '../errors.ts';
 // dist/server/chunks/ and carries no .sql file with it, so the former
 // readFileSync(import.meta.dirname + 'schema.sql') left a freshly deployed
 // production database impossible to migrate (ADR 0002 section 21.26).
-import { SCHEMA_SQL } from './schema.ts';
+import { MACHINE_TRANSLATION_SQL, SCHEMA_SQL } from './schema.ts';
 
 /**
  * Milliseconds SQLite waits for a write lock before giving up.
@@ -37,6 +37,7 @@ export type Migration = {
 /** Forward only. ADR 0002 section 6.4: rolling back is restoring a backup. */
 export const MIGRATIONS: readonly Migration[] = [
   { id: 1, name: 'initial-schema', sql: () => SCHEMA_SQL },
+  { id: 2, name: 'machine-translation-source', sql: () => MACHINE_TRANSLATION_SQL },
 ];
 
 function applyPragmas(db: DatabaseSync): void {

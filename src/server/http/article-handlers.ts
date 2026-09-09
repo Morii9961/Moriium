@@ -8,6 +8,7 @@ import type { AuthorSession } from '../auth/session.ts';
 import { AdminError } from '../errors.ts';
 import { preparePublishValidator } from '../publishing/publish-gate.ts';
 import { renderPreview } from '../rendering/public-renderer.mjs';
+import { translateArticleInto } from '../translation/translate-article.ts';
 import {
   adminJson,
   authorizeRequest,
@@ -61,6 +62,7 @@ const pointAtVersion = z
 
 const noteOnly = z.object({ note: z.string().max(2_000).optional() }).strict();
 const previewInput = z.object({ markdown: z.string().optional() }).strict();
+const translateInput = z.object({ to: z.enum(['zh', 'ja', 'en']) }).strict();
 
 export type ArticleAction =
   | 'versions'
@@ -68,7 +70,8 @@ export type ArticleAction =
   | 'preview'
   | 'publish'
   | 'rollback'
-  | 'unpublish';
+  | 'unpublish'
+  | 'translate';
 
 async function bodyObject(request: Request): Promise<Record<string, unknown>> {
   if (request.headers.get('Content-Type')?.split(';', 1)[0]?.trim() !== 'application/json') {
@@ -154,6 +157,19 @@ export async function handleArticleResource(
         ? store.autosave(articleId, saveInput)
         : store.saveVersion(articleId, saveInput);
       return adminJson({ version }, 201);
+    }
+
+    if (action === 'translate') {
+      const input = parsed(translateInput.safeParse(body));
+      // Produces an unpublished variant only. Publishing it stays the same
+      // operation behind the same gate, which is what keeps Morii's review in
+      // the path (AGENTS.md).
+      const created = await translateArticleInto(store, {
+        articleId,
+        to: input.to,
+        authorId: auth.authorId,
+      });
+      return adminJson({ article: created.article, version: created.version }, 201);
     }
 
     if (action === 'publish' || action === 'rollback') {
