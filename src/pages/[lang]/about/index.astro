@@ -26,13 +26,6 @@ const copy = {
       '没有固定主题，也没有更新计划。内容按时间、分类与标签保存。',
       '公开页面预先生成；受保护文章在本地加密。阅读不需要账户，也不记录访问行为。',
     ],
-    kinds: '收存内容', kindsNote: 'Four kinds',
-    kindList: [
-      ['文章', '主题与长度不固定。'],
-      ['摄影笔记', '照片为主，文字只补充必要背景。'],
-      ['旅行记录', '按地点与行程整理。'],
-      ['技术随笔', '记录做过的事，也保留当时的判断。'],
-    ],
     colophon: '站点说明', colophonNote: 'Colophon',
     facts: [
       ['字体', '公开页面使用 Noto Serif SC/JP；首页题字使用 Shippori Mincho；日期与数据使用 IBM Plex Mono。'],
@@ -58,13 +51,6 @@ const copy = {
     body: [
       'テーマも更新予定も決めていません。内容は日付、カテゴリー、タグで整理しています。',
       '公開ページは事前に生成し、保護記事はローカルで暗号化します。閲覧にアカウントは不要で、アクセスも計測しません。',
-    ],
-    kinds: '収めるもの', kindsNote: 'Four kinds',
-    kindList: [
-      ['文章', '主題も長さも固定しません。'],
-      ['写真の記録', '写真を主に、文章は必要な背景だけを補います。'],
-      ['旅の記録', '場所と行程ごとに整理します。'],
-      ['技術ノート', '実際に行ったことと、その時点の判断を残します。'],
     ],
     colophon: 'サイト情報', colophonNote: 'Colophon',
     facts: [
@@ -92,13 +78,6 @@ const copy = {
       'There is no fixed subject or publishing schedule. Entries are filed by date, category, and tag.',
       'Public pages are built in advance; protected posts are encrypted locally. Reading requires no account and is not tracked.',
     ],
-    kinds: 'Contents', kindsNote: 'Four kinds',
-    kindList: [
-      ['Writing', 'No fixed subject or length.'],
-      ['Photography notes', 'The photograph comes first; text adds only necessary context.'],
-      ['Travel records', 'Filed by place and journey.'],
-      ['Technical notes', 'What was built, together with the judgement made at the time.'],
-    ],
     colophon: 'Colophon', colophonNote: 'Site facts',
     facts: [
       ['Type', 'Public pages use Noto Serif SC/JP; the home title uses Shippori Mincho; dates and data use IBM Plex Mono.'],
@@ -118,7 +97,6 @@ const copy = {
   },
 } as const;
 const c = copy[lang];
-const pad = (value: number) => String(value + 1).padStart(2, '0');
 ---
 
 <BaseLayout lang={lang} title={c.title}>
@@ -132,15 +110,6 @@ const pad = (value: number) => String(value + 1).padStart(2, '0');
       <p class="prototype-kicker">{c.place}</p>
       <h2 id="about-statement">{c.statement}</h2>
       <div>{c.body.map((paragraph) => <p>{paragraph}</p>)}</div>
-    </section>
-
-    <section class="a-about-page__band" aria-labelledby="about-kinds">
-      <header class="a-about-page__head"><h2 id="about-kinds">{c.kinds}</h2><p>{c.kindsNote}</p></header>
-      <ol class="a-about-page__rows">
-        {c.kindList.map(([term, gloss], index) => (
-          <li><span>{pad(index)}</span><div><h3>{term}</h3><p>{gloss}</p></div></li>
-        ))}
-      </ol>
     </section>
 
     <section class="a-about-page__band a-about-page__colophon" aria-labelledby="about-colophon">
