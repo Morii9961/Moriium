@@ -142,12 +142,23 @@ const languageLabels = { zh: '中', ja: '日', en: 'EN' } as const;
           </div>
           <div class="site-footer__group site-footer__group--utility">
             <p class="site-footer__label">{ui.languageNav}</p>
-            <nav class="site-footer__languages" aria-label={ui.languageNav}>
-              {SITE.languages.map((code) => (
-                <a href={`/${code}/`} lang={UI[code].locale} aria-current={code === lang ? 'page' : undefined}>{languageLabels[code]}</a>
-              ))}
-            </nav>
-            <a class="site-footer__rss" href={`/${lang}/rss.xml`}>RSS</a>
+            <div class="site-footer__utility-controls">
+              <nav class="site-footer__languages" aria-label={ui.languageNav}>
+                {SITE.languages.map((code) => (
+                  <a href={`/${code}/`} lang={UI[code].locale} aria-current={code === lang ? 'page' : undefined}>{languageLabels[code]}</a>
+                ))}
+              </nav>
+              <details class="site-footer__rss-picker">
+                <summary aria-label={ui.footer.rssMenu}>RSS</summary>
+                <div class="site-footer__rss-menu">
+                  {SITE.languages.map((code) => (
+                    <a href={`/${code}/rss.xml`} lang={UI[code].locale}>
+                      <span>{UI[code].label}</span><span aria-hidden="true">↗</span>
+                    </a>
+                  ))}
+                </div>
+              </details>
+            </div>
           </div>
         </div>
         <div class="site-footer__legal">
