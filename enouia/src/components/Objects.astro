@@ -1,0 +1,36 @@
+---
+interface Props { kind: 'glass' | 'paper' | 'seed' }
+const { kind } = Astro.props;
+---
+<svg class="table-object" viewBox="0 0 360 280" aria-hidden="true">
+  <defs>
+    <linearGradient id={`object-${kind}-shade`} x1="0" y1="0" x2="1" y2="1"><stop stop-color={kind === 'glass' ? '#b6d9e4' : '#edecde'}/><stop offset=".65" stop-color={kind === 'glass' ? '#719daf' : '#d0cfbd'}/><stop offset="1" stop-color={kind === 'glass' ? '#48758f' : '#aaaf99'}/></linearGradient>
+    <radialGradient id={`object-${kind}-shadow`}><stop stop-color="#294652" stop-opacity=".2"/><stop offset="1" stop-color="#294652" stop-opacity="0"/></radialGradient>
+  </defs>
+  <ellipse cx="190" cy="229" rx="125" ry="32" fill={`url(#object-${kind}-shadow)`}/>
+  {kind === 'glass' && <g>
+    <path d="m113 185 21-89 71-34 64 41 14 89-84 40Z" fill="#6d9fb7" opacity=".09" transform="translate(11 16)"/>
+    <path d="M100 161Q83 142 107 100L175 65Q197 57 213 74L264 134Q277 153 259 175L190 213Q173 220 156 211Z" fill={`url(#object-${kind}-shade)`} stroke="#6b96a9" stroke-width="1"/>
+    <path d="M103 155 181 89 262 144 188 206Z" fill="#d8e7e9" opacity=".3"/>
+    <path d="m110 108 70-36 22 12-75 69Z" fill="#e0f1ee" opacity=".6"/>
+    <path d="m188 206 4-74 64 18Z" fill="#416f87" opacity=".22"/>
+    <path d="M104 153q-8-15 12-48l60-31M162 209q13 6 26 1l65-37" fill="none" stroke="#e5f0ec" stroke-width="3" opacity=".75"/>
+    <path d="m128 166 42-13m45-44-12 17m-55-29 7 8" fill="none" stroke="#c2e1df" opacity=".45"/>
+  </g>}
+  {kind === 'paper' && <g stroke-linejoin="round">
+    <path d="m88 189 75-58 52 42 35-18-40 52Z" fill="#afb5a6"/>
+    <path d="m165 140-89-57 31 105 82-21Z" fill="#e8e5d3"/>
+    <path d="m165 140 90-107-6 124-60 10Z" fill={`url(#object-${kind}-shade)`}/>
+    <path d="m165 140 84-92-37 116Z" fill="#f8f3e0"/>
+    <path d="m76 83 50 102 39-45Z" fill="#d1d5c2"/>
+    <path d="m107 188 82-21 21 40-49-26-64 29Z" fill="#ecebd7"/>
+    <path d="m210 207 43-48 41-30-18 8-5-25-34 54Z" fill="#e3e1cd"/>
+    <path d="m237 166 34-54-13 55-48 40Z" fill="#c3c9b5"/>
+    <path d="m76 83 89 57 90-107M107 188l58-48 24 27 60-10M189 167l21 40" fill="none" stroke="#9eac98" stroke-width=".7"/>
+    <circle cx="269" cy="133" r="1.4" fill="#6e7b6a"/>
+  </g>}
+  {kind === 'seed' && <g>
+    <g transform="rotate(-18 160 155)"><path d="M172 190C95 206 67 113 86 63c69 11 96 61 94 113" fill="#c0bda3" stroke="#9fa58c"/><path d="M170 183C114 167 104 105 88 65" fill="none" stroke="#e3dfc6" stroke-width="2"/><path d="M164 175 105 102m58 75-57-52m53 51-49-31m40 26-32-10M141 149l-22-41m38 58-13-38" fill="none" stroke="#9da58e" stroke-width=".8"/><ellipse cx="175" cy="187" rx="12" ry="20" fill="#8c9275" transform="rotate(-25 175 187)"/></g>
+    <g transform="translate(56 10) rotate(61 160 155) scale(.9)"><path d="M172 190C95 206 67 113 86 63c69 11 96 61 94 113" fill="#c9bd9d" stroke="#a69e83"/><path d="M170 183C114 167 104 105 88 65" fill="none" stroke="#ece0c1" stroke-width="2"/><path d="M164 175 105 102m58 75-57-52m53 51-49-31m-6-11-22-41m38 58-13-38" fill="none" stroke="#a69e83" stroke-width=".8"/><ellipse cx="175" cy="187" rx="12" ry="20" fill="#929172" transform="rotate(-25 175 187)"/></g>
+  </g>}
+</svg>

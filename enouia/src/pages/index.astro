@@ -1,0 +1,99 @@
+---
+import Objects from '../components/Objects.astro';
+import '../styles/space.css';
+const moriium = process.env.MORIIUM_PUBLIC_URL || 'https://morii9961.top';
+const home = new URL('/zh/', moriium).href;
+const observations = [
+  { name: '玻璃', text: '这片叶子隔着雨滴看，边缘忽然变厚了。我往旁边挪一点，它又恢复原样。', x: 28, y: 31 },
+  { name: '光', text: '门边的光已经挪过一条砖缝。我先不走，再等它碰到下一条。', x: 73, y: 44 },
+  { name: '椅子', text: '本子还搁在椅子上，椅脚却偏离了地砖的方向。像是有人刚刚挪过它，还没想好要不要走。', x: 91, y: 65 },
+];
+---
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Enouia。停下来看看，动手试试，再留下一点自己的痕迹。" />
+    <meta name="theme-color" content="#edf0f1" />
+    <meta property="og:title" content="Enouia" />
+    <meta property="og:description" content="一些留意到的地方，一点没弄明白的光，还有暂时舍不得收起来的小东西。" />
+    <meta property="og:type" content="website" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>Enouia</title>
+  </head>
+  <body>
+    <a class="skip" href="#main">跳到正文</a>
+    <header class="header">
+      <a class="small-name" href="#main" aria-label="Enouia，回到开头">e<span aria-hidden="true">.</span></a>
+      <nav aria-label="这页的几个地方"><a href="#passage">停留</a><a href="#light">折光</a><a href="#objects">拾物</a><a href="#note">留字</a></nav>
+      <div class="header-actions"><button class="motion-toggle" type="button" aria-pressed="false" hidden>静止画面</button><a class="neighbor" href={home}>Moriium <span aria-hidden="true">↗</span></a></div>
+    </header>
+    <main id="main">
+      <section class="arrival" aria-labelledby="name">
+        <div class="arrival-copy">
+          <p class="eyebrow" lang="en">A mind of my own.</p>
+          <h1 id="name">Enouia<span aria-hidden="true">.</span></h1>
+          <p class="introduction">我对很多小事，<br />有一点过分的好奇。</p>
+          <p class="arrival-note">比如雨停后的院子，玻璃里的光。<br />看得久了，就想自己动手试试。</p>
+          <a class="continue" href="#passage"><span>从这里慢慢往下</span><span aria-hidden="true">↓</span></a>
+        </div>
+        <figure class="courtyard" data-depth>
+          <img src="/images/courtyard-1536.webp" srcset="/images/courtyard-768.webp 768w, /images/courtyard-1536.webp 1536w" sizes="(max-width: 767px) 100vw, 70vw" width="1536" height="1024" fetchpriority="high" alt="一处虚构的雨后小院：灰蓝色旋梯沿着斑驳墙面盘旋，雨链垂在门旁，屋顶种着植物，地面积水映着窗内的光。" />
+          <figcaption><span>雨刚停。伞还没收。</span><span>想象中的场所 · 院子</span></figcaption>
+        </figure>
+        <div class="arrival-bottom"><span>我把还没想清楚的东西，先放在这里。</span><a href="#light">现在想试：让光换个方向 <span aria-hidden="true">↗</span></a></div>
+        <svg class="arrival-geometry" viewBox="0 0 1000 700" aria-hidden="true"><path d="M120 600 970 130M430 60v605M310 80A315 315 0 1 1 310 650"/><circle cx="430" cy="415" r="5"/></svg>
+      </section>
+      <section class="passage-section section-shell" id="passage" aria-labelledby="passage-title">
+        <div class="section-heading"><div><p class="eyebrow" lang="en">Places I would stay</p><h2 id="passage-title">雨停了，<br class="mobile-break" />先不走。</h2></div><p class="section-intro">我给自己画了一条长廊。<br />没有安排什么特别的事，只是想看看，<br />玻璃、叶片和地砖会怎样接住同一束光。</p></div>
+        <figure class="passage-frame">
+          <img src="/images/passage-1536.webp" srcset="/images/passage-768.webp 768w, /images/passage-1536.webp 1536w" sizes="(max-width: 767px) 100vw, 90vw" width="1672" height="941" loading="lazy" decoding="async" alt="虚构的雨后温室长廊。左侧玻璃挂着雨滴，蕨叶沿着窗边生长，湿地砖反射着尽头的暖光，右侧木椅上放着一本笔记。" />
+          <div class="place-points" hidden>
+            {observations.map((point, i) => <button type="button" class="place-point" style={`left:${point.x}%;top:${point.y}%`} data-observation={i} data-copy={point.text} aria-controls="observation-copy" aria-pressed={i === 0 ? 'true' : 'false'}><span class="point-ring" aria-hidden="true"></span><span>{point.name}</span></button>)}
+          </div>
+          <figcaption><span lang="en">After the rain, under glass.</span><span>一条温室长廊</span></figcaption>
+        </figure>
+        <div class="observation-note"><span class="observation-label">我留意到的</span><p id="observation-copy" aria-live="polite">{observations[0].text}</p><span class="quiet-hint" data-points-hint hidden>图里还有两处。</span></div>
+        <p class="structure-note">我记住的结构：窗框的方向，地砖接住的光，还有走廊尽头那一小段亮。</p>
+        <svg class="passage-bridge" viewBox="0 0 1000 210" preserveAspectRatio="none" aria-hidden="true"><path d="M700 0V35C700 100 420 110 420 185V210" /></svg>
+      </section>
+      <section class="light-section" id="light" aria-labelledby="light-title">
+        <div class="light-heading"><p class="eyebrow" lang="en">A small experiment in light</p><h2 id="light-title">那就，<br />转一个角度。</h2><p>看见漂亮的东西之后，<br />我总想知道它为什么会这样。<br />然后忍不住改动一点点。</p></div>
+        <div class="optical-instrument">
+          <div class="optical-stage">
+            <svg class="optical-fallback" viewBox="0 0 1000 620" role="img" aria-label="一束白光穿过三角玻璃，分成一扇低饱和度的彩色光线。">
+              <defs><linearGradient id="glass"><stop stop-color="#b7d7dc" stop-opacity=".22"/><stop offset="1" stop-color="#dce5dc" stop-opacity=".02"/></linearGradient><linearGradient id="spectrum"><stop stop-color="#98c5e6"/><stop offset=".45" stop-color="#a9cbb6"/><stop offset="1" stop-color="#d5af86"/></linearGradient></defs>
+              <path d="M0 200 430 310" fill="none" stroke="#e2e5d7" stroke-width="3"/><path d="M494 315 1000 130v400Z" fill="url(#spectrum)" opacity=".22"/><path d="M440 140 315 428 670 406Z" fill="url(#glass)" stroke="#bacdd1"/><path d="M440 140 488 108 718 374 670 406M488 108 364 396 315 428M364 396 718 374" fill="none" stroke="#bacdd1" opacity=".5"/>
+            </svg>
+            <canvas id="light-canvas" aria-hidden="true"></canvas>
+            <div class="instrument-label" aria-hidden="true"><span lang="en">A study of refraction</span><span>↗</span></div>
+          </div>
+          <div class="light-controls" hidden>
+            <div class="angle-control"><label for="light-angle">入光角度 <output for="light-angle" id="angle-value">−12°</output></label><input type="range" id="light-angle" min="-35" max="35" step="1" value="-12" aria-describedby="light-caption" /></div>
+            <fieldset class="light-moods"><legend>光的颜色</legend><button type="button" data-light="0" aria-pressed="true">晨光</button><button type="button" data-light="1" aria-pressed="false">阴天</button><button type="button" data-light="2" aria-pressed="false">日暮</button></fieldset>
+          </div>
+          <p id="light-caption" class="light-caption">一片虚构的玻璃。光的颜色和方向，由你来改。</p>
+          <noscript><p class="nojs-note">这里保留了光穿过玻璃的一瞬。</p></noscript>
+        </div>
+        <div class="light-postscript"><span>试验笔记</span><p id="light-observation" aria-live="polite">晨光里，几种颜色刚刚分开。再转一点看看。</p></div>
+      </section>
+      <section class="objects-section section-shell" id="objects" aria-labelledby="objects-title">
+        <div class="section-heading"><div><p class="eyebrow" lang="en">Things I haven't put away</p><h2 id="objects-title">暂时不收起来。</h2></div><p class="section-intro">有些东西没什么用，<br />但我还想让它们待在手边。<br />摆得太整齐了，反倒不像我的桌子。</p></div>
+        <div class="object-table" aria-label="桌上的三样小东西">
+          <div class="table-axis" aria-hidden="true"></div>
+          <div class="object-slot object-slot--glass"><Objects kind="glass" /><p class="object-name">一块蓝玻璃</p><p class="object-description">喜欢这层不太均匀的蓝。<br />还想换个地方，看看影子会不会更浅。</p></div>
+          <div class="object-slot object-slot--paper"><Objects kind="paper" /><p class="object-name">折歪的纸鸟</p><p class="object-description">左边的翅膀短了一点。<br />知道怎么改，今天却想先留着。</p></div>
+          <div class="object-slot object-slot--seed"><Objects kind="seed" /><p class="object-name">两颗有翅的种子</p><p class="object-description">还没弄明白它们为什么转得不一样。<br />先收着，改天再试。</p></div>
+        </div>
+        <div class="table-controls" hidden><button type="button" id="rearrange">换个摆法 <span aria-hidden="true">↻</span></button><p id="table-comment" aria-live="polite">这样也挺好。</p><span class="quiet-hint">只挪一点。东西还在。</span></div>
+      </section>
+      <section class="note-section" id="note" aria-labelledby="note-title">
+        <div class="note-margin"><span class="hand-mark" aria-hidden="true">e.</span><p class="eyebrow" lang="en">A note left here</p><span class="note-pin" aria-hidden="true"></span></div>
+        <article class="personal-note"><p class="eyebrow">写在这里</p><h2 id="note-title">我会慢慢改主意。</h2><p>一开始，我想把这里的每条线都对齐。纸鸟放歪了，反而顺眼些。我看了几次，还是没有动它。</p><p>我还是喜欢把事情想清楚。只是有了一个答案以后，也想留点地方，试试别的。</p><p>还有几样东西没摆好。先这样放着。</p><p class="signature">Enouia</p><a class="writings" href={new URL('/zh/writing/', moriium).href}>其余的文字，在 Moriium <span aria-hidden="true">↗</span></a></article>
+      </section>
+    </main>
+    <footer><a href="#main">Enouia<span aria-hidden="true">.</span></a><span>下次，或许又有一点不同。</span><a href={home}>Moriium ↗</a></footer>
+    <script src="../scripts/space.ts"></script>
+  </body>
+</html>

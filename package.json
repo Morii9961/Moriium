@@ -9,6 +9,9 @@
     "pnpm": ">=11.22 <12"
   },
   "scripts": {
+    "enouia:build": "astro build --root enouia",
+    "enouia:preview": "node enouia/scripts/preview.mjs",
+    "enouia:verify": "astro check --root enouia && astro build --root enouia && node --test enouia/tests/*.test.mjs && node enouia/scripts/verify.mjs",
     "activity:collect": "node scripts/collect-activity.mjs",
     "activity:refresh": "node scripts/refresh-activity.mjs",
     "dev": "astro dev",

@@ -60,6 +60,9 @@ jobs:
           # artifact is source, rebuilt on the VPS, so this value stays in CI.
           MORIIUM_SESSION_DIRECTORY: ${{ runner.temp }}/moriium-sessions
 
+      - name: Verify independent Enouia static site
+        run: pnpm enouia:verify
+
       - name: Confirm static output contains no protected source directory
         shell: bash
         run: |

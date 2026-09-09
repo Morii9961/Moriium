@@ -1,0 +1,30 @@
+# Replace the hostname and certificate paths with the approved values.
+# This is a separate virtual host; never include it inside Moriium's server block.
+server {
+    listen 80;
+    listen [::]:80;
+    server_name enouia.moriium.com;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name enouia.moriium.com;
+    ssl_certificate /etc/letsencrypt/live/enouia.moriium.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/enouia.moriium.com/privkey.pem;
+
+    root /var/www/enouia/current;
+    index index.html;
+    charset utf-8;
+    add_header X-Content-Type-Options nosniff always;
+    add_header Referrer-Policy strict-origin-when-cross-origin always;
+    add_header Content-Security-Policy "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self'; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'" always;
+
+    location / {
+        try_files $uri $uri/ =404;
+        # Keep old hashed assets in old releases; force HTML revalidation.
+        expires -1;
+    }
+    location ~ /\. { deny all; }
+}
