@@ -52,7 +52,7 @@ const languageLabels = { zh: '中', ja: '日', en: 'EN' } as const;
   </head>
   <body class={bodyClass}>
     <a class="skip-link" href="#main">{ui.skip}</a>
-    <header class="site-header">
+    <header id="page-top" class="site-header">
       <div class="site-shell site-header__inner">
         <a class="site-mark" href={`/${lang}/`}><strong>{SITE.name}</strong></a>
         <nav class="site-nav" aria-label={ui.primaryNav}>
@@ -119,17 +119,52 @@ const languageLabels = { zh: '中', ja: '日', en: 'EN' } as const;
     </main>
     <footer class="site-footer">
       <div class="site-shell site-footer__inner">
-        <div class="site-footer__identity">
-          <p class="site-footer__name">{SITE.name}</p>
+        <div class="site-footer__masthead">
+          <a class="site-footer__name" href={`/${lang}/`}>{SITE.name}</a>
+          <a class="site-footer__top" href="#page-top">
+            <span>{ui.footer.backToTop}</span>
+            <span aria-hidden="true">↑</span>
+          </a>
         </div>
-        <nav aria-label={ui.footerNav}>
-          <a href={`/${lang}/writing/`}>{ui.nav.writing}</a>
-          <a href={`/${lang}/archive/`}>{ui.nav.archive}</a>
-          <a href={`/${lang}/categories/`}>{ui.nav.categories}</a>
-          <a href={`/${lang}/about/`}>{ui.nav.about}</a>
-          <a href={`/${lang}/rss.xml`}>RSS</a>
-        </nav>
-        <p class="site-footer__rights">© {new Date().getFullYear()} Morii<br />{ui.footer.rights}</p>
+        <div class="site-footer__directory">
+          <div class="site-footer__group">
+            <p class="site-footer__label">{ui.footer.index}</p>
+            <nav class="site-footer__nav" aria-label={ui.footerNav}>
+              <ul>
+                <li><a href={`/${lang}/`} aria-current={pathname === `/${lang}/` ? 'page' : undefined}>{ui.nav.home}</a></li>
+                <li><a href={`/${lang}/writing/`} aria-current={pathname.includes('/writing/') || pathname.includes('/posts/') || pathname.includes('/protected/') ? 'page' : undefined}>{ui.nav.writing}</a></li>
+                <li><a href={`/${lang}/archive/`} aria-current={pathname.includes('/archive/') ? 'page' : undefined}>{ui.nav.archive}</a></li>
+                <li><a href={`/${lang}/categories/`} aria-current={pathname.includes('/categories/') ? 'page' : undefined}>{ui.nav.categories}</a></li>
+                <li><a href={`/${lang}/tags/`} aria-current={pathname.includes('/tags/') ? 'page' : undefined}>{ui.nav.tags}</a></li>
+                <li><a href={`/${lang}/about/`} aria-current={pathname.includes('/about/') ? 'page' : undefined}>{ui.nav.about}</a></li>
+              </ul>
+            </nav>
+          </div>
+          <div class="site-footer__group site-footer__group--utility">
+            <p class="site-footer__label">{ui.languageNav}</p>
+            <div class="site-footer__utility-controls">
+              <nav class="site-footer__languages" aria-label={ui.languageNav}>
+                {SITE.languages.map((code) => (
+                  <a href={`/${code}/`} lang={UI[code].locale} aria-current={code === lang ? 'page' : undefined}>{languageLabels[code]}</a>
+                ))}
+              </nav>
+              <details class="site-footer__rss-picker">
+                <summary aria-label={ui.footer.rssMenu}>RSS</summary>
+                <div class="site-footer__rss-menu">
+                  {SITE.languages.map((code) => (
+                    <a href={`/${code}/rss.xml`} lang={UI[code].locale}>
+                      <span>{UI[code].label}</span><span aria-hidden="true">↗</span>
+                    </a>
+                  ))}
+                </div>
+              </details>
+            </div>
+          </div>
+        </div>
+        <div class="site-footer__legal">
+          <p>© {new Date().getFullYear()} {SITE.author}</p>
+          <p class="site-footer__rights">{ui.footer.rights}</p>
+        </div>
       </div>
     </footer>
     <script>

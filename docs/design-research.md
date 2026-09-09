@@ -153,3 +153,41 @@ A further preview correction makes trailing padding match the adjacent future
 region's outline while the year is in progress; leading padding remains filled.
 Morii also removed the future-date legend label. Date interaction and statistics
 still exclude future and padding cells.
+
+### Footer navigation rebuild — 2026-09-08
+
+| Reference inspected | Extracted principle | Decision |
+| --- | --- | --- |
+| The current public footer at `1b7c4e8` | A removed identity note left the wordmark as the identity block's final paragraph, so a more specific legacy `:last-child` rule reduced it to metadata size. | Remove positional typography selectors. Give the wordmark, labels, navigation, and legal text explicit roles. |
+| The public header and route set | The footer omitted Home and Tags, and the language switch disappears below 48rem. | Keep the footer concise, but include all six public routes, RSS, and a language switch that remains available on mobile. |
+| `DESIGN.md` footer, type, colour, and spacing rules | The footer should conclude the publication through hierarchy, whitespace, one identity field, and quiet rules rather than cards or extra interface chrome. | Retain the flat Moriium Blue field, enlarge the wordmark, and arrange the remaining links as a two-row editorial directory with a native back-to-top link. |
+
+No external site was used for this change. The visual decision came from the
+canonical Moriium rules, the current rendered defect, and the site's existing
+navigation contract.
+
+### Native page transitions — 2026-09-08
+
+| Reference inspected | Extracted principle | Decision |
+| --- | --- | --- |
+| [Astro view transitions](https://docs.astro.build/en/guides/view-transitions/) | Astro 7 supports browser-native cross-document transitions without changing an MPA into a client-routed SPA or adding JavaScript to page load. | Keep Moriium's public routes as ordinary static documents and do not add `ClientRouter`. |
+| [MDN `@view-transition`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/@view-transition) | Both same-origin documents opt in with `navigation: auto`; unsupported browsers retain normal navigation. | Apply the platform transition to the root snapshot, use the existing fast timing and easing tokens, and reduce the animation to an effectively instant swap when reduced motion is requested. |
+
+The transition is a restrained cross-fade. It introduces no direction metaphor
+that could conflict with direct links, browser history, or language changes.
+
+### About friend links — 2026-09-09
+
+Question: how should a small friend list be maintained and presented within About?
+
+| Reference inspected | Extracted principle | Moriium decision |
+| --- | --- | --- |
+| [Astro Pure friend-link documentation](https://astro-pure.js.org/docs/integrations/links) | Keep link records separate from the page; groups and a friend feed are optional additions. | Use one local list for all three languages. |
+| [vhAstro-Theme source README](https://github.com/uxiaohan/vhAstro-Theme#-特色页面) | A TypeScript data file can hold names, URLs, avatars, and descriptions without an API. | Use typed local data, rendered at build time. |
+| [Butterfly page documentation](https://butterfly.js.org/posts/dc584b87/) | Local data and optional grouping support manual link curation. | Preserve authored order; defer grouping until real content needs it. |
+
+The implementation uses the existing About band, heading, indentation, fonts,
+and semantic colors under `DESIGN.md`. Links are text rows with a visible domain
+and optional translated description. No upstream code or assets are copied.
+No dependency, avatar request, friend feed, submission form, or runtime fetch is
+introduced. An empty list displays a short localized sentence.

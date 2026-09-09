@@ -96,7 +96,7 @@ test('production shell loads the public typography and editorial frame', async (
   assert.match(layout, /@fontsource\/ibm-plex-mono\/latin-400\.css/);
   assert.doesNotMatch(layout, /lxgw-wenkai|noto-sans-sc|sora/);
 
-  for (const marker of ['site-actions', 'theme-icon--sun', 'theme-icon--moon', 'site-footer__identity']) {
+  for (const marker of ['site-actions', 'theme-icon--sun', 'theme-icon--moon', 'site-footer__masthead', 'site-footer__directory']) {
     assert.match(layout, new RegExp(marker));
   }
 
@@ -108,7 +108,50 @@ test('production shell loads the public typography and editorial frame', async (
   assert.match(styles, /:root:lang\(ja\)\s*{\s*--font-serif:\s*"Noto Serif JP Variable"/);
   assert.match(styles, /\.public-site \.site-header__inner\s*{[^}]*grid-template-columns:\s*minmax\(12rem, 1fr\) auto minmax\(12rem, 1fr\)/s);
   assert.match(styles, /\.public-site \.site-footer__name\s*{[^}]*color:\s*var\(--accent-field-ink\)/s);
+  assert.match(styles, /\.public-site \.site-footer__name\s*{[^}]*font-size:\s*clamp\(4rem, 9vw, 8\.5rem\)/s);
+  assert.match(styles, /\.public-site \.site-footer__inner\s*{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)/s);
+  assert.match(styles, /\.public-site \.site-footer__nav a::before,\s*\.public-site \.site-footer__languages a::before\s*{[^}]*transform:\s*translateX\(-50%\) scaleX\(0\)[^}]*transition:\s*transform var\(--motion-fast\) var\(--motion-ease\)/s);
+  assert.match(styles, /\.public-site \.site-footer__nav a\[aria-current='page'\]::before,[\s\S]*?\.public-site \.site-footer__languages a\[aria-current='page'\]::before,[\s\S]*?transform:\s*translateX\(-50%\) scaleX\(1\)/s);
+  assert.match(styles, /@media \(hover: hover\) and \(pointer: fine\)\s*{[\s\S]*?\.public-site \.site-footer__nav a:hover::before,\s*\.public-site \.site-footer__languages a:hover::before\s*{[^}]*transform:\s*translateX\(-50%\) scaleX\(1\)/s);
+  assert.doesNotMatch(styles, /site-footer__identity\s*>\s*p:last-child/);
   assert.match(styles, /\.a-directory__stats div\s*{[^}]*padding-inline:\s*clamp\(1rem, 2vw, 1\.5rem\)/s);
+});
+
+test('the footer closes with a complete static site index and language access', async () => {
+  const [layout, copy] = await Promise.all([
+    read('src/layouts/BaseLayout.astro'),
+    read('src/data/site.ts'),
+  ]);
+  const footer = layout.slice(layout.indexOf('<footer class="site-footer">'), layout.indexOf('</footer>') + '</footer>'.length);
+
+  for (const href of [
+    'href={`/${lang}/`}',
+    'href={`/${lang}/writing/`}',
+    'href={`/${lang}/archive/`}',
+    'href={`/${lang}/categories/`}',
+    'href={`/${lang}/tags/`}',
+    'href={`/${lang}/about/`}',
+  ]) assert(footer.includes(href), `footer route missing: ${href}`);
+
+  assert.equal(footer.match(/SITE\.languages\.map\(\(code\) =>/g)?.length, 2);
+  assert.match(footer, /<details class="site-footer__rss-picker">[\s\S]*href=\{`\/\$\{code\}\/rss\.xml`\}/);
+  assert.match(footer, /summary aria-label=\{ui\.footer\.rssMenu\}>RSS<\/summary>/);
+  assert.match(footer, /href="#page-top"/);
+  assert.match(layout, /<header id="page-top" class="site-header">/);
+  for (const text of ['回到页首', 'ページ上部へ', 'Back to top']) assert.match(copy, new RegExp(text));
+  for (const text of ['选择 RSS 语言', 'RSS の言語を選ぶ', 'Choose an RSS language']) assert.match(copy, new RegExp(text));
+});
+
+test('public pages use native cross-document transitions without a client router', async () => {
+  const [layout, styles] = await Promise.all([
+    read('src/layouts/BaseLayout.astro'),
+    read('src/styles/public.css'),
+  ]);
+
+  assert.doesNotMatch(layout, /ClientRouter|astro:transitions/);
+  assert.match(styles, /@view-transition\s*{\s*navigation:\s*auto;\s*}/s);
+  assert.match(styles, /::view-transition-group\(root\),\s*::view-transition-old\(root\),\s*::view-transition-new\(root\)\s*{[^}]*animation-duration:\s*var\(--motion-fast\)[^}]*animation-timing-function:\s*var\(--motion-ease\)/s);
+  assert.match(styles, /@media \(prefers-reduced-motion: reduce\)\s*{[\s\S]*?::view-transition-group\(root\),\s*::view-transition-old\(root\),\s*::view-transition-new\(root\)\s*{[^}]*animation-duration:\s*0\.01ms !important/s);
 });
 
 test('the home hero ships a local Shippori Mincho subset that covers its own copy', async () => {

@@ -1,0 +1,90 @@
+---
+import { FRIENDS } from '../data/friends';
+import type { Language } from '../data/site';
+
+const { lang } = Astro.props as { lang: Language };
+const copy = {
+  zh: { title: '友链', empty: '暂无友链。' },
+  ja: { title: '友人のサイト', empty: 'リンクはまだありません。' },
+  en: { title: 'Friends', empty: 'No links yet.' },
+};
+const c = copy[lang];
+---
+
+<section id="friends" class="a-about-page__band" aria-labelledby="about-friends">
+  <header class="a-about-page__head">
+    <h2 id="about-friends">{c.title}</h2>
+    {lang !== 'en' && <p>Friends</p>}
+  </header>
+  {FRIENDS.length ? (
+    <ul class="about-friends" role="list">
+      {FRIENDS.map((friend) => (
+        <li>
+          <a href={friend.url} rel="friend external">
+            <span class="about-friends__name">{friend.name}</span>
+            <span class="about-friends__domain">{new URL(friend.url).hostname}</span>
+            <span class="about-friends__arrow" aria-hidden="true">↗</span>
+          </a>
+          {friend.description?.[lang] && <p>{friend.description[lang]}</p>}
+        </li>
+      ))}
+    </ul>
+  ) : <p>{c.empty}</p>}
+</section>
+
+<style>
+  .about-friends {
+    margin: 1.4rem 0 0 var(--about-indent, calc(var(--about-label, 7rem) + 2rem));
+    padding: 0;
+    list-style: none;
+  }
+
+  .about-friends li {
+    padding-block: 0.75rem;
+    border-bottom: 1px solid var(--line-soft);
+    overflow-wrap: anywhere;
+  }
+
+  .about-friends li:last-child { border-bottom: 0; }
+
+  .about-friends a {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.5rem 1.5rem;
+    min-height: 44px;
+    color: var(--accent);
+  }
+
+  .about-friends a:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 4px;
+  }
+
+  .about-friends__name {
+    font-family: var(--font-display);
+    text-decoration: underline;
+    text-underline-offset: 0.25em;
+    text-decoration-thickness: 1px;
+  }
+
+  .about-friends__domain {
+    color: var(--ink-muted);
+    font-family: var(--font-interface);
+    font-size: 0.8rem;
+  }
+
+  .about-friends p {
+    margin: 0.25rem 0 0;
+    color: var(--ink-muted);
+    font-family: var(--font-reading);
+    font-size: 0.95rem;
+    line-height: 1.8;
+  }
+
+  @media (max-width: 48rem) {
+    .about-friends a { grid-template-columns: minmax(0, 1fr) auto; }
+    .about-friends__domain { grid-column: 1; grid-row: 2; }
+    .about-friends__arrow { grid-column: 2; grid-row: 1 / 3; }
+  }
+</style>
