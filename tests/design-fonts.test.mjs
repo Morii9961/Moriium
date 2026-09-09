@@ -110,9 +110,9 @@ test('production shell loads the public typography and editorial frame', async (
   assert.match(styles, /\.public-site \.site-footer__name\s*{[^}]*color:\s*var\(--accent-field-ink\)/s);
   assert.match(styles, /\.public-site \.site-footer__name\s*{[^}]*font-size:\s*clamp\(4rem, 9vw, 8\.5rem\)/s);
   assert.match(styles, /\.public-site \.site-footer__inner\s*{[^}]*grid-template-columns:\s*minmax\(0, 1fr\)/s);
-  assert.match(styles, /\.public-site \.site-footer__nav a::before\s*{[^}]*transform:\s*translateX\(-50%\) scaleX\(0\)[^}]*transition:\s*transform var\(--motion-fast\) var\(--motion-ease\)/s);
-  assert.match(styles, /\.public-site \.site-footer__nav a\[aria-current='page'\]::before\s*{[^}]*transform:\s*translateX\(-50%\) scaleX\(1\)/s);
-  assert.match(styles, /@media \(hover: hover\) and \(pointer: fine\)\s*{[\s\S]*?\.public-site \.site-footer__nav a:hover::before\s*{[^}]*transform:\s*translateX\(-50%\) scaleX\(1\)/s);
+  assert.match(styles, /\.public-site \.site-footer__nav a::before,\s*\.public-site \.site-footer__languages a::before\s*{[^}]*transform:\s*translateX\(-50%\) scaleX\(0\)[^}]*transition:\s*transform var\(--motion-fast\) var\(--motion-ease\)/s);
+  assert.match(styles, /\.public-site \.site-footer__nav a\[aria-current='page'\]::before,[\s\S]*?\.public-site \.site-footer__languages a\[aria-current='page'\]::before,[\s\S]*?transform:\s*translateX\(-50%\) scaleX\(1\)/s);
+  assert.match(styles, /@media \(hover: hover\) and \(pointer: fine\)\s*{[\s\S]*?\.public-site \.site-footer__nav a:hover::before,\s*\.public-site \.site-footer__languages a:hover::before\s*{[^}]*transform:\s*translateX\(-50%\) scaleX\(1\)/s);
   assert.doesNotMatch(styles, /site-footer__identity\s*>\s*p:last-child/);
   assert.match(styles, /\.a-directory__stats div\s*{[^}]*padding-inline:\s*clamp\(1rem, 2vw, 1\.5rem\)/s);
 });
@@ -131,13 +131,15 @@ test('the footer closes with a complete static site index and language access', 
     'href={`/${lang}/categories/`}',
     'href={`/${lang}/tags/`}',
     'href={`/${lang}/about/`}',
-    'href={`/${lang}/rss.xml`}',
   ]) assert(footer.includes(href), `footer route missing: ${href}`);
 
-  assert.match(footer, /SITE\.languages\.map\(\(code\) =>/);
+  assert.equal(footer.match(/SITE\.languages\.map\(\(code\) =>/g)?.length, 2);
+  assert.match(footer, /<details class="site-footer__rss-picker">[\s\S]*href=\{`\/\$\{code\}\/rss\.xml`\}/);
+  assert.match(footer, /summary aria-label=\{ui\.footer\.rssMenu\}>RSS<\/summary>/);
   assert.match(footer, /href="#page-top"/);
   assert.match(layout, /<header id="page-top" class="site-header">/);
   for (const text of ['回到页首', 'ページ上部へ', 'Back to top']) assert.match(copy, new RegExp(text));
+  for (const text of ['选择 RSS 语言', 'RSS の言語を選ぶ', 'Choose an RSS language']) assert.match(copy, new RegExp(text));
 });
 
 test('public pages use native cross-document transitions without a client router', async () => {
