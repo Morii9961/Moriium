@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 import { readFileSync } from 'node:fs';
 import {
   composeSlug,
+  deriveIdentity,
   languagesLeftInGroup,
   slugBodyFromTitle,
   translationKeyFor,
@@ -65,6 +66,82 @@ describe('admin slug derivation', () => {
       translationKeyFor({ mode: 'translation', slugBody: 'anything', source }),
       'moriium-reconstruction',
     );
+  });
+
+  it('yields a usable identity before the author has typed anything', () => {
+    // The form opens on this state. An empty slug here is what made the field
+    // look like it was never generated at all, and it is `required`, so the
+    // browser blocked the submit instead of the admin filling the value in.
+    const identity = deriveIdentity({
+      mode: 'new',
+      title: '',
+      lang: 'zh',
+      typedBody: '',
+      now: new Date('2026-09-09T12:00:00Z'),
+    });
+
+    assert.equal(identity.slug, 'zh/2026-09-09');
+    assert.equal(identity.translationKey, '2026-09-09');
+  });
+
+  it('never lets either identifier come out empty', () => {
+    for (const title of ['', '   ', '从一张白纸重新开始', '!!!', '---']) {
+      for (const typedBody of ['', '   ']) {
+        const identity = deriveIdentity({
+          mode: 'new',
+          title,
+          lang: 'ja',
+          typedBody,
+          now: new Date('2026-09-09T12:00:00Z'),
+        });
+
+        assert.notEqual(identity.slug, 'ja/', `${JSON.stringify(title)} produced a bare prefix`);
+        assert.ok(identity.translationKey.length > 0);
+      }
+    }
+  });
+
+  it('keeps the key equal to the slug body it will actually publish under', () => {
+    // These drifted apart once: clearing the slug left the key holding a value
+    // derived from the slug that used to be there, so the note under the field
+    // described a group the article would not join.
+    for (const typedBody of ['', 'chosen-by-hand', '  spaced  ']) {
+      const identity = deriveIdentity({
+        mode: 'new',
+        title: 'A title',
+        lang: 'en',
+        typedBody,
+        now: new Date('2026-09-09T12:00:00Z'),
+      });
+
+      assert.equal(identity.slug, `en/${identity.translationKey}`);
+    }
+  });
+
+  it('prefers what the author typed over what the title suggests', () => {
+    const identity = deriveIdentity({
+      mode: 'new',
+      title: 'Beginning again',
+      lang: 'zh',
+      typedBody: 'first-light',
+      now: new Date('2026-09-09T12:00:00Z'),
+    });
+
+    assert.equal(identity.slug, 'zh/first-light');
+  });
+
+  it('takes both identifiers from the source when translating', () => {
+    const identity = deriveIdentity({
+      mode: 'translation',
+      title: '無題',
+      lang: 'ja',
+      typedBody: '',
+      source: { translationKey: 'moriium-reconstruction', slug: 'zh/moriium-reconstruction' },
+      now: new Date('2026-09-09T12:00:00Z'),
+    });
+
+    assert.equal(identity.slug, 'ja/moriium-reconstruction');
+    assert.equal(identity.translationKey, 'moriium-reconstruction');
   });
 
   it('offers only the languages the group is still missing', () => {

@@ -68,6 +68,52 @@ export function slugBodyOf(slug: string): string {
   return slug.replace(/^(zh|ja|en)\//, '');
 }
 
+export type IdentityInput = {
+  readonly mode: 'new' | 'translation';
+  readonly title: string;
+  readonly lang: Language;
+  /** What the author has in the slug box; blank means they have not chosen. */
+  readonly typedBody: string;
+  readonly source?: KeySource;
+  readonly now: Date;
+};
+
+export type Identity = { readonly slug: string; readonly translationKey: string };
+
+/**
+ * Both identifiers, from one place, for any state the form can be in.
+ *
+ * They used to be maintained by separate assignments guarded by a "has the
+ * author touched the slug" flag, and that flag latched on any edit including
+ * clearing the box. Emptying the slug therefore left it empty forever while
+ * the key kept the value derived from the slug that had been there: the note
+ * under the field named a translation group the article would not join, and
+ * the `required` attribute blocked the submit with nothing to fix it.
+ *
+ * Deriving both together removes the state that could disagree. A blank box is
+ * simply not a choice, so the title is used; a blank title is not a choice
+ * either, so the date is. There is no input for which this returns nothing.
+ */
+export function deriveIdentity(input: IdentityInput): Identity {
+  const typed = input.typedBody.trim();
+  const body =
+    input.mode === 'translation' && input.source
+      ? // A translation resolves to the same route segment as its source, which
+        // is what lets /zh/, /ja/ and /en/ share one address.
+        typed || slugBodyOf(input.source.slug)
+      : typed || slugBodyFromTitle(input.title, input.now);
+
+  // `typed` reached here unslugified, because the author is mid-keystroke and
+  // rewriting the box under the cursor would fight them. It still has to be a
+  // legal slug by the time it becomes an address.
+  const safe = slugBodyFromTitle(body, input.now);
+  return {
+    slug: composeSlug(input.lang, safe),
+    translationKey:
+      input.mode === 'translation' && input.source ? input.source.translationKey : safe,
+  };
+}
+
 /**
  * The languages a group has no article for yet.
  *

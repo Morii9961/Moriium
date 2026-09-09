@@ -1,13 +1,6 @@
 import { computed, defineComponent, onMounted, ref, watch } from 'vue';
 import ArticleEditor from './ArticleEditor.ts';
-import {
-  LANGUAGES,
-  composeSlug,
-  languagesLeftInGroup,
-  slugBodyFromTitle,
-  slugBodyOf,
-  translationKeyFor,
-} from './slug.ts';
+import { LANGUAGES, deriveIdentity, languagesLeftInGroup, slugBodyOf } from './slug.ts';
 import {
   api,
   ApiError,
@@ -61,10 +54,6 @@ export default defineComponent({
     const signedIn = computed(() => author.value !== null);
     const createMode = ref<'new' | 'translation'>('new');
     const sourceId = ref<number | null>(null);
-    // Set once the author edits the slug by hand, after which the title stops
-    // overwriting it. Without this, correcting a slug and then fixing a typo in
-    // the title would silently throw the correction away.
-    const slugTouched = ref(false);
     // Not a ref: only loadStatus reads it, and nothing renders from it.
     let statusRequest = 0;
 
@@ -121,8 +110,8 @@ export default defineComponent({
     /** Clears the derived-identity state that lives outside the draft object. */
     function resetCreateForm(): void {
       createMode.value = 'new';
+      typedSlugBody.value = '';
       sourceId.value = null;
-      slugTouched.value = false;
     }
 
     /** The article this entry translates, when the author picked one. */
@@ -139,22 +128,27 @@ export default defineComponent({
     });
 
     /**
-     * The slug without its language prefix.
+     * What the author has typed into the slug box, verbatim.
      *
-     * The prefix exists so Astro's collection ids stay unique across variants
-     * (`src/content-schema.ts`); it follows from the language and was never a
-     * decision, so the form composes it rather than asking for it.
+     * Held separately from `draft.slug` and never rewritten while they type:
+     * normalising under the cursor would eat the hyphen the moment it is typed.
+     * `deriveIdentity` slugifies it on the way into the draft instead.
      */
+    const typedSlugBody = ref('');
+
     const slugBody = computed({
-      get: () => slugBodyOf(draft.value.slug),
+      get: () => typedSlugBody.value,
       set: (body: string) => {
-        slugTouched.value = true;
-        draft.value.slug = composeSlug(draft.value.lang, body);
+        typedSlugBody.value = body;
+        syncDerivedIdentity();
       },
     });
 
+    /** What the slug box will resolve to if the author leaves it alone. */
+    const derivedSlugBody = computed(() => slugBodyOf(draft.value.slug));
+
     const articleUrlPreview = computed(
-      () => `/${draft.value.lang}/posts/${slugBodyOf(draft.value.slug) || '…'}/`,
+      () => `/${draft.value.lang}/posts/${derivedSlugBody.value}/`,
     );
 
     /** Only articles whose group still has a free language can be translated. */
@@ -165,38 +159,23 @@ export default defineComponent({
       }),
     );
 
-    /** Recomposes slug and key whenever anything they derive from moves. */
+    /** Recomposes both identifiers from whatever the form currently holds. */
     function syncDerivedIdentity(): void {
       const source = sourceArticle.value;
-      if (createMode.value === 'translation' && source) {
-        // A translation shares its source's slug body, which is what makes the
-        // three variants resolve to the same route segment under /zh/, /ja/
-        // and /en/.
-        if (!slugTouched.value) draft.value.slug = composeSlug(draft.value.lang, slugBodyOf(source.article.slug));
-        else draft.value.slug = composeSlug(draft.value.lang, slugBodyOf(draft.value.slug));
-        draft.value.translationKey = translationKeyFor({
-          mode: 'translation',
-          slugBody: slugBodyOf(draft.value.slug),
-          source: source.article,
-        });
-        return;
-      }
-      if (!slugTouched.value) {
-        draft.value.slug = composeSlug(
-          draft.value.lang,
-          slugBodyFromTitle(draft.value.title, new Date()),
-        );
-      } else {
-        draft.value.slug = composeSlug(draft.value.lang, slugBodyOf(draft.value.slug));
-      }
-      draft.value.translationKey = translationKeyFor({
-        mode: 'new',
-        slugBody: slugBodyOf(draft.value.slug),
+      const identity = deriveIdentity({
+        mode: createMode.value,
+        title: draft.value.title,
+        lang: draft.value.lang,
+        typedBody: typedSlugBody.value,
+        now: new Date(),
+        ...(source ? { source: source.article } : {}),
       });
+      draft.value.slug = identity.slug;
+      draft.value.translationKey = identity.translationKey;
     }
 
     watch(
-      [() => draft.value.title, () => draft.value.lang, createMode, sourceId],
+      [() => draft.value.title, () => draft.value.lang, createMode, sourceId, creating],
       () => {
         // Switching to a language the group already holds would be refused by
         // the publish gate later; correct it here instead.
@@ -205,6 +184,11 @@ export default defineComponent({
         }
         syncDerivedIdentity();
       },
+      // The form opens on the untouched draft, and that state has to already
+      // carry a valid slug. Without this the box opened empty, the author had
+      // nothing to submit, and the note underneath still showed a translation
+      // group derived from a slug that was no longer there.
+      { immediate: true },
     );
 
     function report(error: unknown): void {
@@ -397,6 +381,7 @@ export default defineComponent({
       createMode,
       sourceId,
       slugBody,
+      derivedSlugBody,
       availableLanguages,
       translatableArticles,
       articleUrlPreview,
@@ -448,9 +433,9 @@ export default defineComponent({
         </div>
         <div class="form-grid two">
           <label v-if="createMode === 'translation'"><span>译文语言</span><select v-model="draft.lang"><option v-for="lang in availableLanguages" :key="lang" :value="lang">{{ lang }}</option></select></label>
-          <label><span>slug</span><input v-model="slugBody" required /></label>
+          <label><span>slug（留空则自动生成）</span><input v-model="slugBody" :placeholder="derivedSlugBody" /></label>
         </div>
-        <p class="note">公开网址 <code>{{ articleUrlPreview }}</code>　翻译组 <code>{{ draft.translationKey || '（待定）' }}</code></p>
+        <p class="note">公开网址 <code>{{ articleUrlPreview }}</code>　翻译组 <code>{{ draft.translationKey }}</code></p>
         <div class="form-grid two">
           <label><span>标题</span><input v-model="draft.title" required /></label>
           <label><span>分类</span><input v-model="draft.category" required /></label>
