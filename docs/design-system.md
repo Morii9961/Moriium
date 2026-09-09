@@ -203,6 +203,19 @@ reduced-motion mode shortens the transition to an effectively instant swap.
 This does not install Astro's client router, add a public script, persist page
 state, or change the prerendered route contract.
 
+### About friend links — 2026-09-09
+
+`AboutFriends.astro` adds a static section after feeds and social addresses.
+It reuses the existing About band and heading styles. Text links use semantic
+colors, underlined names, visible domains, and keyboard focus outlines. Narrow
+layouts place the domain below the name. No identity tokens change.
+
+Maintain approved entries in `src/data/friends.ts`, in display order. Each entry
+has `name`, `url`, and an optional `description` map keyed by `zh`, `ja`, or `en`.
+Descriptions without a translation are omitted. The initial list is empty pending
+Morii's real friend links; examples must not be published as actual friends.
+Rebuild after editing the list.
+
 ## Implementation rule
 
 When the implementation and `DESIGN.md` disagree, follow `DESIGN.md` and update this status record. Do not silently promote a prototype, generic skill recommendation, or reference-site pattern into Moriium's site-wide language.

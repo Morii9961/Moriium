@@ -175,3 +175,19 @@ navigation contract.
 
 The transition is a restrained cross-fade. It introduces no direction metaphor
 that could conflict with direct links, browser history, or language changes.
+
+### About friend links — 2026-09-09
+
+Question: how should a small friend list be maintained and presented within About?
+
+| Reference inspected | Extracted principle | Moriium decision |
+| --- | --- | --- |
+| [Astro Pure friend-link documentation](https://astro-pure.js.org/docs/integrations/links) | Keep link records separate from the page; groups and a friend feed are optional additions. | Use one local list for all three languages. |
+| [vhAstro-Theme source README](https://github.com/uxiaohan/vhAstro-Theme#-特色页面) | A TypeScript data file can hold names, URLs, avatars, and descriptions without an API. | Use typed local data, rendered at build time. |
+| [Butterfly page documentation](https://butterfly.js.org/posts/dc584b87/) | Local data and optional grouping support manual link curation. | Preserve authored order; defer grouping until real content needs it. |
+
+The implementation uses the existing About band, heading, indentation, fonts,
+and semantic colors under `DESIGN.md`. Links are text rows with a visible domain
+and optional translated description. No upstream code or assets are copied.
+No dependency, avatar request, friend feed, submission form, or runtime fetch is
+introduced. An empty list displays a short localized sentence.

@@ -2,6 +2,7 @@
 import type { GetStaticPaths } from 'astro';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import AboutActivity from '../../../components/AboutActivity.astro';
+import AboutFriends from '../../../components/AboutFriends.astro';
 import { SITE, type Language } from '../../../data/site';
 
 export const getStaticPaths: GetStaticPaths = () =>
@@ -170,6 +171,8 @@ const pad = (value: number) => String(value + 1).padStart(2, '0');
         ))}
       </dl>
     </section>
+
+    <AboutFriends lang={lang} />
 
     <nav class="a-about-page__end" aria-label={c.linksLabel}>
       <a class="aperture-action" href={`/${lang}/writing/`}><span>{c.read}</span><i>→</i></a>
