@@ -2,6 +2,7 @@
 import type { GetStaticPaths } from 'astro';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import AboutActivity from '../../../components/AboutActivity.astro';
+import AboutChannelIcon from '../../../components/AboutChannelIcon.astro';
 import AboutFriends from '../../../components/AboutFriends.astro';
 import { SITE, type Language } from '../../../data/site';
 
@@ -11,9 +12,21 @@ export const getStaticPaths: GetStaticPaths = () =>
 const { lang } = Astro.props as { lang: Language };
 
 const CHANNELS = [
-  { name: 'GitHub', handle: 'github.com/Morii9961', href: 'https://github.com/Morii9961' },
-  { name: 'X', handle: 'x.com/morii9961', href: 'https://x.com/morii9961' },
-  { name: 'Bilibili', handle: 'space.bilibili.com/670549003', href: 'https://space.bilibili.com/670549003' },
+  {
+    name: 'GitHub',
+    handle: 'github.com/Morii9961',
+    href: 'https://github.com/Morii9961',
+  },
+  {
+    name: 'X',
+    handle: 'x.com/morii9961',
+    href: 'https://x.com/morii9961',
+  },
+  {
+    name: 'Bilibili',
+    handle: 'space.bilibili.com/670549003',
+    href: 'https://space.bilibili.com/670549003',
+  },
 ] as const;
 
 const copy = {
@@ -26,9 +39,7 @@ const copy = {
       'Moriium 使用 Astro、TypeScript 与原生 HTML/CSS 构建。公开页面和搜索索引都在构建时生成，阅读端不依赖 Node 或数据库。',
       '作者后台单独使用 Vue 3 与 Tiptap，通过 Node 与 SQLite 按需运行；后台代码不会进入公开页面。',
     ],
-    reach: '订阅与其他地址', reachNote: 'Feeds and elsewhere',
-    feedBody: '三种语言各有一份 RSS，收录对应语言的公开文章。',
-    feedLabel: { zh: '中文 RSS', ja: '日本語 RSS', en: 'English RSS' },
+    reach: '其他地址', reachNote: 'Elsewhere',
     channelNotes: {
       GitHub: '源码与公开问题记录。',
       X: '偶尔更新近况。',
@@ -44,9 +55,7 @@ const copy = {
       'Moriium は Astro、TypeScript、素の HTML/CSS で構築しています。公開ページと検索索引はビルド時に生成され、閲覧側は Node やデータベースに依存しません。',
       '作者用の管理画面には Vue 3 と Tiptap を使用し、Node と SQLite 上で別に動作します。管理画面のコードが公開ページに含まれることはありません。',
     ],
-    reach: '購読とほかの場所', reachNote: 'Feeds and elsewhere',
-    feedBody: '三つの言語にそれぞれ RSS があり、対応する言語の公開記事を収めています。',
-    feedLabel: { zh: '中文 RSS', ja: '日本語 RSS', en: 'English RSS' },
+    reach: 'ほかの場所', reachNote: 'Elsewhere',
     channelNotes: {
       GitHub: 'ソースコードと公開の課題記録。',
       X: '近況をときどき更新します。',
@@ -62,9 +71,7 @@ const copy = {
       'Moriium is built with Astro, TypeScript, and native HTML/CSS. Public pages and search indexes are generated at build time, so reading does not depend on Node or a database.',
       'The author admin uses Vue 3 and Tiptap, running separately on Node and SQLite. Its code is kept out of public pages.',
     ],
-    reach: 'Feeds and elsewhere', reachNote: 'Feeds and elsewhere',
-    feedBody: 'Each language has its own feed containing its public posts.',
-    feedLabel: { zh: '中文 RSS', ja: '日本語 RSS', en: 'English RSS' },
+    reach: 'Elsewhere', reachNote: 'Morii online',
     channelNotes: {
       GitHub: 'Source code and public issue records.',
       X: 'Occasional updates.',
@@ -88,25 +95,26 @@ const c = copy[lang];
       <div>{c.body.map((paragraph) => <p>{paragraph}</p>)}</div>
     </section>
 
-    <AboutActivity lang={lang} />
-
     <section class="a-about-page__band" aria-labelledby="about-reach">
       <header class="a-about-page__head"><h2 id="about-reach">{c.reach}</h2><p>{c.reachNote}</p></header>
-      <p>{c.feedBody}</p>
-      <p class="a-about-page__feeds">
-        {SITE.languages.map((code) => (
-          <a class="aperture-action" href={`/${code}/rss.xml`}><span>{c.feedLabel[code]}</span><i>↗</i></a>
-        ))}
-      </p>
-      <dl class="a-about-page__inset a-about-page__channels">
+      <ul class="a-about-page__channels">
         {CHANNELS.map((channel) => (
-          <div>
-            <dt>{channel.name}</dt>
-            <dd><a href={channel.href} rel="me">{channel.handle}</a>{c.channelNotes[channel.name]}</dd>
-          </div>
+          <li>
+            <a href={channel.href} rel="me">
+              <AboutChannelIcon name={channel.name} />
+              <span class="a-about-page__channel-copy">
+                <strong>{channel.name}</strong>
+                <span class="a-about-page__channel-note">{c.channelNotes[channel.name]}</span>
+                <span class="a-about-page__channel-handle">{channel.handle}</span>
+              </span>
+              <span class="a-about-page__channel-arrow" aria-hidden="true">↗</span>
+            </a>
+          </li>
         ))}
-      </dl>
+      </ul>
     </section>
+
+    <AboutActivity lang={lang} />
 
     <AboutFriends lang={lang} />
 

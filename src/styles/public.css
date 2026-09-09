@@ -1734,19 +1734,104 @@
     font-weight: 600;
   }
 
-  .a-about-page__channels dd a {
-    display: block;
-    color: var(--accent);
-    font-family: var(--font-data);
-    font-size: 0.68rem;
+  /* The three destinations form one flat directory strip rather than a card
+     stack. Each whole cell is the link; the brand mark is the only decorative
+     gesture, and the shared rules keep it in the page's editorial grammar. */
+  .a-about-page__channels {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-top: clamp(2rem, 4vw, 3.5rem);
+    padding: 0;
+    border-block: 1px solid var(--line-soft);
+    list-style: none;
   }
 
-  .a-about-page__feeds {
+  .a-about-page__channels li + li {
+    border-left: 1px solid var(--line-soft);
+  }
+
+  .a-about-page__channels a {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto minmax(0, 1fr);
+    min-height: clamp(13rem, 18vw, 16rem);
+    gap: 2.2rem 1rem;
+    padding: clamp(1.5rem, 3vw, 2.4rem);
+    transition:
+      background-color var(--motion-fast) ease,
+      color var(--motion-fast) ease;
+  }
+
+  .a-about-page__channels svg {
+    grid-column: 1;
+    grid-row: 1;
+    width: 2rem;
+    height: 2rem;
+    fill: currentColor;
+  }
+
+  .a-about-page__channel-copy {
     display: flex;
-    flex-wrap: wrap;
-    gap: 0 2.25rem;
-    margin-top: 1.6rem;
-    margin-left: var(--about-indent, calc(var(--about-label, 7rem) + 2rem));
+    grid-column: 1 / -1;
+    grid-row: 2;
+    min-width: 0;
+    flex-direction: column;
+    align-self: end;
+  }
+
+  .a-about-page__channels strong {
+    font-family: var(--font-display);
+    font-size: clamp(1.15rem, 1.8vw, 1.45rem);
+    font-weight: 650;
+    letter-spacing: -0.025em;
+  }
+
+  .a-about-page__channel-note {
+    margin-top: 0.45rem;
+    color: var(--ink-muted);
+    font-family: var(--font-reading);
+    font-size: 0.84rem;
+    line-height: 1.6;
+  }
+
+  .a-about-page__channel-handle {
+    margin-top: 1rem;
+    overflow: hidden;
+    color: var(--ink-faint);
+    font-family: var(--font-data);
+    font-size: 0.6rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .a-about-page__channel-arrow {
+    grid-column: 2;
+    grid-row: 1;
+    color: var(--accent);
+    font-family: var(--font-data);
+    font-size: 0.8rem;
+    font-weight: 500;
+    transition: transform var(--motion-fast) ease;
+  }
+
+  .a-about-page__channels a:hover,
+  .a-about-page__channels a:focus-visible {
+    background: var(--accent-field);
+    color: var(--accent-field-ink);
+  }
+
+  .a-about-page__channels a:hover .a-about-page__channel-note,
+  .a-about-page__channels a:hover .a-about-page__channel-handle,
+  .a-about-page__channels a:hover .a-about-page__channel-arrow,
+  .a-about-page__channels a:focus-visible .a-about-page__channel-note,
+  .a-about-page__channels a:focus-visible .a-about-page__channel-handle,
+  .a-about-page__channels a:focus-visible .a-about-page__channel-arrow {
+    color: color-mix(in srgb, var(--accent-field-ink) 78%, transparent);
+  }
+
+  .a-about-page__channels a:hover .a-about-page__channel-arrow,
+  .a-about-page__channels a:focus-visible .a-about-page__channel-arrow {
+    transform: translate(0.2rem, -0.2rem);
   }
 
   /* Nothing here solicits, so the page ends on one way back and a measured
@@ -2026,8 +2111,18 @@
       padding-right: 1rem;
     }
 
-    .a-about-page__feeds {
-      gap: 0 1.5rem;
+    .a-about-page__channels {
+      grid-template-columns: 1fr;
+    }
+
+    .a-about-page__channels li + li {
+      border-top: 1px solid var(--line-soft);
+      border-left: 0;
+    }
+
+    .a-about-page__channels a {
+      min-height: 10.5rem;
+      gap: 1.5rem 1rem;
     }
 
     /* One column: the heading, then the two controls under it. Ordered after
