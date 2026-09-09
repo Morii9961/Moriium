@@ -494,12 +494,14 @@
     transition: color var(--motion-fast) var(--motion-ease), text-decoration-color var(--motion-fast) var(--motion-ease);
   }
 
-  .public-site .site-footer__nav a {
+  .public-site .site-footer__nav a,
+  .public-site .site-footer__languages a {
     position: relative;
     text-decoration: none;
   }
 
-  .public-site .site-footer__nav a::before {
+  .public-site .site-footer__nav a::before,
+  .public-site .site-footer__languages a::before {
     position: absolute;
     bottom: 0.25rem;
     left: 50%;
@@ -511,7 +513,10 @@
     transition: transform var(--motion-fast) var(--motion-ease);
   }
 
-  .public-site .site-footer__nav a[aria-current='page']::before {
+  .public-site .site-footer__nav a[aria-current='page']::before,
+  .public-site .site-footer__languages a[aria-current='page']::before,
+  .public-site .site-footer__nav a:focus-visible::before,
+  .public-site .site-footer__languages a:focus-visible::before {
     transform: translateX(-50%) scaleX(1);
   }
 
@@ -1997,7 +2002,8 @@
 
 @media (hover: hover) and (pointer: fine) {
   @layer components {
-    .public-site .site-footer__nav a:hover::before {
+    .public-site .site-footer__nav a:hover::before,
+    .public-site .site-footer__languages a:hover::before {
       transform: translateX(-50%) scaleX(1);
     }
   }
