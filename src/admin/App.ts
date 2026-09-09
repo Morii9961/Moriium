@@ -4,6 +4,7 @@ import {
   api,
   ApiError,
   messageForApiFailure,
+  messageForSignInFailure,
   type ArticleRow,
   type Author,
   type NewArticleInput,
@@ -195,7 +196,18 @@ export default defineComponent({
       busy.value = true;
       failure.value = '';
       try {
-        author.value = await api.login(name.value, password.value);
+        let signedIn: Author;
+        try {
+          signedIn = await api.login(name.value, password.value);
+        } catch (error) {
+          // Only the login call gets this handler. `report` answers every 401
+          // with "会话已过期", which is right for the calls below -- they run
+          // with a session that can end -- and wrong for this one, where a 401
+          // means the credential was refused and there was never a session.
+          failure.value = messageForSignInFailure(error);
+          return;
+        }
+        author.value = signedIn;
         password.value = '';
         await loadAuthorViews();
       } catch (error) {
