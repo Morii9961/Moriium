@@ -34,7 +34,6 @@ const copy = {
       X: '偶尔更新近况。',
       Bilibili: '视频存放处。',
     },
-    linksLabel: '继续浏览', read: '文章索引',
   },
   ja: {
     title: 'この場所',
@@ -53,7 +52,6 @@ const copy = {
       X: '近況をときどき更新します。',
       Bilibili: '動画の保管場所。',
     },
-    linksLabel: '次に読む', read: '記事索引',
   },
   en: {
     title: 'This place',
@@ -72,7 +70,6 @@ const copy = {
       X: 'Occasional updates.',
       Bilibili: 'Video archive.',
     },
-    linksLabel: 'Keep exploring', read: 'Writing index',
   },
 } as const;
 const c = copy[lang];
@@ -113,8 +110,5 @@ const c = copy[lang];
 
     <AboutFriends lang={lang} />
 
-    <nav class="a-about-page__end" aria-label={c.linksLabel}>
-      <a class="aperture-action" href={`/${lang}/writing/`}><span>{c.read}</span><i>→</i></a>
-    </nav>
   </div>
 </BaseLayout>
