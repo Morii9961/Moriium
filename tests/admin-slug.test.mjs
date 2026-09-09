@@ -76,7 +76,6 @@ describe('admin slug derivation', () => {
       mode: 'new',
       title: '',
       lang: 'zh',
-      typedBody: '',
       now: new Date('2026-09-09T12:00:00Z'),
     });
 
@@ -86,12 +85,11 @@ describe('admin slug derivation', () => {
 
   it('never lets either identifier come out empty', () => {
     for (const title of ['', '   ', '从一张白纸重新开始', '!!!', '---']) {
-      for (const typedBody of ['', '   ']) {
+      {
         const identity = deriveIdentity({
           mode: 'new',
           title,
           lang: 'ja',
-          typedBody,
           now: new Date('2026-09-09T12:00:00Z'),
         });
 
@@ -105,12 +103,11 @@ describe('admin slug derivation', () => {
     // These drifted apart once: clearing the slug left the key holding a value
     // derived from the slug that used to be there, so the note under the field
     // described a group the article would not join.
-    for (const typedBody of ['', 'chosen-by-hand', '  spaced  ']) {
+    {
       const identity = deriveIdentity({
         mode: 'new',
         title: 'A title',
         lang: 'en',
-        typedBody,
         now: new Date('2026-09-09T12:00:00Z'),
       });
 
@@ -118,16 +115,51 @@ describe('admin slug derivation', () => {
     }
   });
 
-  it('prefers what the author typed over what the title suggests', () => {
+  it('steps aside from a slug the same language already uses', () => {
+    // The box is gone, so the author cannot resolve a collision by hand. Two
+    // Chinese-titled articles written on one day both derive the date, and the
+    // second would hit the UNIQUE constraint on articles.slug at create time.
+    const taken = ['zh/2026-09-09', 'zh/2026-09-09-2'];
+
+    const identity = deriveIdentity({
+      mode: 'new',
+      title: '第三篇',
+      lang: 'zh',
+      taken,
+      now: new Date('2026-09-09T12:00:00Z'),
+    });
+
+    assert.equal(identity.slug, 'zh/2026-09-09-3');
+    assert.equal(identity.translationKey, '2026-09-09-3');
+  });
+
+  it('does not treat another language as a collision', () => {
+    // articles.slug carries the language prefix, so ja/first-light and
+    // zh/first-light are distinct rows. Disambiguating here would break the
+    // shared route segment that makes the language links line up.
+    const identity = deriveIdentity({
+      mode: 'translation',
+      title: '無題',
+      lang: 'ja',
+      taken: ['zh/first-light'],
+      source: { translationKey: 'first-light', slug: 'zh/first-light' },
+      now: new Date('2026-09-09T12:00:00Z'),
+    });
+
+    assert.equal(identity.slug, 'ja/first-light');
+  });
+
+  it('takes a Latin title as the slug rather than dating it', () => {
+    // There is no input to override this with, so the title is the only thing
+    // that can produce a readable address.
     const identity = deriveIdentity({
       mode: 'new',
       title: 'Beginning again',
       lang: 'zh',
-      typedBody: 'first-light',
       now: new Date('2026-09-09T12:00:00Z'),
     });
 
-    assert.equal(identity.slug, 'zh/first-light');
+    assert.equal(identity.slug, 'zh/beginning-again');
   });
 
   it('takes both identifiers from the source when translating', () => {
@@ -135,7 +167,6 @@ describe('admin slug derivation', () => {
       mode: 'translation',
       title: '無題',
       lang: 'ja',
-      typedBody: '',
       source: { translationKey: 'moriium-reconstruction', slug: 'zh/moriium-reconstruction' },
       now: new Date('2026-09-09T12:00:00Z'),
     });

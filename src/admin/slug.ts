@@ -72,8 +72,8 @@ export type IdentityInput = {
   readonly mode: 'new' | 'translation';
   readonly title: string;
   readonly lang: Language;
-  /** What the author has in the slug box; blank means they have not chosen. */
-  readonly typedBody: string;
+  /** Slugs that already exist, prefix included, so a new one can avoid them. */
+  readonly taken?: readonly string[];
   readonly source?: KeySource;
   readonly now: Date;
 };
@@ -81,37 +81,47 @@ export type IdentityInput = {
 export type Identity = { readonly slug: string; readonly translationKey: string };
 
 /**
- * Both identifiers, from one place, for any state the form can be in.
+ * Both identifiers, derived, for any state the form can be in.
  *
- * They used to be maintained by separate assignments guarded by a "has the
- * author touched the slug" flag, and that flag latched on any edit including
- * clearing the box. Emptying the slug therefore left it empty forever while
- * the key kept the value derived from the slug that had been there: the note
- * under the field named a translation group the article would not join, and
- * the `required` attribute blocked the submit with nothing to fix it.
+ * The author does not enter either one. A slug is an address and a key is a
+ * grouping, and both are immutable once the article exists, so asking a person
+ * to type them only created ways to be permanently wrong: a typo in the first
+ * shipped a bad URL, a typo in the second started a translation group of one.
  *
- * Deriving both together removes the state that could disagree. A blank box is
- * simply not a choice, so the title is used; a blank title is not a choice
- * either, so the date is. There is no input for which this returns nothing.
+ * Deriving them together means they cannot disagree, and there is no input for
+ * which this returns nothing: a blank title is not a choice, so the date
+ * stands in.
  */
 export function deriveIdentity(input: IdentityInput): Identity {
-  const typed = input.typedBody.trim();
-  const body =
-    input.mode === 'translation' && input.source
-      ? // A translation resolves to the same route segment as its source, which
-        // is what lets /zh/, /ja/ and /en/ share one address.
-        typed || slugBodyOf(input.source.slug)
-      : typed || slugBodyFromTitle(input.title, input.now);
+  if (input.mode === 'translation' && input.source) {
+    // A translation resolves to the same route segment as its source, which is
+    // what lets /zh/, /ja/ and /en/ share one address. It is never
+    // disambiguated: the prefix already makes the row unique, and changing the
+    // body here would break the language links.
+    const body = slugBodyOf(input.source.slug);
+    return { slug: composeSlug(input.lang, body), translationKey: input.source.translationKey };
+  }
 
-  // `typed` reached here unslugified, because the author is mid-keystroke and
-  // rewriting the box under the cursor would fight them. It still has to be a
-  // legal slug by the time it becomes an address.
-  const safe = slugBodyFromTitle(body, input.now);
-  return {
-    slug: composeSlug(input.lang, safe),
-    translationKey:
-      input.mode === 'translation' && input.source ? input.source.translationKey : safe,
-  };
+  const derived = slugBodyFromTitle(input.title, input.now);
+  const body = unusedBody(derived, input.lang, input.taken ?? []);
+  return { slug: composeSlug(input.lang, body), translationKey: body };
+}
+
+/**
+ * The first free variant of a slug body within one language.
+ *
+ * Chinese titles all fall back to the same date, so a second article written
+ * the same day would collide on `articles.slug`, and with no input on the form
+ * the author has no way to resolve it. Numbering starts at 2 so the first
+ * article of a day keeps the bare date.
+ */
+function unusedBody(body: string, lang: Language, taken: readonly string[]): string {
+  const used = new Set(taken);
+  if (!used.has(composeSlug(lang, body))) return body;
+  for (let suffix = 2; ; suffix += 1) {
+    const candidate = `${body}-${suffix}`;
+    if (!used.has(composeSlug(lang, candidate))) return candidate;
+  }
 }
 
 /**

@@ -110,7 +110,6 @@ export default defineComponent({
     /** Clears the derived-identity state that lives outside the draft object. */
     function resetCreateForm(): void {
       createMode.value = 'new';
-      typedSlugBody.value = '';
       sourceId.value = null;
     }
 
@@ -127,28 +126,8 @@ export default defineComponent({
       return languagesLeftInGroup(rows, source.article.translationKey);
     });
 
-    /**
-     * What the author has typed into the slug box, verbatim.
-     *
-     * Held separately from `draft.slug` and never rewritten while they type:
-     * normalising under the cursor would eat the hyphen the moment it is typed.
-     * `deriveIdentity` slugifies it on the way into the draft instead.
-     */
-    const typedSlugBody = ref('');
-
-    const slugBody = computed({
-      get: () => typedSlugBody.value,
-      set: (body: string) => {
-        typedSlugBody.value = body;
-        syncDerivedIdentity();
-      },
-    });
-
-    /** What the slug box will resolve to if the author leaves it alone. */
-    const derivedSlugBody = computed(() => slugBodyOf(draft.value.slug));
-
     const articleUrlPreview = computed(
-      () => `/${draft.value.lang}/posts/${derivedSlugBody.value}/`,
+      () => `/${draft.value.lang}/posts/${slugBodyOf(draft.value.slug)}/`,
     );
 
     /** Only articles whose group still has a free language can be translated. */
@@ -166,7 +145,9 @@ export default defineComponent({
         mode: createMode.value,
         title: draft.value.title,
         lang: draft.value.lang,
-        typedBody: typedSlugBody.value,
+        // Every slug already in use, so a derived one can step around it. The
+        // author has no field to resolve a collision with.
+        taken: articles.value.map((row) => row.article.slug),
         now: new Date(),
         ...(source ? { source: source.article } : {}),
       });
@@ -380,8 +361,6 @@ export default defineComponent({
       draft,
       createMode,
       sourceId,
-      slugBody,
-      derivedSlugBody,
       availableLanguages,
       translatableArticles,
       articleUrlPreview,
@@ -426,14 +405,10 @@ export default defineComponent({
 
       <form v-if="creating" class="create-panel" @submit.prevent="create">
         <div class="section-heading"><div><p class="eyebrow">Article / New</p><h2>新建文章</h2></div><p class="note">语言、slug 与 translationKey 建立后不可通过保存版本修改。</p></div>
-        <div class="form-grid two">
+        <div :class="createMode === 'translation' ? 'form-grid three' : 'form-grid two'">
           <label><span>这是什么</span><select v-model="createMode"><option value="new">一篇新文章</option><option value="translation">已有文章的译文</option></select></label>
           <label v-if="createMode === 'translation'"><span>翻译自</span><select v-model="sourceId"><option :value="null" disabled>选择原文</option><option v-for="row in translatableArticles" :key="row.article.id" :value="row.article.id">{{ row.latest?.title || '未命名文章' }}（{{ row.article.lang }}）</option></select></label>
-          <label v-else><span>语言</span><select v-model="draft.lang"><option v-for="lang in LANGUAGES" :key="lang" :value="lang">{{ lang }}</option></select></label>
-        </div>
-        <div class="form-grid two">
-          <label v-if="createMode === 'translation'"><span>译文语言</span><select v-model="draft.lang"><option v-for="lang in availableLanguages" :key="lang" :value="lang">{{ lang }}</option></select></label>
-          <label><span>slug（留空则自动生成）</span><input v-model="slugBody" :placeholder="derivedSlugBody" /></label>
+          <label><span>{{ createMode === 'translation' ? '译文语言' : '语言' }}</span><select v-model="draft.lang"><option v-for="lang in availableLanguages" :key="lang" :value="lang">{{ lang }}</option></select></label>
         </div>
         <p class="note">公开网址 <code>{{ articleUrlPreview }}</code>　翻译组 <code>{{ draft.translationKey }}</code></p>
         <div class="form-grid two">
