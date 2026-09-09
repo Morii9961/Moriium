@@ -466,9 +466,9 @@
 
   .public-site .site-footer__label {
     padding-top: 0.9rem;
-    color: color-mix(in srgb, var(--accent-field-ink) 56%, transparent);
-    font-family: var(--font-data);
-    font-size: 0.62rem;
+    color: color-mix(in srgb, var(--accent-field-ink) 76%, transparent);
+    font-family: var(--font-interface);
+    font-size: 0.78rem;
   }
 
   .public-site .site-footer__nav ul {
