@@ -1,5 +1,13 @@
-import { computed, defineComponent, onMounted, ref } from 'vue';
+import { computed, defineComponent, onMounted, ref, watch } from 'vue';
 import ArticleEditor from './ArticleEditor.ts';
+import {
+  LANGUAGES,
+  composeSlug,
+  languagesLeftInGroup,
+  slugBodyFromTitle,
+  slugBodyOf,
+  translationKeyFor,
+} from './slug.ts';
 import {
   api,
   ApiError,
@@ -51,6 +59,12 @@ export default defineComponent({
     const status = ref<OperationalStatus | null>(null);
     const checkingStatus = ref(false);
     const signedIn = computed(() => author.value !== null);
+    const createMode = ref<'new' | 'translation'>('new');
+    const sourceId = ref<number | null>(null);
+    // Set once the author edits the slug by hand, after which the title stops
+    // overwriting it. Without this, correcting a slug and then fixing a typo in
+    // the title would silently throw the correction away.
+    const slugTouched = ref(false);
     // Not a ref: only loadStatus reads it, and nothing renders from it.
     let statusRequest = 0;
 
@@ -100,8 +114,98 @@ export default defineComponent({
       status.value = null;
       creating.value = false;
       draft.value = newArticle();
+      resetCreateForm();
       tagsText.value = '';
     }
+
+    /** Clears the derived-identity state that lives outside the draft object. */
+    function resetCreateForm(): void {
+      createMode.value = 'new';
+      sourceId.value = null;
+      slugTouched.value = false;
+    }
+
+    /** The article this entry translates, when the author picked one. */
+    const sourceArticle = computed(() =>
+      articles.value.find((row) => row.article.id === sourceId.value) ?? null,
+    );
+
+    /** Languages the chosen group still has room for; all three for a new one. */
+    const availableLanguages = computed(() => {
+      const source = sourceArticle.value;
+      if (!source) return [...LANGUAGES];
+      const rows = articles.value.map((row) => row.article);
+      return languagesLeftInGroup(rows, source.article.translationKey);
+    });
+
+    /**
+     * The slug without its language prefix.
+     *
+     * The prefix exists so Astro's collection ids stay unique across variants
+     * (`src/content-schema.ts`); it follows from the language and was never a
+     * decision, so the form composes it rather than asking for it.
+     */
+    const slugBody = computed({
+      get: () => slugBodyOf(draft.value.slug),
+      set: (body: string) => {
+        slugTouched.value = true;
+        draft.value.slug = composeSlug(draft.value.lang, body);
+      },
+    });
+
+    const articleUrlPreview = computed(
+      () => `/${draft.value.lang}/posts/${slugBodyOf(draft.value.slug) || '…'}/`,
+    );
+
+    /** Only articles whose group still has a free language can be translated. */
+    const translatableArticles = computed(() =>
+      articles.value.filter((row) => {
+        const rows = articles.value.map((entry) => entry.article);
+        return languagesLeftInGroup(rows, row.article.translationKey).length > 0;
+      }),
+    );
+
+    /** Recomposes slug and key whenever anything they derive from moves. */
+    function syncDerivedIdentity(): void {
+      const source = sourceArticle.value;
+      if (createMode.value === 'translation' && source) {
+        // A translation shares its source's slug body, which is what makes the
+        // three variants resolve to the same route segment under /zh/, /ja/
+        // and /en/.
+        if (!slugTouched.value) draft.value.slug = composeSlug(draft.value.lang, slugBodyOf(source.article.slug));
+        else draft.value.slug = composeSlug(draft.value.lang, slugBodyOf(draft.value.slug));
+        draft.value.translationKey = translationKeyFor({
+          mode: 'translation',
+          slugBody: slugBodyOf(draft.value.slug),
+          source: source.article,
+        });
+        return;
+      }
+      if (!slugTouched.value) {
+        draft.value.slug = composeSlug(
+          draft.value.lang,
+          slugBodyFromTitle(draft.value.title, new Date()),
+        );
+      } else {
+        draft.value.slug = composeSlug(draft.value.lang, slugBodyOf(draft.value.slug));
+      }
+      draft.value.translationKey = translationKeyFor({
+        mode: 'new',
+        slugBody: slugBodyOf(draft.value.slug),
+      });
+    }
+
+    watch(
+      [() => draft.value.title, () => draft.value.lang, createMode, sourceId],
+      () => {
+        // Switching to a language the group already holds would be refused by
+        // the publish gate later; correct it here instead.
+        if (!availableLanguages.value.includes(draft.value.lang) && availableLanguages.value[0]) {
+          draft.value.lang = availableLanguages.value[0];
+        }
+        syncDerivedIdentity();
+      },
+    );
 
     function report(error: unknown): void {
       if (error instanceof ApiError && error.status === 401) {
@@ -243,6 +347,7 @@ export default defineComponent({
         };
         const result = await api.createArticle(input);
         draft.value = newArticle();
+        resetCreateForm();
         tagsText.value = '';
         creating.value = false;
         await refresh();
@@ -273,6 +378,13 @@ export default defineComponent({
       openId,
       creating,
       draft,
+      createMode,
+      sourceId,
+      slugBody,
+      availableLanguages,
+      translatableArticles,
+      articleUrlPreview,
+      LANGUAGES,
       tagsText,
       status,
       checkingStatus,
@@ -313,11 +425,16 @@ export default defineComponent({
 
       <form v-if="creating" class="create-panel" @submit.prevent="create">
         <div class="section-heading"><div><p class="eyebrow">Article / New</p><h2>新建文章</h2></div><p class="note">语言、slug 与 translationKey 建立后不可通过保存版本修改。</p></div>
-        <div class="form-grid three">
-          <label><span>语言</span><select v-model="draft.lang"><option value="zh">zh</option><option value="ja">ja</option><option value="en">en</option></select></label>
-          <label><span>slug（如 zh/new-post）</span><input v-model="draft.slug" required /></label>
-          <label><span>translationKey</span><input v-model="draft.translationKey" required /></label>
+        <div class="form-grid two">
+          <label><span>这是什么</span><select v-model="createMode"><option value="new">一篇新文章</option><option value="translation">已有文章的译文</option></select></label>
+          <label v-if="createMode === 'translation'"><span>翻译自</span><select v-model="sourceId"><option :value="null" disabled>选择原文</option><option v-for="row in translatableArticles" :key="row.article.id" :value="row.article.id">{{ row.latest?.title || '未命名文章' }}（{{ row.article.lang }}）</option></select></label>
+          <label v-else><span>语言</span><select v-model="draft.lang"><option v-for="lang in LANGUAGES" :key="lang" :value="lang">{{ lang }}</option></select></label>
         </div>
+        <div class="form-grid two">
+          <label v-if="createMode === 'translation'"><span>译文语言</span><select v-model="draft.lang"><option v-for="lang in availableLanguages" :key="lang" :value="lang">{{ lang }}</option></select></label>
+          <label><span>slug</span><input v-model="slugBody" required /></label>
+        </div>
+        <p class="note">公开网址 <code>{{ articleUrlPreview }}</code>　翻译组 <code>{{ draft.translationKey || '（待定）' }}</code></p>
         <div class="form-grid two">
           <label><span>标题</span><input v-model="draft.title" required /></label>
           <label><span>分类</span><input v-model="draft.category" required /></label>
