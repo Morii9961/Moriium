@@ -1,0 +1,7 @@
+packages:
+  - .
+enableGlobalVirtualStore: false
+saveExact: true
+allowBuilds:
+  esbuild: true
+  sharp: true

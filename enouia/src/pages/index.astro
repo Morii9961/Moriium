@@ -1,0 +1,88 @@
+---
+import '../styles/space.css';
+const configuredHome = new URL(import.meta.env.MORIIUM_PUBLIC_URL || 'https://morii9961.top/zh/');
+if (!['https:', 'http:'].includes(configuredHome.protocol)) throw new Error('MORIIUM_PUBLIC_URL must be an HTTP(S) URL.');
+const home = configuredHome.href;
+---
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Enouia。一间临水的房间，一些还想多看一会儿的东西。" />
+    <meta name="theme-color" content="#e9ede8" />
+    <meta property="og:title" content="Enouia" />
+    <meta property="og:description" content="窗外很远，手边很近。" />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <title>Enouia</title>
+  </head>
+  <body>
+    <a class="skip" href="#main">跳到正文</a>
+    <header class="topbar">
+      <a href="#main" class="monogram" aria-label="Enouia，回到开头">e.</a>
+      <span class="top-note">窗外很远，手边很近。</span>
+      <a class="neighbor" href={home}>Moriium <span aria-hidden="true">↗</span></a>
+    </header>
+    <main id="main">
+      <section class="arrival" aria-labelledby="name">
+        <div class="name-block"><p class="small" lang="en">A little closer.</p><h1 id="name">Enouia</h1></div>
+        <div class="arrival-copy"><p>我想在这里<br />多待一会儿。</p><a class="down-link" href="#a-room"><span>你也可以。</span><span aria-hidden="true">↓</span></a></div>
+        <figure class="arrival-image">
+          <img src="./images/room-1536.webp" srcset="./images/room-768.webp 768w, ./images/room-1536.webp 1536w" sizes="(max-width: 700px) 100vw, 78vw" width="1536" height="1024" alt="想象中的临水房间。窗外是一条安静的海平线，浅蓝窗帘垂在木凳旁，光落在灰绿色地砖上。" fetchpriority="high" />
+          <figcaption><span>一处想象中的场所</span><span lang="en">Somewhere, by the water.</span></figcaption>
+        </figure>
+        <span class="arrival-arc" aria-hidden="true"></span>
+        <div class="margin-note" aria-hidden="true"><span></span><span lang="en">Nothing to hurry.</span></div>
+      </section>
+
+      <section class="room-intro" id="a-room" aria-labelledby="room-title">
+        <p class="small" lang="en">The things I notice</p>
+        <h2 id="room-title">窗帘动了一下。<br /><span>我又看了一会儿。</span></h2>
+        <div class="intro-aside"><span class="tiny-window" aria-hidden="true"></span><p>杯子放在凳子右边。<br />本子合着，也没打算马上写。<br />有时候，只是看看就很好。</p></div>
+      </section>
+
+      <section class="translation" id="remember" aria-labelledby="translation-title">
+        <div class="translation-heading"><div><p class="small" lang="en">Looking, then remembering</p><h2 id="translation-title">留下来的，<br />不一定是全部。</h2></div><p>颜色慢慢变淡，<br />窗的位置倒记得很清楚。</p></div>
+        <figure class="translation-figure">
+          <div class="comparison">
+            <img class="structure-image" src="./room-structure.svg" width="1536" height="1024" alt="同一间房间的结构转译：海面化成一块水色，窗、木凳和地砖留下简洁的轮廓。" loading="lazy" />
+            <div class="photo-layer"><img src="./images/room-1536.webp" srcset="./images/room-768.webp 768w, ./images/room-1536.webp 1536w" sizes="(max-width: 700px) 100vw, 86vw" width="1536" height="1024" alt="" loading="lazy" /></div>
+            <div class="compare-line" aria-hidden="true"><span>↔</span></div>
+            <div class="scene-labels" aria-hidden="true"><span>看见</span><span>记住</span></div>
+          </div>
+          <figcaption class="comparison-controls" hidden>
+            <label for="memory">看见与记住之间</label>
+            <input id="memory" type="range" min="0" max="100" value="45" aria-describedby="memory-hint" />
+            <output for="memory" id="memory-value">记住 45%</output>
+            <p id="memory-hint">慢慢拖动，或用方向键，留下你想留的部分。</p>
+          </figcaption>
+          <noscript><figcaption class="static-caption">一间房间，以及我记住的轮廓。</figcaption></noscript>
+        </figure>
+        <div class="afterimage"><span aria-hidden="true">└</span><p>原来，少一点也认得出来。</p><a href="#nearby">再近一点 <span aria-hidden="true">↓</span></a></div>
+      </section>
+
+      <section class="nearby" id="nearby" aria-labelledby="nearby-title">
+        <figure class="shore-image">
+          <img src="./images/tidal-steps-1200.webp" srcset="./images/tidal-steps-600.webp 600w, ./images/tidal-steps-1200.webp 1200w" sizes="(max-width: 700px) 88vw, 49vw" width="1200" height="800" loading="lazy" decoding="async" alt="想象中的海边石阶。磨圆的石头伸进浅绿色的水里，旧金属扶手投下弯曲的倒影，石缝里长着一小丛草。" />
+          <figcaption><span>另一处想象中的场所</span><span lang="en">Where the steps meet the water.</span></figcaption>
+        </figure>
+        <div class="nearby-copy">
+          <p class="small" lang="en">A few steps outside</p>
+          <h2 id="nearby-title">再往水边走一点。</h2>
+          <p>画完那扇窗，我又想画一段石阶。<br />从这里，能看清水底的石头，<br />还有扶手被水折弯的影子。</p>
+          <p>最后一级台阶浸在水里。<br />我没有把它补齐。<br />看不清的地方，先留着。</p>
+        </div>
+        <dl class="shore-notes">
+          <div><dt>石缝里</dt><dd>那一小丛草没有长在正中间。<br />偏着一点，倒像是自己找到的位置。</dd></div>
+          <div><dt>水面下</dt><dd>扶手明明是直的，倒影却拐了好几次弯。<br />我会忍不住顺着它，再看一遍。</dd></div>
+        </dl>
+      </section>
+      <section class="page-note" aria-labelledby="note-title">
+        <div><p class="small" lang="en">In the margin</p><h2 id="note-title">先记到这里。</h2></div>
+        <div class="page-note-copy"><p>我有时会把一个小地方改上好几遍。窗开在哪里，台阶留多宽，哪一道影子该留下。改着改着，又想把最初的样子找回来。</p><p>所以这里也会慢慢变。有些想法适合画下来，有些还得写几行，才知道自己在想什么。</p><a class="writing-link" href={home}>文字放在 Moriium <span aria-hidden="true">↗</span></a></div>
+      </section>
+      <footer><a href="#main" class="footer-name" aria-label="Enouia，回到开头">Enouia</a><p>先待在这里。</p><a href="#main">回到窗边 <span aria-hidden="true">↑</span></a></footer>
+    </main>
+    <script src="../scripts/space.ts"></script>
+  </body>
+</html>

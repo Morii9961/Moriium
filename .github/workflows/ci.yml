@@ -33,6 +33,12 @@ jobs:
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Install locked Enouia dependencies
+        run: pnpm --dir enouia install --frozen-lockfile
+
+      - name: Verify and build Enouia
+        run: pnpm enouia:verify
+
       - name: Compute GitHub card cache date
         id: github-cache-date
         shell: bash
