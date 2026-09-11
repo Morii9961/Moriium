@@ -1,9 +1,11 @@
-import { computed, defineComponent, onMounted, ref } from 'vue';
+import { computed, defineComponent, onMounted, ref, watch } from 'vue';
 import ArticleEditor from './ArticleEditor.ts';
+import { LANGUAGES, deriveIdentity, languagesLeftInGroup, slugBodyOf } from './slug.ts';
 import {
   api,
   ApiError,
   messageForApiFailure,
+  messageForSignInFailure,
   type ArticleRow,
   type Author,
   type NewArticleInput,
@@ -50,6 +52,8 @@ export default defineComponent({
     const status = ref<OperationalStatus | null>(null);
     const checkingStatus = ref(false);
     const signedIn = computed(() => author.value !== null);
+    const createMode = ref<'new' | 'translation'>('new');
+    const sourceId = ref<number | null>(null);
     // Not a ref: only loadStatus reads it, and nothing renders from it.
     let statusRequest = 0;
 
@@ -99,8 +103,74 @@ export default defineComponent({
       status.value = null;
       creating.value = false;
       draft.value = newArticle();
+      resetCreateForm();
       tagsText.value = '';
     }
+
+    /** Clears the derived-identity state that lives outside the draft object. */
+    function resetCreateForm(): void {
+      createMode.value = 'new';
+      sourceId.value = null;
+    }
+
+    /** The article this entry translates, when the author picked one. */
+    const sourceArticle = computed(() =>
+      articles.value.find((row) => row.article.id === sourceId.value) ?? null,
+    );
+
+    /** Languages the chosen group still has room for; all three for a new one. */
+    const availableLanguages = computed(() => {
+      const source = sourceArticle.value;
+      if (!source) return [...LANGUAGES];
+      const rows = articles.value.map((row) => row.article);
+      return languagesLeftInGroup(rows, source.article.translationKey);
+    });
+
+    const articleUrlPreview = computed(
+      () => `/${draft.value.lang}/posts/${slugBodyOf(draft.value.slug)}/`,
+    );
+
+    /** Only articles whose group still has a free language can be translated. */
+    const translatableArticles = computed(() =>
+      articles.value.filter((row) => {
+        const rows = articles.value.map((entry) => entry.article);
+        return languagesLeftInGroup(rows, row.article.translationKey).length > 0;
+      }),
+    );
+
+    /** Recomposes both identifiers from whatever the form currently holds. */
+    function syncDerivedIdentity(): void {
+      const source = sourceArticle.value;
+      const identity = deriveIdentity({
+        mode: createMode.value,
+        title: draft.value.title,
+        lang: draft.value.lang,
+        // Every slug already in use, so a derived one can step around it. The
+        // author has no field to resolve a collision with.
+        taken: articles.value.map((row) => row.article.slug),
+        now: new Date(),
+        ...(source ? { source: source.article } : {}),
+      });
+      draft.value.slug = identity.slug;
+      draft.value.translationKey = identity.translationKey;
+    }
+
+    watch(
+      [() => draft.value.title, () => draft.value.lang, createMode, sourceId, creating],
+      () => {
+        // Switching to a language the group already holds would be refused by
+        // the publish gate later; correct it here instead.
+        if (!availableLanguages.value.includes(draft.value.lang) && availableLanguages.value[0]) {
+          draft.value.lang = availableLanguages.value[0];
+        }
+        syncDerivedIdentity();
+      },
+      // The form opens on the untouched draft, and that state has to already
+      // carry a valid slug. Without this the box opened empty, the author had
+      // nothing to submit, and the note underneath still showed a translation
+      // group derived from a slug that was no longer there.
+      { immediate: true },
+    );
 
     function report(error: unknown): void {
       if (error instanceof ApiError && error.status === 401) {
@@ -195,7 +265,18 @@ export default defineComponent({
       busy.value = true;
       failure.value = '';
       try {
-        author.value = await api.login(name.value, password.value);
+        let signedIn: Author;
+        try {
+          signedIn = await api.login(name.value, password.value);
+        } catch (error) {
+          // Only the login call gets this handler. `report` answers every 401
+          // with "会话已过期", which is right for the calls below -- they run
+          // with a session that can end -- and wrong for this one, where a 401
+          // means the credential was refused and there was never a session.
+          failure.value = messageForSignInFailure(error);
+          return;
+        }
+        author.value = signedIn;
         password.value = '';
         await loadAuthorViews();
       } catch (error) {
@@ -231,6 +312,7 @@ export default defineComponent({
         };
         const result = await api.createArticle(input);
         draft.value = newArticle();
+        resetCreateForm();
         tagsText.value = '';
         creating.value = false;
         await refresh();
@@ -240,6 +322,21 @@ export default defineComponent({
       } finally {
         busy.value = false;
       }
+    }
+
+    /**
+     * Opens a variant the editor just produced.
+     *
+     * The list is refreshed first so the new article is in it; the editor then
+     * loads the draft translation, which is the point of generating one.
+     */
+    async function openTranslated(articleId: number): Promise<void> {
+      try {
+        await refresh();
+      } catch (error) {
+        report(error);
+      }
+      openId.value = articleId;
     }
 
     async function backToList(): Promise<void> {
@@ -260,7 +357,14 @@ export default defineComponent({
       articles,
       openId,
       creating,
+      openTranslated,
       draft,
+      createMode,
+      sourceId,
+      availableLanguages,
+      translatableArticles,
+      articleUrlPreview,
+      LANGUAGES,
       tagsText,
       status,
       checkingStatus,
@@ -289,7 +393,7 @@ export default defineComponent({
       </form>
     </div>
 
-    <ArticleEditor v-else-if="openId !== null" :article-id="openId" @back="backToList" />
+    <ArticleEditor v-else-if="openId !== null" :article-id="openId" @back="backToList" @opened="openTranslated" />
 
     <main v-else class="admin-wrap">
       <header class="admin-header">
@@ -301,11 +405,12 @@ export default defineComponent({
 
       <form v-if="creating" class="create-panel" @submit.prevent="create">
         <div class="section-heading"><div><p class="eyebrow">Article / New</p><h2>新建文章</h2></div><p class="note">语言、slug 与 translationKey 建立后不可通过保存版本修改。</p></div>
-        <div class="form-grid three">
-          <label><span>语言</span><select v-model="draft.lang"><option value="zh">zh</option><option value="ja">ja</option><option value="en">en</option></select></label>
-          <label><span>slug（如 zh/new-post）</span><input v-model="draft.slug" required /></label>
-          <label><span>translationKey</span><input v-model="draft.translationKey" required /></label>
+        <div :class="createMode === 'translation' ? 'form-grid three' : 'form-grid two'">
+          <label><span>这是什么</span><select v-model="createMode"><option value="new">一篇新文章</option><option value="translation">已有文章的译文</option></select></label>
+          <label v-if="createMode === 'translation'"><span>翻译自</span><select v-model="sourceId"><option :value="null" disabled>选择原文</option><option v-for="row in translatableArticles" :key="row.article.id" :value="row.article.id">{{ row.latest?.title || '未命名文章' }}（{{ row.article.lang }}）</option></select></label>
+          <label><span>{{ createMode === 'translation' ? '译文语言' : '语言' }}</span><select v-model="draft.lang"><option v-for="lang in availableLanguages" :key="lang" :value="lang">{{ lang }}</option></select></label>
         </div>
+        <p class="note">公开网址 <code>{{ articleUrlPreview }}</code>　翻译组 <code>{{ draft.translationKey }}</code></p>
         <div class="form-grid two">
           <label><span>标题</span><input v-model="draft.title" required /></label>
           <label><span>分类</span><input v-model="draft.category" required /></label>

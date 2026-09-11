@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, before, describe, it } from 'node:test';
 import { createAccount } from '../src/server/accounts.ts';
+import { authorizeRequest } from '../src/server/http/boundary.ts';
 import {
   ACCOUNT_FAILURE_LIMIT,
   GLOBAL_FAILURE_LIMIT,
@@ -227,6 +228,49 @@ describe('login and logout request boundary', () => {
     assert.equal(login.status, 200);
     assert.equal((await handleLogout(request('/api/logout'), session)).status, 403);
     assert.equal(session.destroyed, false);
+  });
+
+  it('tells a wrong address apart from a page older than its session', async () => {
+    const db = freshDatabase();
+    await createAccount(db, { name: 'Morii', password: 'm'.repeat(30) }, () => '2026-08-30');
+    const throttle = new LoginThrottle();
+    const credentials = { name: 'Morii', password: 'm'.repeat(30) };
+
+    const crossed = request('/api/login', {
+      headers: { Origin: 'https://evil.example' },
+      body: credentials,
+    });
+    const refusedOrigin = await responseJson(
+      await handleLogin(crossed, new FakeSession(), db, throttle),
+    );
+
+    const session = new FakeSession();
+    await handleLogin(request('/api/login', { body: credentials }), session, db, throttle);
+    // Reaches the CSRF check with a session but no token, the way a page left
+    // open across a session change does.
+    const refusedToken = await responseJson(await handleLogout(request('/api/logout'), session));
+
+    // Both are 403, and the two causes call for opposite moves: reopen the
+    // admin at the address it serves, or reload a page that outlived its
+    // session. One sentence for both leaves the author guessing which.
+    assert.notEqual(refusedOrigin.error, refusedToken.error);
+    assert.equal(refusedOrigin.code, 'origin-mismatch');
+    assert.equal(refusedToken.code, 'csrf-mismatch');
+    assert.match(refusedOrigin.error, /地址/);
+    assert.match(refusedToken.error, /重新载入/);
+
+    // Every article and media call is refused through authorizeRequest rather
+    // than through the handlers above, so the two causes have to stay apart
+    // there too. One shared guard, one shared pair of explanations.
+    const crossedWrite = await authorizeRequest(
+      request('/api/articles', { headers: { Origin: 'https://evil.example' }, body: {} }),
+      session,
+      true,
+    );
+    const untokenedWrite = await authorizeRequest(request('/api/articles', { body: {} }), session, true);
+
+    assert.equal((await responseJson(crossedWrite.response)).code, 'origin-mismatch');
+    assert.equal((await responseJson(untokenedWrite.response)).code, 'csrf-mismatch');
   });
 
   it('refuses oversized login bodies before parsing them', async () => {

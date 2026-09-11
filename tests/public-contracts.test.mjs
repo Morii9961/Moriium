@@ -386,3 +386,34 @@ describe('sitemap translation alternates', () => {
     }
   });
 });
+
+describe('the home hero speaks each interface language', () => {
+  /** The register line under the hero, as the built page serves it. */
+  function registerLine(lang) {
+    const file = join(out, lang, 'index.html');
+    const html = readFileSync(file, 'utf8');
+    const match = /<p[^>]*class="[^"]*aperture-identity__register[^"]*"[^>]*>([^<]*)<\/p>/.exec(html);
+    assert.ok(match, `${lang} home is expected to carry the hero register line`);
+    return match[1].trim();
+  }
+
+  it('gives the three interfaces three different register lines', () => {
+    // One commit refined every other string on this page per language and left
+    // this one identical across all three, so a Chinese reader met an English
+    // line under a Chinese hero. Comparing the built pages catches that; the
+    // source is three separate literals and looks deliberate either way.
+    const lines = { zh: registerLine('zh'), ja: registerLine('ja'), en: registerLine('en') };
+
+    assert.equal(
+      new Set(Object.values(lines)).size,
+      3,
+      `the hero register line is shared between interfaces: ${JSON.stringify(lines)}`,
+    );
+  });
+
+  it('writes the Chinese and Japanese lines in their own scripts', () => {
+    // Difference alone would be satisfied by three English variants.
+    assert.match(registerLine('zh'), /\p{Script=Han}/u);
+    assert.match(registerLine('ja'), /\p{Script=Hiragana}|\p{Script=Katakana}|\p{Script=Han}/u);
+  });
+});

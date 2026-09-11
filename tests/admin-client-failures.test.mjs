@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import { afterEach, describe, it } from 'node:test';
-import { api, ApiError, messageForApiFailure } from '../src/admin/api.ts';
+import {
+  api,
+  ApiError,
+  messageForApiFailure,
+  messageForSignInFailure,
+} from '../src/admin/api.ts';
 
 const realFetch = globalThis.fetch;
 
@@ -24,6 +29,31 @@ describe('admin client failure messages', () => {
     );
 
     assert.equal(message, '后台连接失败。请检查网络后重试。');
+    assert.doesNotMatch(message, /Failed to fetch|TypeError/);
+  });
+
+  it('answers a rejected credential with the reason, not with an expired session', () => {
+    // Signing in is the one place where 401 cannot mean "your session ended":
+    // there was no session. Answering it that way sends the author looking for
+    // a session problem instead of at what they typed.
+    const message = messageForSignInFailure(new ApiError(401, '账户名或口令错误。'));
+
+    assert.equal(message, '账户名或口令错误。');
+    assert.doesNotMatch(message, /会话/);
+  });
+
+  it('passes the boundary explanation through instead of flattening it', () => {
+    // The two 403 causes are told apart on the server, which is the only side
+    // that knows which guard refused. The client must not collapse them back
+    // into one sentence on the way to the screen.
+    const refusal = '请求已拒绝：请求来源与后台自身的地址不一致。';
+
+    assert.equal(messageForSignInFailure(new ApiError(403, refusal)), refusal);
+  });
+
+  it('keeps the browser exception out of a sign-in network failure', () => {
+    const message = messageForSignInFailure(new TypeError('Failed to fetch'));
+
     assert.doesNotMatch(message, /Failed to fetch|TypeError/);
   });
 

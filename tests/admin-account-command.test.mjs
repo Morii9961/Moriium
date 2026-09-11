@@ -34,6 +34,15 @@ function freshDatabase() {
   return db;
 }
 
+/** A terminal that satisfies the reader's TTY requirement and nothing more. */
+class FakeTerminalInput extends EventEmitter {
+  isTTY = true;
+  setRawMode() {}
+  resume() {}
+  pause() {}
+  setEncoding() {}
+}
+
 function passwordReader(values, prompts) {
   return async (label) => {
     prompts.push(label);
@@ -43,14 +52,7 @@ function passwordReader(values, prompts) {
 
 describe('server-side author account command', () => {
   it('accepts a password-manager paste delivered as one terminal chunk', async () => {
-    class FakeInput extends EventEmitter {
-      isTTY = true;
-      setRawMode() {}
-      resume() {}
-      pause() {}
-      setEncoding() {}
-    }
-    const input = new FakeInput();
+    const input = new FakeTerminalInput();
     const output = { isTTY: true, write: () => {} };
     const reading = hiddenPrompt('Password: ', { input, output });
 
@@ -153,6 +155,37 @@ describe('server-side author account command', () => {
       /Passwords do not match/,
     );
     assert.deepEqual(listAccounts(mismatchDb), []);
+  });
+
+  it('refuses an empty read instead of passing an empty secret to its caller', async () => {
+    const input = new FakeTerminalInput();
+    const output = { isTTY: true, write: () => {} };
+    const reading = hiddenPrompt('Password: ', { input, output });
+
+    input.emit('data', '\r');
+
+    // The length check downstream would answer this with "at least 24
+    // characters", which describes a value the caller never typed.
+    await assert.rejects(reading, (error) => {
+      assert.match(error.message, /no input/i);
+      assert.doesNotMatch(error.message, /24 characters/);
+      return true;
+    });
+  });
+
+  it('names Ctrl+V when the terminal delivered the keystroke instead of pasting', async () => {
+    const input = new FakeTerminalInput();
+    const output = { isTTY: true, write: () => {} };
+    const reading = hiddenPrompt('Password: ', { input, output });
+
+    // U+0016 is SYN: what Ctrl+V becomes when the terminal passes the key
+    // through in raw mode rather than inserting the clipboard as text. The
+    // secret never leaves the clipboard, so the read has to say so.
+    input.emit('data', '\u0016');
+    input.emit('data', '\u0016');
+    input.emit('data', '\r');
+
+    await assert.rejects(reading, /Ctrl\+V/);
   });
 
   it('accepts only one approved author name and no password argument', () => {

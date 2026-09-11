@@ -10,7 +10,13 @@ import {
   verifyCsrfToken,
   type AuthorSession,
 } from '../auth/session.ts';
-import { adminBoundaryAllows, adminJson, readJsonObject } from './boundary.ts';
+import {
+  CSRF_REFUSAL,
+  ORIGIN_REFUSAL,
+  adminBoundaryAllows,
+  adminJson,
+  readJsonObject,
+} from './boundary.ts';
 
 const MAX_LOGIN_BYTES = 4_096;
 
@@ -20,7 +26,7 @@ export async function handleLogin(
   db: DatabaseSync,
   throttle: LoginThrottle,
 ): Promise<Response> {
-  if (!adminBoundaryAllows(request, true)) return adminJson({ error: '请求已拒绝。' }, 403);
+  if (!adminBoundaryAllows(request, true)) return adminJson(ORIGIN_REFUSAL, 403);
   if (request.headers.get('Content-Type')?.split(';', 1)[0]?.trim() !== 'application/json') {
     return adminJson({ error: '请求格式必须为 JSON。' }, 415);
   }
@@ -53,7 +59,7 @@ export async function handleLogin(
 }
 
 export async function handleSession(request: Request, session: AuthorSession): Promise<Response> {
-  if (!adminBoundaryAllows(request, false)) return adminJson({ error: '请求已拒绝。' }, 403);
+  if (!adminBoundaryAllows(request, false)) return adminJson(ORIGIN_REFUSAL, 403);
   const author = await requireAuthor(session);
   const csrfToken = await csrfTokenFor(session);
   return author && csrfToken
@@ -62,7 +68,7 @@ export async function handleSession(request: Request, session: AuthorSession): P
 }
 
 export async function handleLogout(request: Request, session: AuthorSession): Promise<Response> {
-  if (!adminBoundaryAllows(request, true)) return adminJson({ error: '请求已拒绝。' }, 403);
+  if (!adminBoundaryAllows(request, true)) return adminJson(ORIGIN_REFUSAL, 403);
   if (!(await requireAuthor(session))) return adminJson({ error: '会话已失效，请重新登录。' }, 401);
 
   // Astro's built-in checkOrigin intentionally covers form content types only,
@@ -70,7 +76,7 @@ export async function handleLogout(request: Request, session: AuthorSession): Pr
   // JSON CSRF defence. Source:
   // https://docs.astro.build/en/reference/configuration-reference/#securitycheckorigin
   if (!(await verifyCsrfToken(session, request.headers.get('X-CSRF-Token')))) {
-    return adminJson({ error: '请求已拒绝。' }, 403);
+    return adminJson(CSRF_REFUSAL, 403);
   }
 
   session.destroy();

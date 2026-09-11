@@ -19,6 +19,26 @@ export function adminJson(
   });
 }
 
+/**
+ * The two ways a request is refused before it is even looked at.
+ *
+ * Both are 403 and they call for opposite moves: reopen the admin at the
+ * address it actually serves, or reload a page that has outlived its session.
+ * A single "请求已拒绝。" for both named the refusal and withheld the one thing
+ * the author needed, so each cause carries its own sentence and its own code.
+ * The code is what callers should branch on; the sentence is for the screen.
+ */
+export const ORIGIN_REFUSAL = {
+  code: 'origin-mismatch',
+  error:
+    '请求已拒绝：请求来源与后台自身的地址不一致。请用后台实际提供服务的地址打开它，协议、主机名与端口三者都要完全一致。',
+} as const;
+
+export const CSRF_REFUSAL = {
+  code: 'csrf-mismatch',
+  error: '请求已拒绝：页面持有的令牌与当前会话不符。请重新载入后台再试。',
+} as const;
+
 export function adminBoundaryAllows(request: Request, requireOrigin: boolean): boolean {
   const url = new URL(request.url);
   const host = request.headers.get('Host');
@@ -116,14 +136,14 @@ export async function authorizeRequest(
   write: boolean,
 ): Promise<AuthorizedRequest> {
   if (!adminBoundaryAllows(request, write)) {
-    return { ok: false, response: adminJson({ error: '请求已拒绝。' }, 403) };
+    return { ok: false, response: adminJson(ORIGIN_REFUSAL, 403) };
   }
   const author = await requireAuthor(session);
   if (!author) {
     return { ok: false, response: adminJson({ error: '会话已失效，请重新登录。' }, 401) };
   }
   if (write && !(await verifyCsrfToken(session, request.headers.get('X-CSRF-Token')))) {
-    return { ok: false, response: adminJson({ error: '请求已拒绝。' }, 403) };
+    return { ok: false, response: adminJson(CSRF_REFUSAL, 403) };
   }
   return { ok: true, authorId: author.id };
 }

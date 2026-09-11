@@ -53,7 +53,8 @@ Before freezing typography, color, grid, spacing, rules, or dark mode:
 - Search UI may be present globally, but its generated index and search module must load only after the reader opens search.
 - Preserve no-JavaScript fallbacks for links, images, GitHub repositories, and protected-post metadata.
 - Keep external iframe providers on an explicit allowlist and update the CSP when adding one.
-- Translation variants share a `translationKey`. Missing translations must be shown as unavailable; never fabricate or copy a translation.
+- Translation variants share a `translationKey`. Missing translations must be shown as unavailable; never fabricate or copy a translation. Serving the source text under another language, or inventing a title, summary or body to fill a variant, both claim an article that does not exist.
+- Machine translation is permitted for the Japanese and English variants, and it must say so. Morii writes in Chinese; a machine-translated variant is produced at build time from the published Chinese article, becomes a real prerendered route like any other, and carries a visible notice telling the reader it was machine translated from the Chinese original. An unlabelled machine translation is treated exactly as a fabricated one, because the page then implies an author it does not have. `hreflang` continues to declare every variant.
 - Avoid global dependency churn. Lock exact versions and explain additions.
 
 ## Working protocol

@@ -13,6 +13,8 @@ export type Article = {
   readonly createdAt: string;
   readonly publishedVersionId: number | null;
   readonly liveVersionId: number | null;
+  /** The language a machine translated this variant from, else null. */
+  readonly machineTranslatedFrom: Language | null;
 };
 
 export type VersionFields = {
@@ -83,6 +85,8 @@ export type ArticleDetail = {
   readonly audit: AuditEntry[];
   readonly hasUnpublishedChanges: boolean;
   readonly awaitingExport: boolean;
+  /** The other articles sharing this translationKey. */
+  readonly siblings: readonly { readonly id: number; readonly lang: Language; readonly slug: string }[];
 };
 
 export type MediaAsset = {
@@ -129,6 +133,25 @@ export function messageForApiFailure(error: unknown, networkMessage: string): st
   if (error instanceof ApiError) return error.message;
   if (error instanceof TypeError) return networkMessage;
   return String(error);
+}
+
+const SIGN_IN_NETWORK_MESSAGE = '后台连接失败。请检查网络后重试。';
+
+/**
+ * Wording for a sign-in that did not succeed.
+ *
+ * Signing in is the one request that cannot fail because a session ended:
+ * there is no session yet. The general handler maps every 401 onto "会话已过期"
+ * so that a stale list is never drawn beside a claim of being signed in, and
+ * routing a rejected credential through it answers a mistyped password with a
+ * session problem the author cannot act on.
+ *
+ * A 403 already arrives explained: the boundary tells an address mismatch
+ * apart from a stale page token, because only the server knows which guard
+ * refused. Passing it through unchanged is the point.
+ */
+export function messageForSignInFailure(error: unknown): string {
+  return messageForApiFailure(error, SIGN_IN_NETWORK_MESSAGE);
 }
 
 let csrfToken = '';
@@ -253,6 +276,10 @@ export const api = {
 
   unpublish(id: number, note?: string): Promise<{ article: Article }> {
     return send('POST', `/api/articles/${id}/unpublish/`, note === undefined ? {} : { note });
+  },
+
+  translate(id: number, to: Language): Promise<{ article: Article; version: Version }> {
+    return send('POST', `/api/articles/${id}/translate/`, { to });
   },
 
   preview(id: number, markdown: string): Promise<{ html: string }> {

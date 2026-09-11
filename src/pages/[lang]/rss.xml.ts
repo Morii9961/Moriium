@@ -16,7 +16,13 @@ export async function GET(context: APIContext) {
     site: context.site!,
     items: posts.map((post) => ({
       title: post.data.title,
-      description: post.data.summary,
+      // A feed reader renders the title and this line and nothing else, so the
+      // article page's notice never reaches a subscriber. Without the marker
+      // here the variant would arrive under Morii's name with no sign that a
+      // machine wrote the words (AGENTS.md).
+      description: post.data.machineTranslation
+        ? `${UI[lang].machineTranslatedFeed} ${post.data.summary}`
+        : post.data.summary,
       pubDate: post.data.publishedAt,
       link: postPath(post),
       categories: [post.data.category, ...post.data.tags],
