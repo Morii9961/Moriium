@@ -1,0 +1,17 @@
+{
+  "name": "enouia",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.22.0",
+  "engines": { "node": ">=24 <25" },
+  "scripts": {
+    "dev": "astro dev --host 127.0.0.1 --port 4342",
+    "build": "astro build",
+    "preview": "astro preview --host 127.0.0.1 --port 4342",
+    "check": "astro check",
+    "verify": "astro check && astro build && node scripts/verify.mjs && node scripts/check-interaction.mjs"
+  },
+  "dependencies": { "astro": "7.2.4" },
+  "devDependencies": { "@astrojs/check": "0.9.10", "typescript": "6.0.3" }
+}

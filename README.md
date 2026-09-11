@@ -37,6 +37,8 @@ This runs Astro type/content checks, encryption and private-rendering tests, dir
 
 ## Authoring and operations
 
+Enouia is a separate static site in [`enouia/`](enouia/README.md), selected for publication on 2026-09-11. It has its own dependencies, lockfile, assets, and output. From this repository root, run `pnpm --dir enouia install --frozen-lockfile`, then `pnpm enouia:verify` or `pnpm enouia:preview`. CI verifies both sites. Enouia needs its own Nginx virtual host and release directory; the existing Moriium deployment does not publish it.
+
 - [Public article authoring](docs/authoring.md)
 - [Markdown extension reference](docs/markdown-reference.md)
 - [Protected article publishing](docs/encrypted-posts.md)
