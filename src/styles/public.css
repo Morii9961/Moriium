@@ -882,7 +882,11 @@
     border-bottom-color: var(--accent-field);
   }
 
+  /* One control, two places: the writing index's filter and the home
+     calendar's year and month pickers are the same disclosure, so they share
+     these declarations rather than each carrying a copy that drifts. */
   .a-writing-filter > summary,
+  .aperture-calendar__field > summary,
   .a-writing-search__toggle {
     display: inline-flex;
     min-height: 2.75rem;
@@ -901,23 +905,28 @@
 
   /* The rule belongs to the whole search control, so it runs under the icon and
      the field together once the field is open. */
-  .a-writing-filter > summary {
+  .a-writing-filter > summary,
+  .aperture-calendar__field > summary {
     border-bottom: 1px solid var(--line);
   }
 
-  .a-writing-filter > summary::-webkit-details-marker {
+  .a-writing-filter > summary::-webkit-details-marker,
+  .aperture-calendar__field > summary::-webkit-details-marker {
     display: none;
   }
 
   .a-writing-filter > summary:hover,
   .a-writing-filter[open] > summary,
+  .aperture-calendar__field > summary:hover,
+  .aperture-calendar__field[open] > summary,
   .a-writing-search:hover .a-writing-search__toggle,
   .a-writing-search:focus-within .a-writing-search__toggle {
     border-bottom-color: var(--accent-field);
     color: var(--ink);
   }
 
-  .a-writing-filter__value {
+  .a-writing-filter__value,
+  .aperture-calendar__value {
     color: var(--ink);
   }
 
@@ -926,6 +935,7 @@
   }
 
   .a-writing-filter__caret,
+  .aperture-calendar__caret,
   .a-writing-search__toggle svg {
     width: 0.85rem;
     flex: none;
@@ -990,31 +1000,47 @@
     font-size: 0.82rem;
   }
 
-  .a-writing-filter__caret {
+  .a-writing-filter__caret,
+  .aperture-calendar__caret {
     width: 0.72rem;
     transition: transform var(--motion-fast) var(--motion-ease);
   }
 
-  .a-writing-filter[open] .a-writing-filter__caret {
+  .a-writing-filter[open] .a-writing-filter__caret,
+  .aperture-calendar__field[open] .aperture-calendar__caret {
     transform: rotate(180deg);
+  }
+
+  /* The panel itself, shared by the filter and the calendar pickers. */
+  .a-writing-filter__menu,
+  .aperture-calendar__picker-menu {
+    position: absolute;
+    z-index: 15;
+    top: calc(100% + 0.4rem);
+    right: 0;
+    padding-block: 0.35rem;
+    border: 1px solid var(--line);
+    background: var(--surface-raised);
+    box-shadow: 0 1rem 2.5rem rgb(4 9 22 / 14%);
+    animation: a-writing-filter-open var(--motion-fast) var(--motion-ease) both;
   }
 
   /* One column per axis. Each scrolls on its own, so a long tag list cannot
      push the categories out of reach, and the reset spans both because it
      belongs to neither. */
   .a-writing-filter__menu {
-    position: absolute;
-    z-index: 15;
-    top: calc(100% + 0.4rem);
-    right: 0;
     display: grid;
     grid-template-columns: repeat(2, minmax(9.5rem, 1fr));
     width: max(26rem, 100%);
-    padding-block: 0.35rem;
-    border: 1px solid var(--line);
-    background: var(--surface-raised);
-    box-shadow: 0 1rem 2.5rem rgb(4 9 22 / 14%);
-    animation: a-writing-filter-open var(--motion-fast) var(--motion-ease) both;
+  }
+
+  /* A single list of years or months: narrow, and scrolling once the years
+     outgrow the panel. */
+  .aperture-calendar__picker-menu {
+    overflow-y: auto;
+    max-height: min(18rem, 44vh);
+    width: max(7.5rem, 100%);
+    scrollbar-width: thin;
   }
 
   @keyframes a-writing-filter-open {
@@ -1038,7 +1064,8 @@
     letter-spacing: 0.04em;
   }
 
-  .a-writing-filter__option {
+  .a-writing-filter__option,
+  .aperture-calendar__picker-option {
     display: flex;
     min-height: 2.75rem;
     align-items: center;
@@ -1051,13 +1078,15 @@
     transition: background-color var(--motion-fast) ease, color var(--motion-fast) ease;
   }
 
-  .a-writing-filter__option small {
+  .a-writing-filter__option small,
+  .aperture-calendar__picker-option small {
     color: var(--ink-faint);
     font-family: var(--font-data);
     font-size: 0.58rem;
   }
 
-  .a-writing-filter__option[aria-pressed='true'] {
+  .a-writing-filter__option[aria-pressed='true'],
+  .aperture-calendar__picker-option[aria-pressed='true'] {
     box-shadow: inset 3px 0 0 var(--accent);
   }
 
@@ -1087,14 +1116,18 @@
   }
 
   .a-writing-filter__option:hover,
-  .a-writing-filter__option:focus-visible {
+  .a-writing-filter__option:focus-visible,
+  .aperture-calendar__picker-option:hover,
+  .aperture-calendar__picker-option:focus-visible {
     background: var(--accent-field);
     color: var(--accent-field-ink);
     outline-offset: -4px;
   }
 
   .a-writing-filter__option:hover small,
-  .a-writing-filter__option:focus-visible small {
+  .a-writing-filter__option:focus-visible small,
+  .aperture-calendar__picker-option:hover small,
+  .aperture-calendar__picker-option:focus-visible small {
     color: color-mix(in srgb, var(--accent-field-ink) 70%, transparent);
   }
 

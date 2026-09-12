@@ -1292,78 +1292,41 @@
     font-size: 0.6rem;
   }
 
-  /* Native selects, stripped back to type. They keep the keyboard and
-     screen-reader behaviour a custom listbox would have to rebuild, and the
-     appearance reset takes away the OS chrome that would otherwise read as the
-     bordered control DESIGN.md rules out. */
+  /* The year and month pickers are the site's own disclosure and share every
+     declaration with the writing index's filter -- see the shared control and
+     panel rules in public.css. They replaced two native selects, whose popup
+     was the one dropdown here that belonged to the operating system rather
+     than to the site. */
   .aperture-calendar__picker {
     display: flex;
-    align-items: baseline;
+    align-items: flex-end;
     gap: 0.75rem;
   }
 
-  /* The affordance, borrowed from `.a-writing-filter` on the writing index: a
-     standing hairline under the control and a caret beside it. Without both, a
-     select stripped of its OS chrome is indistinguishable from a label. */
+  /* The panel is positioned against the control it opens from. */
   .aperture-calendar__field {
     position: relative;
-    display: inline-flex;
-    min-height: 2.75rem;
-    align-items: center;
-    border-bottom: 1px solid var(--line);
-    transition: border-color var(--motion-fast) var(--motion-ease);
   }
 
-  .aperture-calendar__field:hover,
-  .aperture-calendar__field:focus-within {
-    border-bottom-color: var(--accent-field);
-  }
-
-  .aperture-calendar__picker select {
-    /* Room for the caret, which overlays the select's right edge rather than
-       sitting beside it, so a click anywhere on the control still opens it. */
-    padding: 0.15rem 1.05rem 0.15rem 0.1rem;
+  /* A real button in the panel, stripped back to the row the shared option
+     styles draw. */
+  .aperture-calendar__picker-option {
+    width: 100%;
     border: 0;
-    border-radius: 0;
-    appearance: none;
     background: transparent;
-    color: var(--ink);
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+  }
+
+  /* What the head says before the module runs: the month it is showing, in
+     words, rather than two controls that cannot do anything yet. */
+  .aperture-calendar__static {
+    color: var(--ink-muted);
     font-family: var(--font-data);
     font-size: 0.62rem;
-    cursor: pointer;
-    transition: color var(--motion-fast) var(--motion-ease);
   }
 
-  .aperture-calendar__caret {
-    position: absolute;
-    right: 0;
-    width: 0.72rem;
-    fill: none;
-    stroke: var(--ink-muted);
-    stroke-linecap: round;
-    stroke-width: 1.7;
-    pointer-events: none;
-    transition: stroke var(--motion-fast) var(--motion-ease);
-  }
-
-  .aperture-calendar__field:hover .aperture-calendar__caret,
-  .aperture-calendar__field:focus-within .aperture-calendar__caret {
-    stroke: var(--ink);
-  }
-
-  /* The focus ring is the one place the control is allowed to draw a box: it is
-     state, not decoration, and removing it would strand keyboard users. */
-  .aperture-calendar__picker select:focus-visible {
-    outline: 2px solid var(--focus);
-    outline-offset: 2px;
-  }
-
-  /* The option list itself is drawn by the OS, so it needs explicit colours to
-     stay legible against a dark page. */
-  .aperture-calendar__picker option {
-    background: var(--surface-raised);
-    color: var(--ink);
-  }
 
   .aperture-calendar {
     padding-block: 1rem;
