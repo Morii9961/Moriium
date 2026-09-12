@@ -4,11 +4,43 @@
   navigation: auto;
 }
 
-::view-transition-group(root),
-::view-transition-old(root),
+/* A navigation used to cross-fade the whole viewport against itself. Between
+   two pages that share a header, a footer and a ground colour, that is a
+   dissolve between two nearly identical images: it ran, and there was nothing
+   to see. So the parts that do not change are lifted out of the root snapshot
+   and held still, and the part that does change carries the motion.
+   DESIGN.md 10.2 puts a route change in the medium tier. */
+.site-header {
+  view-transition-name: site-header;
+}
+
+.site-footer {
+  view-transition-name: site-footer;
+}
+
+::view-transition-old(root) {
+  animation: moriium-route-out var(--motion-route-exit) var(--motion-ease) both;
+}
+
 ::view-transition-new(root) {
-  animation-duration: var(--motion-fast);
-  animation-timing-function: var(--motion-ease);
+  animation: moriium-route-in var(--motion-route-enter) var(--motion-ease)
+    calc(var(--motion-route-exit) / 2) both;
+}
+
+/* The page leaving barely travels: it mostly gets out of the way, and the
+   arriving page is the one that moves, rising the last few pixels into place. */
+@keyframes moriium-route-out {
+  to {
+    opacity: 0;
+    transform: translateY(calc(var(--motion-route-travel) * -0.5));
+  }
+}
+
+@keyframes moriium-route-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--motion-route-travel));
+  }
 }
 
 @layer tokens {
@@ -60,6 +92,12 @@
     --motion-fast: 220ms;
     --motion-medium: 520ms;
     --motion-ease: cubic-bezier(0.16, 1, 0.3, 1);
+    /* A route change, in DESIGN.md's medium tier: the page leaving clears in
+       fast time, the arriving page takes 320ms, 410ms end to end. Travel is
+       small on purpose -- enough to read as a change of page, not a slide. */
+    --motion-route-exit: 180ms;
+    --motion-route-enter: 320ms;
+    --motion-route-travel: 12px;
   }
 
   :root:lang(ja) {
@@ -2163,10 +2201,14 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  ::view-transition-group(root),
-  ::view-transition-old(root),
-  ::view-transition-new(root) {
-    animation-duration: 0.01ms !important;
+  /* The travel goes; the change of page stays legible. A short cross-fade says
+     the document was replaced, which an instant swap at 0.01ms did not --
+     DESIGN.md 10.4 asks for less movement, not for nothing. These are
+     unlayered, so they win over the tokens in @layer tokens. */
+  :root {
+    --motion-route-travel: 0px;
+    --motion-route-exit: 90ms;
+    --motion-route-enter: 120ms;
   }
 
   @layer components {

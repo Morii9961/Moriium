@@ -150,8 +150,35 @@ test('public pages use native cross-document transitions without a client router
 
   assert.doesNotMatch(layout, /ClientRouter|astro:transitions/);
   assert.match(styles, /@view-transition\s*{\s*navigation:\s*auto;\s*}/s);
-  assert.match(styles, /::view-transition-group\(root\),\s*::view-transition-old\(root\),\s*::view-transition-new\(root\)\s*{[^}]*animation-duration:\s*var\(--motion-fast\)[^}]*animation-timing-function:\s*var\(--motion-ease\)/s);
-  assert.match(styles, /@media \(prefers-reduced-motion: reduce\)\s*{[\s\S]*?::view-transition-group\(root\),\s*::view-transition-old\(root\),\s*::view-transition-new\(root\)\s*{[^}]*animation-duration:\s*0\.01ms !important/s);
+
+  // The header and footer are named, which lifts them out of the root snapshot
+  // and holds them still. Without that the transition cross-faded the viewport
+  // against a nearly identical copy of itself and nothing was visible.
+  assert.match(styles, /\.site-header\s*{\s*view-transition-name:\s*site-header;\s*}/s);
+  assert.match(styles, /\.site-footer\s*{\s*view-transition-name:\s*site-footer;\s*}/s);
+
+  // Exactly one element may carry a given name per document, or the browser
+  // abandons the transition.
+  for (const name of ['site-header', 'site-footer']) {
+    assert.equal(
+      (layout.match(new RegExp(`class="${name}"`, 'g')) ?? []).length,
+      1,
+      `${name} must be emitted once per page`,
+    );
+  }
+
+  // The page leaving and the page arriving carry their own motion, on the route
+  // tokens rather than a duration invented here.
+  assert.match(styles, /::view-transition-old\(root\)\s*{[^}]*animation:\s*moriium-route-out var\(--motion-route-exit\) var\(--motion-ease\)/s);
+  assert.match(styles, /::view-transition-new\(root\)\s*{[^}]*animation:\s*moriium-route-in var\(--motion-route-enter\) var\(--motion-ease\)/s);
+  assert.match(styles, /@keyframes moriium-route-in\s*{[^}]*transform:\s*translateY\(var\(--motion-route-travel\)\)/s);
+
+  // Reduced motion drops the travel and shortens the fade; it does not cut the
+  // transition to an instant swap, which would hide that the page changed.
+  assert.match(
+    styles,
+    /@media \(prefers-reduced-motion: reduce\)\s*{[\s\S]*?--motion-route-travel:\s*0px;[\s\S]*?--motion-route-enter:\s*1\d\dms;/s,
+  );
 });
 
 test('the home hero ships a local Shippori Mincho subset that covers its own copy', async () => {
