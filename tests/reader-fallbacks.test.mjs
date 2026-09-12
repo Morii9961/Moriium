@@ -279,11 +279,27 @@ describe('copy protection', () => {
 
 describe('protected articles', () => {
   it('publish no draft ciphertext into the reader tree', () => {
+    // Which languages own a protected route is a fact about the content, not
+    // about the entries that happened to exist when this was written. Reading it
+    // keeps both halves of the rule under test: a draft envelope must stay out
+    // of the reader tree, and a published one must reach it.
+    const collection = new URL('../src/content/protected/', import.meta.url);
+    const published = new Set(
+      readdirSync(collection, { recursive: true })
+        .map((entry) => String(entry).split('\\').join('/'))
+        .filter((entry) => entry.endsWith('.json'))
+        .map((entry) => JSON.parse(readFileSync(new URL(entry, collection), 'utf8')))
+        .filter((data) => data.draft !== true)
+        .map((data) => data.lang),
+    );
+
     for (const lang of ['zh', 'ja', 'en']) {
       assert.equal(
         existsSync(join(out, lang, 'protected')),
-        false,
-        `${lang}/protected/ was built, but the only protected entry is a draft`,
+        published.has(lang),
+        published.has(lang)
+          ? `${lang}/protected/ is missing although a published protected article exists`
+          : `${lang}/protected/ was built, but every protected entry for ${lang} is a draft`,
       );
     }
   });

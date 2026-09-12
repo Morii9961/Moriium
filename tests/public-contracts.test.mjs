@@ -371,9 +371,14 @@ describe('sitemap translation alternates', () => {
         .map((sibling) => ({ hreflang: LOCALE[sibling.lang], href: `${SITE}${sibling.path}` }))
         .sort(byLocale);
 
+      // An article with no sibling translation carries no annotation at all,
+      // rather than one alternate pointing at itself. A language group needs at
+      // least two members to say anything, and astro.config.mjs drops the group
+      // for that reason; asserting a lone self-reference here would have made
+      // this test contradict the configuration it is checking.
       assert.deepEqual(
         [...entry.alternates].sort(byLocale),
-        expected,
+        expected.length < 2 ? [] : expected,
         `${post.path} alternates do not follow translationKey`,
       );
     }
