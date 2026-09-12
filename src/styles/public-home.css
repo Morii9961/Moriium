@@ -1173,11 +1173,25 @@
   .aperture-colophon__author {
     display: flex;
     flex-direction: column;
+    /* Held off the page margin so the two people read as an entry inside the
+       section rather than as a continuation of its heading. Same 1.25rem the
+       article rows are inset by. */
+    padding-inline-start: 1.25rem;
   }
 
-  .aperture-colophon__author-head {
+  /* The two columns each open with a label over a rule, and they read as one
+     line across the section -- so they have to be one band, not two boxes that
+     happen to start at the same y. The calendar's head is the taller of the
+     two, because it carries controls, so the band is that height and both
+     heads bottom-align their content into it: label to label, rule to rule.
+     2.75rem is the control height the pickers and the writing-index filter
+     share, 0.8rem is the gap between content and rule, and the 1px is the
+     picker's own underline. */
+  .aperture-colophon__author-head,
+  .aperture-colophon__calendar-head {
     display: flex;
-    align-items: baseline;
+    min-height: calc(2.75rem + 0.8rem + 1px);
+    align-items: flex-end;
     justify-content: space-between;
     padding-bottom: 0.8rem;
     border-bottom: 1px solid var(--ink);
@@ -1203,7 +1217,7 @@
   /* Two entries with no rule between them do not need a rule's worth of padding
      either; 1.6rem on each put 91px between Morii's line and Enouia's name. */
   .aperture-colophon__people li {
-    padding-block: 0.9rem;
+    padding-block: 0.5rem;
   }
 
   .aperture-colophon__people h4 {
@@ -1230,8 +1244,13 @@
   .aperture-colophon__channels {
     display: flex;
     flex-wrap: wrap;
-    gap: 0 1.5rem;
-    margin: 0.5rem 0 0;
+    /* Wide enough that the three read as three, rather than as one string of
+       icons and words. */
+    gap: 0 2.25rem;
+    /* The links keep a 2.75rem touch target, which is taller than the type
+       inside them; the negative bottom margin gives that slack back to the
+       space between the two people instead of banking it below the row. */
+    margin: 0.15rem 0 -0.55rem;
     padding: 0;
     list-style: none;
   }
@@ -1260,13 +1279,7 @@
   }
 
 
-  .aperture-colophon__calendar-head {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    padding-bottom: 0.8rem;
-    border-bottom: 1px solid var(--ink);
-  }
+
 
   .aperture-colophon__calendar-head h3 {
     font-size: 0.9rem;
