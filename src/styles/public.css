@@ -19,11 +19,11 @@
 }
 
 ::view-transition-old(root) {
-  animation: moriium-route-out var(--motion-route-exit) var(--motion-ease) both;
+  animation: moriium-route-out var(--motion-route-exit) var(--motion-route-ease) both;
 }
 
 ::view-transition-new(root) {
-  animation: moriium-route-in var(--motion-route-enter) var(--motion-ease)
+  animation: moriium-route-in var(--motion-route-enter) var(--motion-route-ease)
     calc(var(--motion-route-exit) / 2) both;
 }
 
@@ -93,11 +93,17 @@
     --motion-medium: 520ms;
     --motion-ease: cubic-bezier(0.16, 1, 0.3, 1);
     /* A route change, in DESIGN.md's medium tier: the page leaving clears in
-       fast time, the arriving page takes 320ms, 410ms end to end. Travel is
-       small on purpose -- enough to read as a change of page, not a slide. */
-    --motion-route-exit: 180ms;
-    --motion-route-enter: 320ms;
+       220ms, the arriving page takes 420ms, 530ms end to end -- close to the
+       560ms medium precedent in 10. Travel stays small on purpose: enough to
+       read as a change of page, not a slide.
+       The site's own ease-out is deliberately strong, which is right for a
+       control answering a click and wrong here: it spends most of its distance
+       in the first quarter of the time, so at page scale it reads as a snap.
+       This is easeOutCubic, which covers the distance evenly and lands soft. */
+    --motion-route-exit: 220ms;
+    --motion-route-enter: 420ms;
     --motion-route-travel: 12px;
+    --motion-route-ease: cubic-bezier(0.33, 1, 0.68, 1);
   }
 
   :root:lang(ja) {
@@ -2207,8 +2213,8 @@
      unlayered, so they win over the tokens in @layer tokens. */
   :root {
     --motion-route-travel: 0px;
-    --motion-route-exit: 90ms;
-    --motion-route-enter: 120ms;
+    --motion-route-exit: 100ms;
+    --motion-route-enter: 160ms;
   }
 
   @layer components {

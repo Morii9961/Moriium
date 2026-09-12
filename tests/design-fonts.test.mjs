@@ -169,8 +169,8 @@ test('public pages use native cross-document transitions without a client router
 
   // The page leaving and the page arriving carry their own motion, on the route
   // tokens rather than a duration invented here.
-  assert.match(styles, /::view-transition-old\(root\)\s*{[^}]*animation:\s*moriium-route-out var\(--motion-route-exit\) var\(--motion-ease\)/s);
-  assert.match(styles, /::view-transition-new\(root\)\s*{[^}]*animation:\s*moriium-route-in var\(--motion-route-enter\) var\(--motion-ease\)/s);
+  assert.match(styles, /::view-transition-old\(root\)\s*{[^}]*animation:\s*moriium-route-out var\(--motion-route-exit\) var\(--motion-route-ease\)/s);
+  assert.match(styles, /::view-transition-new\(root\)\s*{[^}]*animation:\s*moriium-route-in var\(--motion-route-enter\) var\(--motion-route-ease\)/s);
   assert.match(styles, /@keyframes moriium-route-in\s*{[^}]*transform:\s*translateY\(var\(--motion-route-travel\)\)/s);
 
   // Reduced motion drops the travel and shortens the fade; it does not cut the
