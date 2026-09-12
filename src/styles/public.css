@@ -708,6 +708,16 @@
     transform: translate(0.25rem, -0.25rem);
   }
 
+  /* A way back is a phrase, not a row with two ends: the arrow stays beside the
+     words rather than being pushed to the far edge of whatever holds it. The
+     taxonomy pages only looked right because their container shrink-wrapped it;
+     in the article's outline rail space-between put 103px between the two. */
+  .aperture-action--back {
+    width: fit-content;
+    justify-content: flex-start;
+    gap: 0.6rem;
+  }
+
   /* A way back reads the other direction: its arrow leads the word and steps
      the way it points. */
   .aperture-action--back:hover i,

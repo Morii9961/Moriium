@@ -295,13 +295,13 @@
     content: "";
   }
 
+  /* The way back is the site's back action -- the same one the category and tag
+     pages use, arrow leading the word and stepping the way it points on hover.
+     It used to be a bare link with the arrow glued into the string, which left
+     it the one action on the site that could not move. Only its place in the
+     rail is local. */
   .a-article__back {
-    display: inline-flex;
-    min-height: 2.75rem;
-    align-items: center;
     margin-top: 2rem;
-    color: var(--accent);
-    font-size: 0.68rem;
   }
 
   /* With no sections to list, the rail is just the way back. */
