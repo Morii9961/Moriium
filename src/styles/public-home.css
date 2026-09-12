@@ -595,8 +595,12 @@
     animation: aperture-hero-fade 900ms 1850ms var(--enter-ease) both;
   }
 
+  /* Inset to match the rows above it: the label lines up with their dates and
+     titles, and its arrow with theirs, instead of hanging 1.25rem to the left
+     of the column it belongs to. */
   .aperture-recent__more {
     margin-top: 1.5rem;
+    padding-inline: 1.25rem;
   }
 
   .aperture-ways {
@@ -727,7 +731,11 @@
   .aperture-colophon > header h2 {
     grid-column: 1;
     grid-row: 2;
-    margin-top: 1.25rem;
+    /* 1.25rem read as the display line hugging its eyebrow. Changed for all
+       four sections rather than only the one it was noticed in: the eyebrow and
+       the line under it are one figure, and four different gaps would be four
+       different figures. */
+    margin-top: 2rem;
   }
 
   .aperture-recent > header > span,
@@ -819,6 +827,12 @@
     position: relative;
     display: grid;
     grid-template-columns: minmax(0, 1fr) 1.5rem;
+    /* The three lines are declared as rows so the arrow can span them. Negative
+       line numbers count from the end of the *explicit* grid, and with no rows
+       declared the arrow's `grid-row: 1 / -1` collapsed to row 1 alone: it sat
+       on the date rather than centred against the row, which is how the writing
+       index, the archive and the taxonomy rows all place theirs. */
+    grid-template-rows: repeat(3, auto);
     gap: 0.7rem 2rem;
     /* The three lines total about 122px, so 10rem left 19px of slack above and
        below and read as the block sitting low in its row. 8.5rem keeps the row
@@ -1693,7 +1707,7 @@
 
     .aperture-recent i {
       grid-column: 2;
-      grid-row: 1 / 4;
+      grid-row: 1 / -1;
     }
 
     .aperture-field::before {

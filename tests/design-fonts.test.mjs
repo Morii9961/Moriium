@@ -181,6 +181,24 @@ test('public pages use native cross-document transitions without a client router
   );
 });
 
+test('the home recent list aligns with the row grammar the rest of the site uses', async () => {
+  const homeStyles = await read('src/styles/public-home.css');
+
+  // Every other row on the site centres its arrow against the whole row: the
+  // writing index, the archive and the taxonomy lists are single-row grids with
+  // align-items: center. The home list stacks three lines instead, so its arrow
+  // spans them -- and a negative line number counts from the end of the
+  // explicit grid, so without declared rows `1 / -1` collapsed to row 1 and the
+  // arrow sat on the date.
+  assert.match(homeStyles, /\.aperture-recent li a\s*{[^}]*grid-template-rows:\s*repeat\(3, auto\)/s);
+  assert.match(homeStyles, /\.aperture-recent i\s*{[^}]*grid-row:\s*1 \/ -1/s);
+
+  // The rows inset their content by 1.25rem; the link below them takes the same
+  // inset, so its label lines up with their dates and its arrow with theirs.
+  assert.match(homeStyles, /\.aperture-recent li a\s*{[^}]*padding-inline:\s*1\.25rem/s);
+  assert.match(homeStyles, /\.aperture-recent__more\s*{[^}]*padding-inline:\s*1\.25rem/s);
+});
+
 test('the home hero ships a local Shippori Mincho subset that covers its own copy', async () => {
   const [home, homeStyles, manifest, packageManifest] = await Promise.all([
     read('src/pages/[lang]/index.astro'),
