@@ -540,14 +540,25 @@
     list-style: none;
   }
 
+  /* The box hangs in the margin instead of occupying a grid column. As a grid
+     the item read correctly only while its content was one unbroken run of
+     text: every element child became a grid item of its own, so a bold word or
+     a link dropped onto the next row, and a nested list was placed in the
+     1.2em checkbox column and rendered one character per line. Taking the box
+     out of flow leaves the item as ordinary prose, which is what it is. */
   .public-site .article-body li.task-list-item {
-    display: grid;
-    grid-template-columns: 1.2em minmax(0, 1fr);
-    gap: 0.6em;
-    align-items: baseline;
+    position: relative;
+    padding-inline-start: 1.8em;
   }
 
   .public-site .article-body li.task-list-item input[type='checkbox'] {
+    position: absolute;
+    inset-inline-start: 0;
+    /* Centred on the first line: em approximates it from the current line
+       height, lh states it exactly where the unit is supported. */
+    top: 0.875em;
+    top: 0.5lh;
+    transform: translateY(-50%);
     width: 0.85em;
     height: 0.85em;
     margin: 0;
