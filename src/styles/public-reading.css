@@ -895,12 +895,25 @@
     text-decoration-color: currentColor;
   }
 
+  /* The divider belongs between the two links, not to the container behind
+     them. As a 1px grid gap over a lighter background it read as a hairline
+     while both neighbours existed -- and at either end of the archive, where
+     there is only one, the empty half showed that background as a large grey
+     block. */
   .a-article__end nav {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1px;
     margin-top: 2.5rem;
-    background: color-mix(in srgb, var(--accent-field-ink) 22%, transparent);
+  }
+
+  /* One neighbour, one panel: the lone link takes the whole width, so its
+     alignment still reads against the edge it points to. */
+  .a-article__end nav:has(a:only-child) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .a-article__end nav a + a {
+    border-left: 1px solid color-mix(in srgb, var(--accent-field-ink) 22%, transparent);
   }
 
   .a-article__end nav a {
@@ -1060,6 +1073,12 @@
 
     .a-article__end nav {
       grid-template-columns: 1fr;
+    }
+
+    /* Stacked, so the divider moves to the edge they actually share. */
+    .a-article__end nav a + a {
+      border-left: 0;
+      border-top: 1px solid color-mix(in srgb, var(--accent-field-ink) 22%, transparent);
     }
 
     .a-article__next {
