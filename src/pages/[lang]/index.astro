@@ -1,7 +1,8 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import AboutChannelIcon from '../../components/AboutChannelIcon.astro';
 import '../../styles/public-home.css';
-import { SITE, UI, type Language } from '../../data/site';
+import { CHANNELS, SITE, UI, type Language } from '../../data/site';
 import { formatDate, getListedPosts, postPath, uniqueTaxonomy } from '../../utils/content';
 
 export function getStaticPaths() {
@@ -209,7 +210,6 @@ const copy = {
       ['Morii', '心存迷惘未尝不可，不置可否亦未尝不可'],
       ['Enouia', '『曾想与你对称』'],
     ],
-    authorAbout: '关于',
     calendarTitle: '更新日历',
     calendarWeekdays: ['日', '一', '二', '三', '四', '五', '六'],
     calendarDayActive: (day: number | string) => `${day} 日有更新`,
@@ -217,7 +217,6 @@ const copy = {
     calendarEmpty: '本月无更新。',
     calendarMore: (count: number | string) => `另有 ${count} 篇。`,
     fullArchive: '归档',
-    rss: 'RSS', about: '关于 Moriium',
   },
   ja: {
     heroTitle: '見たものを記す。未完のまま残す。',
@@ -244,7 +243,6 @@ const copy = {
       ['Morii', '心存迷惘未尝不可，不置可否亦未尝不可'],
       ['Enouia', '『曾想与你对称』'],
     ],
-    authorAbout: 'について',
     calendarTitle: '更新カレンダー',
     calendarWeekdays: ['日', '月', '火', '水', '木', '金', '土'],
     calendarDayActive: (day: number | string) => `${day}日に更新`,
@@ -252,7 +250,6 @@ const copy = {
     calendarEmpty: 'この月の更新はありません。',
     calendarMore: (count: number | string) => `ほか ${count} 件。`,
     fullArchive: 'アーカイブ',
-    rss: 'RSS', about: 'Moriium について',
   },
   en: {
     heroTitle: 'Record what was seen. Leave the unfinished as it is.',
@@ -279,7 +276,6 @@ const copy = {
       ['Morii', '心存迷惘未尝不可，不置可否亦未尝不可'],
       ['Enouia', '『曾想与你对称』'],
     ],
-    authorAbout: 'About',
     calendarTitle: 'Update calendar',
     calendarWeekdays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
     calendarDayActive: (day: number | string) => `Updated on the ${englishOrdinal(day)}`,
@@ -287,7 +283,6 @@ const copy = {
     calendarEmpty: 'No entries this month.',
     calendarMore: (count: number | string) => `${count} more.`,
     fullArchive: 'Archive',
-    rss: 'RSS', about: 'About Moriium',
   },
 } as const;
 const c = copy[lang];
@@ -441,20 +436,23 @@ const routeHrefs = [`/${lang}/writing/`, `/${lang}/archive/`, `/${lang}/categori
               <li>
                 <h4>{name}</h4>
                 <p>{role}</p>
+                {/* The three destinations belong to the person named above, so
+                    they sit under that name rather than under the section. */}
+                {name === SITE.author && (
+                  <ul class="aperture-colophon__channels">
+                    {CHANNELS.map((channel) => (
+                      <li>
+                        <a href={channel.href} rel="me">
+                          <AboutChannelIcon name={channel.name} />
+                          <span>{channel.name}</span>
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </li>
             ))}
           </ol>
-          <nav class="aperture-colophon__actions" aria-label={c.authorAbout}>
-            <a class="aperture-action" href={`/${lang}/about/`}>
-              <span>{c.about}</span><i aria-hidden="true">↗</i>
-            </a>
-            <a class="aperture-action" href="https://github.com/Morii9961">
-              <span>GitHub</span><i aria-hidden="true">↗</i>
-            </a>
-            <a class="aperture-action" href={`/${lang}/rss.xml`}>
-              <span>{c.rss}</span><i aria-hidden="true">↗</i>
-            </a>
-          </nav>
         </div>
 
         <div

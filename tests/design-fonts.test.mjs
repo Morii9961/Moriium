@@ -238,6 +238,18 @@ test('production home and writing index use the rebuilt editorial system with re
   assert.doesNotMatch(home, /aperture-hero__type-row/);
   assert.doesNotMatch(home, /PROTOTYPE_POSTS|PROTOTYPE_CATEGORIES/);
 
+  // The colophon's destinations belong to the person named above them, so they
+  // sit inside that person's entry and only that one. The three-button row that
+  // used to hang under the whole section is gone, and with it the copy that fed
+  // it -- an unused string is a string that will eventually be shown by mistake.
+  assert.match(
+    home,
+    /{name === SITE\.author && \([\s\S]*?<ul class="aperture-colophon__channels">[\s\S]*?<AboutChannelIcon name={channel\.name} \/>/,
+  );
+  assert.match(home, /import { CHANNELS, SITE, UI, type Language }/);
+  assert.doesNotMatch(home, /aperture-colophon__actions" aria-label/);
+  assert.doesNotMatch(home, /authorAbout|about: '关于 Moriium'/);
+
   assert.doesNotMatch(writing, /bodyClass=|prototypes\.css/);
   assert.match(writing, /getListedPosts\(lang\)/);
   assert.match(writing, /class=\"a-directory\"/);
