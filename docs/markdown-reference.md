@@ -93,3 +93,7 @@ The answer is :spoiler[revealed on click, Enter, Space, or focus].
 ## Copy protection
 
 Set `copyProtection: true` in one article's frontmatter. It discourages copying prose but deliberately leaves code, form controls, keyboard navigation, and assistive technology usable. It is not a security measure.
+
+## Colons
+
+A colon immediately followed by a word is directive syntax, wherever it appears in a line. Only the names on this page are Moriium's; any other directive is printed as the characters it was typed as, so `16:9`, `08:12` and `Note:this` survive as written, and a misspelled directive such as `:spolier[...]` shows itself instead of vanishing. A colon followed by a space, and the full-width `：`, are never directive syntax.
