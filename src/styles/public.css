@@ -999,15 +999,17 @@
     transform: rotate(180deg);
   }
 
+  /* One column per axis. Each scrolls on its own, so a long tag list cannot
+     push the categories out of reach, and the reset spans both because it
+     belongs to neither. */
   .a-writing-filter__menu {
     position: absolute;
     z-index: 15;
     top: calc(100% + 0.4rem);
     right: 0;
-    width: max(15rem, 100%);
-    max-height: min(26rem, 60vh);
-    overflow-y: auto;
-    scrollbar-width: thin;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(9.5rem, 1fr));
+    width: max(26rem, 100%);
     padding-block: 0.35rem;
     border: 1px solid var(--line);
     background: var(--surface-raised);
@@ -1055,8 +1057,33 @@
     font-size: 0.58rem;
   }
 
-  .a-writing-filter__option[aria-current='true'] {
+  .a-writing-filter__option[aria-pressed='true'] {
     box-shadow: inset 3px 0 0 var(--accent);
+  }
+
+  .a-writing-filter__option--all {
+    grid-column: 1 / -1;
+    box-shadow: inset 0 -1px 0 var(--line);
+  }
+
+  .a-writing-filter__option--all[aria-pressed='true'] {
+    box-shadow: inset 3px 0 0 var(--accent), inset 0 -1px 0 var(--line);
+  }
+
+  .a-writing-filter__column {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+  }
+
+  .a-writing-filter__column + .a-writing-filter__column {
+    border-left: 1px solid var(--line);
+  }
+
+  .a-writing-filter__options {
+    overflow-y: auto;
+    max-height: min(22rem, 46vh);
+    scrollbar-width: thin;
   }
 
   .a-writing-filter__option:hover,
@@ -2195,10 +2222,21 @@
       flex-basis: min(13rem, 46vw);
     }
 
+    /* Too narrow for two columns; the axes stack and keep their own scroll. */
     .a-writing-filter__menu {
       right: auto;
       left: 0;
-      width: min(17rem, calc(100vw - 2.2rem));
+      grid-template-columns: minmax(0, 1fr);
+      width: min(20rem, calc(100vw - 2.2rem));
+    }
+
+    .a-writing-filter__column + .a-writing-filter__column {
+      border-top: 1px solid var(--line);
+      border-left: 0;
+    }
+
+    .a-writing-filter__options {
+      max-height: min(14rem, 32vh);
     }
   }
 }
