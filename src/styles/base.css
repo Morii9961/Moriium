@@ -654,6 +654,18 @@
     border-block: 1px solid var(--line);
   }
 
+  /* Set only on a diagram too wide to fit, which keeps its own size and scrolls
+     rather than being scaled down past reading. The figure takes focus so that
+     scroll is reachable from the keyboard, as the table wrapper does. */
+  .mermaid-shell[data-mermaid-scroll] {
+    scrollbar-width: thin;
+  }
+
+  .mermaid-shell[data-mermaid-scroll]:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
   .reader-notice {
     position: fixed;
     right: 1rem;

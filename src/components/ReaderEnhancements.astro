@@ -78,6 +78,35 @@ const copy = READER_COPY[lang];
     const mermaidCopy = JSON.parse(
       document.querySelector<HTMLTemplateElement>('[data-reader-copy]')?.dataset.readerCopy ?? '{}',
     ).mermaid as { diagram: string; error: string };
+    // Mermaid fits a diagram to its container by capping the SVG's max-width,
+    // which is right until the diagram is much wider than the column: a wide
+    // one is then scaled down until nothing in it can be read. The eleven-node
+    // pipeline in the testbed gallery arrived 12px tall on a phone.
+    //
+    // So a diagram that does not fit keeps its own size and the figure scrolls,
+    // the way a wide table already does, and is focusable so the scroll is
+    // reachable without a pointer.
+    const fitDiagram = (shell: HTMLElement, output: HTMLElement) => {
+      const svg = output.querySelector('svg');
+      shell.removeAttribute('data-mermaid-scroll');
+      shell.removeAttribute('tabindex');
+      if (!svg) return;
+      svg.style.removeProperty('width');
+      svg.style.removeProperty('max-width');
+      const intrinsic = svg.viewBox.baseVal?.width || svg.getBoundingClientRect().width;
+      const style = getComputedStyle(shell);
+      const available =
+        shell.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+      // A mild reduction still reads, so let it fit. Below three quarters the
+      // labels fall under about 12px, which is the point where fitting the
+      // diagram stops being a way to show it.
+      if (available >= intrinsic * 0.75) return;
+      svg.style.maxWidth = 'none';
+      svg.style.width = `${Math.round(intrinsic)}px`;
+      shell.dataset.mermaidScroll = 'true';
+      shell.tabIndex = 0;
+    };
+
     const renderDiagrams = async (refresh = false) => {
       const diagramSources = [
         ...document.querySelectorAll<HTMLElement>('pre[data-language="mermaid"]'),
@@ -125,6 +154,7 @@ const copy = READER_COPY[lang];
           shell.replaceChildren(output);
           try {
             await mermaid.run({ nodes: [output], suppressErrors: false });
+            fitDiagram(shell, output);
           } catch (error) {
             shell.classList.add('mermaid-shell--error');
             shell.replaceChildren();
