@@ -577,19 +577,25 @@
 
   .public-site .site-footer__group--utility {
     grid-template-columns: auto minmax(0, 1fr);
+    row-gap: 0.5rem;
   }
 
+  /* The controls are not a column of their own. The language row sits beside
+     the label, and the feed picker starts where the label starts: it belongs to
+     the group rather than to the languages, and indenting it under them read as
+     a fourth language. */
   .public-site .site-footer__utility-controls {
-    display: grid;
-    justify-items: start;
+    display: contents;
   }
 
   .public-site .site-footer__languages {
+    grid-column: 2;
     display: flex;
     gap: clamp(1rem, 2vw, 1.75rem);
   }
 
   .public-site .site-footer__rss-picker {
+    grid-column: 1 / -1;
     position: relative;
     width: fit-content;
   }
