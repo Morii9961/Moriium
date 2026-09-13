@@ -75,14 +75,16 @@ test('the article page declares itself to aggregators without tracking a reader'
   assert.match(article, /replaceAll\('<', '\\\\u003c'\)/);
 });
 
-test('reading time counts prose rather than source', async () => {
+test('the article facts name the author where the reading time used to be', async () => {
   const article = await read('src/layouts/ArticleLayout.astro');
-  const body = article.slice(article.indexOf('const readingMinutes'), article.indexOf('const copy'));
+  const facts = article.slice(article.indexOf('<dl class="a-article__facts">'), article.indexOf('</dl>'));
 
-  // Each of these arrives on the page as something other than words.
-  for (const stripped of [/```/, /\\\$\\\$/, /\^:::/, /::\\w\+\\\{/, /https\?:/]) {
-    assert.match(body, stripped);
-  }
+  // The minute estimate is gone, not hidden: no row, no copy, no counter.
+  assert.doesNotMatch(article, /readingMinutes|c\.reading|c\.minutes|阅读时间|読了目安|Reading time/);
+  // Published, then updated, then the byline, then the category.
+  const order = ['c.published', 'c.updated', 'c.author', 'c.category'].map((key) => facts.indexOf(`{${key}}`));
+  assert.ok(order.every((index) => index >= 0), `a fact row is missing: ${order}`);
+  assert.deepEqual([...order].sort((a, b) => a - b), order);
 });
 
 test('the reading grid centres the prose and hangs the outline in the margin', async () => {
