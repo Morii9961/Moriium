@@ -270,8 +270,17 @@
 
   .public-site .site-actions {
     display: flex;
-    justify-content: flex-end;
+    justify-content: flex-start;
     align-items: center;
+    /* Stretched, so the search panel can hang from the header's own edge
+       instead of from a constant that has to be re-guessed every time the
+       header changes height. The controls inside stay centred. */
+    align-self: stretch;
+    /* Fills its column and packs to the start, so the icon is anchored by its
+       left edge. base.css anchors this row by its right edge instead, which
+       made the icon slide left as the field grew beside it -- the opposite of
+       opening to the right. */
+    justify-self: stretch;
     gap: 0.3rem;
   }
 
@@ -295,14 +304,20 @@
   }
 
   .public-site .site-tool svg,
-  .public-site .theme-toggle svg,
-  .public-site .site-search__close svg,
-  .public-site .site-search__field svg {
+  .public-site .theme-toggle svg {
     width: 1.05rem;
     fill: none;
     stroke: currentColor;
     stroke-linecap: round;
     stroke-width: 1.7;
+  }
+
+  /* Their own display values outrank the UA stylesheet's [hidden] rule, so the
+     attribute alone left both controls on screen while claiming to hide them --
+     the same trap .aperture-action[hidden] already guards against. */
+  .public-site .language-nav[hidden],
+  .public-site .theme-toggle[hidden] {
+    display: none;
   }
 
   .public-site .language-nav {
@@ -328,88 +343,87 @@
     color: var(--accent);
   }
 
+  /* Search is part of the header rather than a layer over the page: the icon
+     stays where it is and the field unfurls beside it. The row is packed to the
+     start so that growth goes to the right, into the space the language and
+     appearance controls leave. */
   .public-site .site-search {
-    width: min(48rem, calc(100% - 2rem));
-    max-height: min(42rem, calc(100vh - 2rem));
+    position: relative;
+    display: flex;
+    align-self: stretch;
+    align-items: center;
+  }
+
+  /* Closed it is a zero-width field, not a hidden one: the same flex-basis
+     transition the writing index's search uses, so the two read as one
+     gesture. `visibility` is delayed on the way out so the text does not
+     vanish before the field has finished closing. */
+  .public-site .site-search__input {
+    flex: 0 0 0;
+    min-width: 0;
     padding: 0;
     border: 0;
-    border-radius: 0;
-    background: var(--surface-raised);
+    border-bottom: 1px solid transparent;
+    outline: 0;
+    appearance: none;
+    background: transparent;
     color: var(--ink);
-    box-shadow: 0 1.5rem 5rem rgb(4 9 22 / 24%);
+    font-family: var(--font-interface);
+    font-size: 0.78rem;
+    visibility: hidden;
+    transition: flex-basis var(--motion-medium) var(--motion-ease),
+      padding-left var(--motion-medium) var(--motion-ease),
+      border-color var(--motion-fast) ease,
+      visibility 0s linear var(--motion-medium);
   }
 
-  .public-site .site-search::backdrop {
-    background: rgb(8 12 24 / 72%);
+  .public-site .site-search[data-search-state='open'] .site-search__input {
+    flex-basis: min(22rem, 34vw);
+    padding-left: 0.75rem;
+    border-bottom-color: var(--line);
+    visibility: visible;
+    transition: flex-basis var(--motion-medium) var(--motion-ease),
+      padding-left var(--motion-medium) var(--motion-ease),
+      border-color var(--motion-fast) ease,
+      visibility 0s;
   }
 
+  .public-site .site-search__input::-webkit-search-cancel-button {
+    display: none;
+  }
+
+  .public-site .site-search__input::placeholder {
+    color: var(--ink-faint);
+  }
+
+  /* The results hang under the field, left-aligned with the icon that opened
+     it, on the panel the filter and the calendar pickers share. */
   .public-site .site-search__panel {
-    padding: clamp(1.5rem, 5vw, 4rem);
-    border-top: 0.6rem solid var(--accent-field);
+    /* Exactly as wide as the opened field, icon to end of input: it reads as
+       the field's own drop, and it can never run past the column and the page
+       edge the way a fixed width did. */
+    right: 0;
+    left: 0;
+    /* The surface is as tall as the header row, so this is the header's own
+       lower edge, whatever height it takes. */
+    top: 100%;
+    width: auto;
+    max-height: min(28rem, 60vh);
+    overflow-y: auto;
+    padding: 0.9rem 1.1rem 1.1rem;
+    scrollbar-width: thin;
   }
 
-  .public-site .site-search__panel > header {
-    display: flex;
-    justify-content: space-between;
-    gap: 2rem;
-    align-items: start;
-  }
-
-  .public-site .site-search__kicker,
-  .public-site .site-search__panel > label,
   .public-site .site-search__summary,
+  .public-site .site-search__empty,
   .public-site .site-search__results time {
     color: var(--ink-faint);
     font-family: var(--font-data);
     font-size: 0.62rem;
   }
 
-  .public-site .site-search h2 {
-    margin-top: 0.5rem;
-    font-family: var(--font-display);
-    font-size: clamp(2rem, 5vw, 4rem);
-    font-weight: 650;
-    letter-spacing: -0.06em;
-  }
-
-  .public-site .site-search__close {
-    display: grid;
-    width: 2.75rem;
-    height: 2.75rem;
-    flex: none;
-    place-items: center;
-    border: 1px solid var(--line);
-    background: transparent;
-    color: var(--ink);
-    cursor: pointer;
-  }
-
-  .public-site .site-search__panel > label {
-    display: block;
-    margin-top: 3rem;
-    margin-bottom: 0.7rem;
-  }
-
-  .public-site .site-search__field {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 1rem;
-    align-items: center;
-    border-bottom: 2px solid var(--ink);
-  }
-
-  .public-site .site-search__field input {
-    width: 100%;
-    padding: 1rem 0;
-    border: 0;
-    outline: 0;
-    background: transparent;
-    color: var(--ink);
-    font-size: 1.05rem;
-  }
-
   .public-site .site-search__summary {
-    margin-block: 1rem 1.5rem;
+    margin-bottom: 0.6rem;
   }
 
   .public-site .site-search__results {
@@ -424,16 +438,32 @@
 
   .public-site .site-search__results a {
     display: grid;
-    grid-template-columns: 7rem 1fr auto;
-    gap: 1rem;
-    align-items: center;
-    min-height: 5rem;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.2rem 1rem;
+    min-height: 3.5rem;
+    align-content: center;
+    padding-block: 0.5rem;
     text-decoration: none;
   }
 
+  .public-site .site-search__results span {
+    grid-column: 1;
+    color: var(--ink-faint);
+    font-family: var(--font-data);
+    font-size: 0.58rem;
+  }
+
   .public-site .site-search__results strong {
+    grid-column: 1;
     font-family: var(--font-display);
+    font-size: 0.95rem;
     font-weight: 580;
+  }
+
+  .public-site .site-search__results time {
+    grid-column: 2;
+    grid-row: 1 / -1;
+    align-self: center;
   }
 
   .public-site .site-search__results a:hover strong,
@@ -1023,7 +1053,8 @@
 
   /* The panel itself, shared by the filter and the calendar pickers. */
   .a-writing-filter__menu,
-  .aperture-calendar__picker-menu {
+  .aperture-calendar__picker-menu,
+  .site-search__panel {
     position: absolute;
     z-index: 15;
     top: calc(100% + 0.4rem);
@@ -2085,13 +2116,56 @@
       text-align: left;
     }
 
-    .public-site .site-search__results a {
-      grid-template-columns: 1fr auto;
+    /* No room beside the icon at this width: the actions column is under 6rem.
+       So the field opens over the wordmark instead, growing out of the icon
+       towards the left -- the only direction there is -- and the results take
+       the header's full width beneath it. The header row is the anchor for
+       both. */
+    .public-site .site-header__inner {
+      position: relative;
     }
 
+    .public-site .site-actions {
+      justify-content: flex-end;
+    }
+
+    .public-site .site-actions,
+    .public-site .site-search {
+      position: static;
+      align-self: auto;
+    }
+
+    .public-site .site-search__input {
+      position: absolute;
+      top: 50%;
+      right: calc(var(--gutter) + 2.75rem + 0.3rem);
+      left: var(--gutter);
+      height: 2.75rem;
+      background: var(--surface);
+      clip-path: inset(0 0 0 100%);
+      transform: translateY(-50%);
+      transition: clip-path var(--motion-medium) var(--motion-ease),
+        visibility 0s linear var(--motion-medium);
+    }
+
+    .public-site .site-search[data-search-state='open'] .site-search__input {
+      clip-path: inset(0);
+      transition: clip-path var(--motion-medium) var(--motion-ease),
+        visibility 0s;
+    }
+
+    .public-site .site-search__panel {
+      top: 100%;
+      right: var(--gutter);
+      left: var(--gutter);
+    }
+
+    /* The panel is the width of the screen here, so the date drops under the
+       title rather than competing with it for the row. */
     .public-site .site-search__results time {
-      grid-column: 1 / -1;
-      padding-top: 0.8rem;
+      grid-column: 1;
+      grid-row: auto;
+      padding-top: 0.35rem;
     }
 
     .a-directory__hero {
