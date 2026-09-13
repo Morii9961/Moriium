@@ -69,3 +69,11 @@ test('About destinations are icon-led whole-row links before the activity record
   assert.doesNotMatch(styles, /\.a-about-page__channels a\s*{[^}]*(border-radius|box-shadow)/s);
   assert.match(styles, /\.public-site :focus-visible/);
 });
+
+test('About keeps compact, page-specific spacing between its long bands and the footer', async () => {
+  const styles = await read('src/styles/public.css');
+
+  assert.match(styles, /\.a-about-page__band\s*{[^}]*padding-block:\s*clamp\(3\.5rem, 6vw, 6rem\)/s);
+  assert.match(styles, /\.a-about-page\s*{[^}]*padding-bottom:\s*0/s);
+  assert.match(styles, /\.public-site main:has\(> \.a-about-page\) \+ \.site-footer\s*{[^}]*margin-top:\s*clamp\(3\.5rem, 6vw, 6rem\)/s);
+});

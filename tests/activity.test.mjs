@@ -12,6 +12,15 @@ const updatedAt = '2026-09-07T08:00:00.000Z';
 const row = { date: '2026-09-07', inputTokens: 10, cacheReadTokens: 100, cacheCreationTokens: 20, outputTokens: 30, reasoningOutputTokens: 15, totalTokens: 160 };
 const empty = () => ({ version: 1, sources: { github: null, codex: null, claude: null } });
 
+test('activity calendars wait for reader interaction before selecting a date', async () => {
+  const [enhancer, markup] = await Promise.all([
+    readFile(new URL('../src/scripts/activity.ts', import.meta.url), 'utf8'),
+    readFile(new URL('../src/lib/activity-markup.ts', import.meta.url), 'utf8'),
+  ]);
+  assert.doesNotMatch(enhancer, /show\(selected, false\);/);
+  assert.doesNotMatch(markup, /value="\$\{initialDate\}"/);
+});
+
 test('pinned ccusage reports include cache once and never add reasoning twice', () => {
   const result = importUsage({ daily: [row] }, 'claude', updatedAt);
   assert.deepEqual(result.days, [{ date: row.date, value: 160 }]);

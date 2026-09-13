@@ -9,7 +9,7 @@ const enhanceCalendar = (calendar: HTMLElement) => {
   const cells = Array.from(calendar.querySelectorAll<HTMLElement>('[data-date]'));
   if (!panel || !input || !output || !cells.length) return;
 
-  let selected = Math.max(0, cells.findIndex((cell) => cell.dataset.date === input.value));
+  let selected = -1;
   const show = (index: number, announce = true) => {
     selected = Math.max(0, Math.min(cells.length - 1, index));
     const cell = cells[selected]!;
@@ -23,10 +23,12 @@ const enhanceCalendar = (calendar: HTMLElement) => {
   calendar.tabIndex = 0;
   calendar.addEventListener('keydown', (event) => {
     const offset: Record<string, number> = { ArrowUp: -1, ArrowDown: 1, ArrowLeft: -7, ArrowRight: 7 };
-    if (event.key in offset) { event.preventDefault(); show(selected + offset[event.key]!); }
+    if (event.key in offset) {
+      event.preventDefault();
+      show(selected < 0 ? cells.length - 1 : selected + offset[event.key]!);
+    }
     else if (event.key === 'Home' || event.key === 'End') { event.preventDefault(); show(event.key === 'Home' ? 0 : cells.length - 1); }
   });
-  calendar.addEventListener('focus', () => show(selected));
   const selectTarget = (event: Event, announce: boolean) => {
     const target = event.target instanceof Element ? event.target.closest<HTMLElement>('[data-date]') : null;
     if (target && cells.includes(target)) show(cells.indexOf(target), announce);
@@ -37,7 +39,6 @@ const enhanceCalendar = (calendar: HTMLElement) => {
     const index = cells.findIndex((cell) => cell.dataset.date === input.value);
     if (index >= 0) show(index);
   });
-  show(selected, false);
 };
 
 export function enhanceActivity(root: HTMLElement) {
