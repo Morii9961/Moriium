@@ -30,6 +30,24 @@ ALTER TABLE articles
   CHECK (machine_translated_from IS NULL OR machine_translated_from IN ('zh', 'ja', 'en'));
 `;
 
+/**
+ * Migration 003: the byline.
+ *
+ * On `versions` rather than `articles`, like every other frontmatter field, so a
+ * rollback restores the byline along with the words it was attached to.
+ *
+ * Deliberately a different column from `author_id`. `author_id` records which
+ * account saved a revision and belongs to the audit trail; `author` is whose
+ * article it is. Either author may fix a typo in the other's article, and that
+ * must not move the credit. Existing rows take 'Morii', whose articles all of
+ * them are.
+ */
+export const AUTHOR_BYLINE_SQL = `
+ALTER TABLE versions
+  ADD COLUMN author TEXT NOT NULL DEFAULT 'Morii'
+  CHECK (author IN ('Morii', 'Enouia'));
+`;
+
 export const SCHEMA_SQL = `-- Moriium admin database, migration 001.
 --
 -- ADR 0002 sections 6.3 and 6.4. Never edit this file to change an existing

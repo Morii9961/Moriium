@@ -39,6 +39,9 @@ for (const file of await filesUnder(postsRoot, '.md')) {
   if (!String(frontmatter.slug ?? '').startsWith(`${frontmatter.lang}/`)) fail(file, 'slug must use <lang>/<route-slug>');
   if (frontmatter.cover && !frontmatter.coverAlt) fail(file, 'coverAlt is required when cover is set');
   if ('password' in frontmatter) fail(file, 'password frontmatter is forbidden');
+  if ('author' in frontmatter && !['Morii', 'Enouia'].includes(frontmatter.author)) {
+    fail(file, 'author must be Morii or Enouia');
+  }
   if (/<iframe\b/i.test(prose)) fail(file, 'raw iframe is forbidden; use ::video');
 
   for (const match of prose.matchAll(/:{2,3}([a-z][\w-]*)(?:\{([^}]*)\})?/g)) {

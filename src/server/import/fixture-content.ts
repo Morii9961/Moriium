@@ -51,6 +51,7 @@ function readSource(root: string, source: (typeof FIXTURE_CONTENT_SOURCES)[numbe
     draft: data.draft,
     unlisted: data.unlisted,
     copyProtection: data.copyProtection,
+    author: data.author,
     markdown: parsed.content.replace(/^\r?\n/, ''),
     editorJson: null,
   };

@@ -97,6 +97,7 @@ describe('fixture and test article migration', () => {
       draft: true,
       unlisted: true,
       copyProtection: false,
+      author: 'Morii',
       markdown: 'Existing body.\n',
       editorJson: null,
     });
@@ -125,6 +126,7 @@ describe('fixture and test article migration', () => {
       draft: true,
       unlisted: true,
       copyProtection: false,
+      author: 'Morii',
       markdown: 'First body.\n',
       editorJson: null,
     };

@@ -45,6 +45,7 @@ function sourceArticle(store) {
     draft: false,
     unlisted: false,
     copyProtection: false,
+    author: 'Morii',
     markdown: '正文第一段。\n\n```ts\nconst a = 1;\n```\n\n正文第二段。',
     editorJson: null,
   });

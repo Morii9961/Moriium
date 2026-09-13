@@ -13,7 +13,16 @@ import {
   type Verdict,
 } from './api.ts';
 
-function newArticle(): NewArticleInput {
+/**
+ * The byline a new article starts with: the signed-in author, when that is one
+ * of the two, and Morii otherwise. It is only a starting value -- the field stays
+ * editable, because either author may publish the other's piece.
+ */
+function bylineFor(account: Author | null): 'Morii' | 'Enouia' {
+  return account?.name === 'Enouia' ? 'Enouia' : 'Morii';
+}
+
+function newArticle(account: Author | null = null): NewArticleInput {
   return {
     translationKey: '',
     lang: 'zh',
@@ -29,6 +38,7 @@ function newArticle(): NewArticleInput {
     draft: false,
     unlisted: false,
     copyProtection: false,
+    author: bylineFor(account),
     markdown: '',
     editorJson: null,
   };
@@ -47,7 +57,7 @@ export default defineComponent({
     const articles = ref<ArticleRow[]>([]);
     const openId = ref<number | null>(null);
     const creating = ref(false);
-    const draft = ref<NewArticleInput>(newArticle());
+    const draft = ref<NewArticleInput>(newArticle(author.value));
     const tagsText = ref('');
     const status = ref<OperationalStatus | null>(null);
     const checkingStatus = ref(false);
@@ -253,6 +263,7 @@ export default defineComponent({
     async function bootstrap(): Promise<void> {
       try {
         author.value = await api.session();
+        draft.value.author = bylineFor(author.value);
         if (author.value) await loadAuthorViews();
       } catch (error) {
         report(error);
@@ -277,6 +288,7 @@ export default defineComponent({
           return;
         }
         author.value = signedIn;
+        draft.value.author = bylineFor(signedIn);
         password.value = '';
         await loadAuthorViews();
       } catch (error) {
@@ -311,7 +323,7 @@ export default defineComponent({
           updatedAt: draft.value.updatedAt?.trim() || null,
         };
         const result = await api.createArticle(input);
-        draft.value = newArticle();
+        draft.value = newArticle(author.value);
         resetCreateForm();
         tagsText.value = '';
         creating.value = false;
@@ -425,6 +437,7 @@ export default defineComponent({
           <label><span>封面公开路径（可空）</span><input :value="draft.cover ?? ''" @input="draft.cover = $event.target.value || null" /></label>
           <label><span>封面替代文字</span><input :value="draft.coverAlt ?? ''" @input="draft.coverAlt = $event.target.value || null" /></label>
         </div>
+        <label><span>作者</span><select v-model="draft.author"><option value="Morii">Morii</option><option value="Enouia">Enouia</option></select></label>
         <fieldset class="checks"><legend>发布属性</legend><label><input v-model="draft.draft" type="checkbox" /> 保留为草稿（不可发布）</label><label><input v-model="draft.unlisted" type="checkbox" /> 不在列表中显示</label><label><input v-model="draft.copyProtection" type="checkbox" /> 启用复制限制</label></fieldset>
         <label><span>初始 Markdown</span><textarea v-model="draft.markdown" rows="6" required></textarea></label>
         <button class="primary" type="submit" :disabled="busy">{{ busy ? '创建中…' : '创建并打开' }}</button>

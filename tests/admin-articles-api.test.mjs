@@ -73,6 +73,7 @@ function fields(overrides = {}) {
     draft: false,
     unlisted: false,
     copyProtection: false,
+    author: 'Morii',
     markdown: '正文。\n',
     editorJson: null,
     ...overrides,
@@ -195,6 +196,7 @@ describe('production publish gate', () => {
         updatedAt: '2026-08-30T09:30:00+08:00',
         unlisted: true,
         copyProtection: true,
+        author: 'Morii',
       }),
     });
     const version = store.getLatest(article.id);

@@ -436,6 +436,7 @@ describe('imported media and the publish gate', () => {
       draft: false,
       unlisted: false,
       copyProtection: false,
+      author: 'Morii',
       markdown: `![退潮后的滩涂](${asset.publicPath})\n`,
       editorJson: null,
     });

@@ -51,6 +51,7 @@ function fields(overrides = {}) {
     draft: false,
     unlisted: false,
     copyProtection: false,
+    author: 'Morii',
     markdown: '正文。\n',
     editorJson: null,
     ...overrides,
@@ -86,6 +87,7 @@ describe('articles and versions', () => {
       updatedAt: '2026-05-02T10:05:00+08:00',
       unlisted: true,
       copyProtection: true,
+      author: 'Morii',
     });
     const version = store.getLatest(article.id);
 
