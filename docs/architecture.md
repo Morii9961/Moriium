@@ -33,7 +33,7 @@ Protected plaintext lives only under ignored `.private/posts/`. The local encryp
 
 ## Reader modules
 
-Unified processes remark/rehype plugins, KaTeX, and local directives. Expressive Code handles public Markdown code blocks. Page-level feature detection decides whether to emit the loader for PhotoSwipe, Mermaid, music, video, or copy protection. PhotoSwipe and Mermaid are dynamically imported; third-party media does not connect before reader interaction.
+Unified processes remark/rehype plugins, KaTeX, and local directives. Expressive Code handles public Markdown code blocks. Page-level feature detection decides whether to emit the loader for PhotoSwipe, Mermaid, music, video, or copy protection. PhotoSwipe and Mermaid are dynamically imported. Remote music does not connect before reader interaction; a YouTube or Bilibili player is a lazy iframe that the browser fetches within its lazy-load distance (often on arrival), and never autoplays.
 
 GitHub card data is collected at build time when `GITHUB_TOKEN` is available. Actions restores a small daily metadata cache, so repeated builds on the same content do not consume API requests; stale cache remains a fallback if GitHub is temporarily unavailable. Missing data becomes an ordinary repository link and does not fail the build.
 

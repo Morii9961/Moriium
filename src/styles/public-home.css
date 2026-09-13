@@ -595,8 +595,12 @@
     animation: aperture-hero-fade 900ms 1850ms var(--enter-ease) both;
   }
 
+  /* Inset to match the rows above it: the label lines up with their dates and
+     titles, and its arrow with theirs, instead of hanging 1.25rem to the left
+     of the column it belongs to. */
   .aperture-recent__more {
     margin-top: 1.5rem;
+    padding-inline: 1.25rem;
   }
 
   .aperture-ways {
@@ -727,7 +731,11 @@
   .aperture-colophon > header h2 {
     grid-column: 1;
     grid-row: 2;
-    margin-top: 1.25rem;
+    /* 1.25rem read as the display line hugging its eyebrow. Changed for all
+       four sections rather than only the one it was noticed in: the eyebrow and
+       the line under it are one figure, and four different gaps would be four
+       different figures. */
+    margin-top: 2rem;
   }
 
   .aperture-recent > header > span,
@@ -819,6 +827,12 @@
     position: relative;
     display: grid;
     grid-template-columns: minmax(0, 1fr) 1.5rem;
+    /* The three lines are declared as rows so the arrow can span them. Negative
+       line numbers count from the end of the *explicit* grid, and with no rows
+       declared the arrow's `grid-row: 1 / -1` collapsed to row 1 alone: it sat
+       on the date rather than centred against the row, which is how the writing
+       index, the archive and the taxonomy rows all place theirs. */
+    grid-template-rows: repeat(3, auto);
     gap: 0.7rem 2rem;
     /* The three lines total about 122px, so 10rem left 19px of slack above and
        below and read as the block sitting low in its row. 8.5rem keeps the row
@@ -1159,11 +1173,25 @@
   .aperture-colophon__author {
     display: flex;
     flex-direction: column;
+    /* Held off the page margin so the two people read as an entry inside the
+       section rather than as a continuation of its heading. Same 1.25rem the
+       article rows are inset by. */
+    padding-inline-start: 1.25rem;
   }
 
-  .aperture-colophon__author-head {
+  /* The two columns each open with a label over a rule, and they read as one
+     line across the section -- so they have to be one band, not two boxes that
+     happen to start at the same y. The calendar's head is the taller of the
+     two, because it carries controls, so the band is that height and both
+     heads bottom-align their content into it: label to label, rule to rule.
+     2.75rem is the control height the pickers and the writing-index filter
+     share, 0.8rem is the gap between content and rule, and the 1px is the
+     picker's own underline. */
+  .aperture-colophon__author-head,
+  .aperture-colophon__calendar-head {
     display: flex;
-    align-items: baseline;
+    min-height: calc(2.75rem + 0.8rem + 1px);
+    align-items: flex-end;
     justify-content: space-between;
     padding-bottom: 0.8rem;
     border-bottom: 1px solid var(--ink);
@@ -1189,7 +1217,7 @@
   /* Two entries with no rule between them do not need a rule's worth of padding
      either; 1.6rem on each put 91px between Morii's line and Enouia's name. */
   .aperture-colophon__people li {
-    padding-block: 0.9rem;
+    padding-block: 0.5rem;
   }
 
   .aperture-colophon__people h4 {
@@ -1209,14 +1237,49 @@
     line-height: 1.8;
   }
 
-
-  .aperture-colophon__calendar-head {
+  /* Morii's destinations. The About page gives each of the three a row with a
+     description; the colophon prints the same three as one quiet line under the
+     name, icon first, so it stays a colophon rather than becoming a second
+     About page. */
+  .aperture-colophon__channels {
     display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    padding-bottom: 0.8rem;
-    border-bottom: 1px solid var(--ink);
+    flex-wrap: wrap;
+    /* Wide enough that the three read as three, rather than as one string of
+       icons and words. */
+    gap: 0 2.25rem;
+    /* The links keep a 2.75rem touch target, which is taller than the type
+       inside them; the negative bottom margin gives that slack back to the
+       space between the two people instead of banking it below the row. */
+    margin: 0.15rem 0 -0.55rem;
+    padding: 0;
+    list-style: none;
   }
+
+  .aperture-colophon__channels a {
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--ink-muted);
+    font-family: var(--font-data);
+    font-size: 0.68rem;
+    text-decoration: none;
+    transition: color var(--motion-fast) var(--motion-ease);
+  }
+
+  .aperture-colophon__channels svg {
+    width: 0.95rem;
+    height: 0.95rem;
+    fill: currentColor;
+  }
+
+  .aperture-colophon__channels a:hover,
+  .aperture-colophon__channels a:focus-visible {
+    color: var(--accent);
+  }
+
+
+
 
   .aperture-colophon__calendar-head h3 {
     font-size: 0.9rem;
@@ -1229,78 +1292,41 @@
     font-size: 0.6rem;
   }
 
-  /* Native selects, stripped back to type. They keep the keyboard and
-     screen-reader behaviour a custom listbox would have to rebuild, and the
-     appearance reset takes away the OS chrome that would otherwise read as the
-     bordered control DESIGN.md rules out. */
+  /* The year and month pickers are the site's own disclosure and share every
+     declaration with the writing index's filter -- see the shared control and
+     panel rules in public.css. They replaced two native selects, whose popup
+     was the one dropdown here that belonged to the operating system rather
+     than to the site. */
   .aperture-calendar__picker {
     display: flex;
-    align-items: baseline;
+    align-items: flex-end;
     gap: 0.75rem;
   }
 
-  /* The affordance, borrowed from `.a-writing-filter` on the writing index: a
-     standing hairline under the control and a caret beside it. Without both, a
-     select stripped of its OS chrome is indistinguishable from a label. */
+  /* The panel is positioned against the control it opens from. */
   .aperture-calendar__field {
     position: relative;
-    display: inline-flex;
-    min-height: 2.75rem;
-    align-items: center;
-    border-bottom: 1px solid var(--line);
-    transition: border-color var(--motion-fast) var(--motion-ease);
   }
 
-  .aperture-calendar__field:hover,
-  .aperture-calendar__field:focus-within {
-    border-bottom-color: var(--accent-field);
-  }
-
-  .aperture-calendar__picker select {
-    /* Room for the caret, which overlays the select's right edge rather than
-       sitting beside it, so a click anywhere on the control still opens it. */
-    padding: 0.15rem 1.05rem 0.15rem 0.1rem;
+  /* A real button in the panel, stripped back to the row the shared option
+     styles draw. */
+  .aperture-calendar__picker-option {
+    width: 100%;
     border: 0;
-    border-radius: 0;
-    appearance: none;
     background: transparent;
-    color: var(--ink);
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+  }
+
+  /* What the head says before the module runs: the month it is showing, in
+     words, rather than two controls that cannot do anything yet. */
+  .aperture-calendar__static {
+    color: var(--ink-muted);
     font-family: var(--font-data);
     font-size: 0.62rem;
-    cursor: pointer;
-    transition: color var(--motion-fast) var(--motion-ease);
   }
 
-  .aperture-calendar__caret {
-    position: absolute;
-    right: 0;
-    width: 0.72rem;
-    fill: none;
-    stroke: var(--ink-muted);
-    stroke-linecap: round;
-    stroke-width: 1.7;
-    pointer-events: none;
-    transition: stroke var(--motion-fast) var(--motion-ease);
-  }
-
-  .aperture-calendar__field:hover .aperture-calendar__caret,
-  .aperture-calendar__field:focus-within .aperture-calendar__caret {
-    stroke: var(--ink);
-  }
-
-  /* The focus ring is the one place the control is allowed to draw a box: it is
-     state, not decoration, and removing it would strand keyboard users. */
-  .aperture-calendar__picker select:focus-visible {
-    outline: 2px solid var(--focus);
-    outline-offset: 2px;
-  }
-
-  /* The option list itself is drawn by the OS, so it needs explicit colours to
-     stay legible against a dark page. */
-  .aperture-calendar__picker option {
-    background: var(--surface-raised);
-    color: var(--ink);
-  }
 
   .aperture-calendar {
     padding-block: 1rem;
@@ -1657,7 +1683,7 @@
 
     .aperture-recent i {
       grid-column: 2;
-      grid-row: 1 / 4;
+      grid-row: 1 / -1;
     }
 
     .aperture-field::before {

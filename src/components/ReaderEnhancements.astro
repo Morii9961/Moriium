@@ -77,7 +77,363 @@ const copy = READER_COPY[lang];
   <script>
     const mermaidCopy = JSON.parse(
       document.querySelector<HTMLTemplateElement>('[data-reader-copy]')?.dataset.readerCopy ?? '{}',
-    ).mermaid as { diagram: string; error: string };
+    ).mermaid as {
+      diagram: string; error: string; zoomIn: string; zoomOut: string; reset: string;
+      hintPointer: string; hintTouch: string; keys: string;
+    };
+
+    // Mermaid only understands hex, rgb and hsl, and the site's tokens are
+    // written in whatever the stylesheet found clearest, oklch included. Paint
+    // each one onto a single canvas pixel and read the pixel back: whatever the
+    // browser can draw comes out as plain sRGB.
+    const pixel = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
+    const probe = document.createElement('span');
+    const hex = (value: string) => {
+      if (!pixel) return value;
+      pixel.clearRect(0, 0, 1, 1);
+      pixel.fillStyle = '#000';
+      pixel.fillStyle = value;
+      pixel.fillRect(0, 0, 1, 1);
+      const [r = 0, g = 0, b = 0] = pixel.getImageData(0, 0, 1, 1).data;
+      return `#${[r, g, b].map((channel) => channel.toString(16).padStart(2, '0')).join('')}`;
+    };
+    const token = (name: string) => {
+      probe.style.color = `var(${name})`;
+      document.body.append(probe);
+      const resolved = getComputedStyle(probe).color;
+      probe.remove();
+      return hex(resolved);
+    };
+
+    // Every colour a diagram draws comes from the page it sits in, so a flow
+    // chart reads as part of the article rather than as Mermaid's grey theme
+    // pasted onto it. Series colours -- pie slices, git branches, timeline
+    // periods -- need several distinguishable hues, and take the admonition
+    // family's quiet ones, pinned to a middle lightness so light label text
+    // stays legible on every slice in both themes.
+    const themeVariables = () => {
+      const surface = token('--surface');
+      const raised = token('--surface-raised');
+      const soft = token('--surface-soft');
+      const ink = token('--ink');
+      const muted = token('--ink-muted');
+      const line = token('--line');
+      const accent = token('--accent');
+      const onSeries = '#f6f7ff';
+      const series = [
+        'oklch(0.52 0.07 255)', 'oklch(0.55 0.06 160)', 'oklch(0.56 0.07 75)', 'oklch(0.52 0.06 300)',
+        'oklch(0.52 0.08 25)', 'oklch(0.55 0.05 210)', 'oklch(0.5 0.05 120)', 'oklch(0.5 0.06 340)',
+      ].map(hex);
+      const font = getComputedStyle(document.body).fontFamily;
+      const vars: Record<string, string | boolean> = {
+        darkMode: document.documentElement.dataset.theme === 'dark',
+        fontFamily: font,
+        fontSize: '14px',
+        background: raised,
+        primaryColor: raised,
+        primaryTextColor: ink,
+        primaryBorderColor: accent,
+        secondaryColor: soft,
+        secondaryTextColor: ink,
+        secondaryBorderColor: line,
+        tertiaryColor: surface,
+        tertiaryTextColor: ink,
+        tertiaryBorderColor: line,
+        mainBkg: raised,
+        nodeBorder: accent,
+        nodeTextColor: ink,
+        lineColor: muted,
+        textColor: ink,
+        titleColor: ink,
+        clusterBkg: surface,
+        clusterBorder: line,
+        edgeLabelBackground: raised,
+        noteBkgColor: soft,
+        noteTextColor: ink,
+        noteBorderColor: line,
+        actorBkg: raised,
+        actorBorder: accent,
+        actorTextColor: ink,
+        actorLineColor: line,
+        signalColor: muted,
+        signalTextColor: ink,
+        labelBoxBkgColor: soft,
+        labelBoxBorderColor: line,
+        labelTextColor: ink,
+        loopTextColor: ink,
+        activationBkgColor: soft,
+        activationBorderColor: line,
+        sequenceNumberColor: raised,
+        sectionBkgColor: soft,
+        altSectionBkgColor: raised,
+        sectionBkgColor2: soft,
+        gridColor: line,
+        taskBkgColor: series[0] ?? accent,
+        taskBorderColor: series[0] ?? accent,
+        taskTextColor: onSeries,
+        taskTextOutsideColor: ink,
+        taskTextLightColor: onSeries,
+        taskTextDarkColor: ink,
+        activeTaskBkgColor: soft,
+        activeTaskBorderColor: accent,
+        doneTaskBkgColor: line,
+        doneTaskBorderColor: line,
+        critBkgColor: series[4] ?? accent,
+        critBorderColor: series[4] ?? accent,
+        todayLineColor: series[4] ?? accent,
+        attributeBackgroundColorOdd: raised,
+        attributeBackgroundColorEven: soft,
+        pieTitleTextColor: ink,
+        pieSectionTextColor: onSeries,
+        pieLegendTextColor: ink,
+        pieStrokeColor: raised,
+        pieStrokeWidth: '1.5px',
+        pieOuterStrokeColor: line,
+        pieOuterStrokeWidth: '1px',
+        pieOpacity: '1',
+        commitLabelColor: ink,
+        commitLabelBackground: soft,
+        tagLabelColor: ink,
+        tagLabelBackground: soft,
+        tagLabelBorder: line,
+      };
+      series.forEach((colour, index) => {
+        vars[`pie${index + 1}`] = colour;
+        vars[`git${index}`] = colour;
+        vars[`gitBranchLabel${index}`] = onSeries;
+        vars[`gitInv${index}`] = onSeries;
+        vars[`cScale${index}`] = colour;
+        vars[`cScaleLabel${index}`] = onSeries;
+      });
+      return vars;
+    };
+
+    // A diagram sits in a fixed frame and is moved inside it rather than
+    // scaled into the column or scrolled past. It opens fitted to the frame,
+    // but never smaller than MIN_FIT: below that the labels stop being words,
+    // and the part that does not fit is one drag away.
+    //
+    // The wheel stays the page's. Zoom is Ctrl or Cmd with the wheel -- which
+    // is also what a trackpad pinch sends -- so scrolling through an article
+    // never gets caught in a diagram on the way down.
+    const MIN_SCALE = 0.2;
+    const MAX_SCALE = 4;
+    const MIN_FIT = 0.55;
+    const MIN_TRIM = 0.8;
+    const STEP = 1.25;
+    const PAD = 20;
+    const coarse = matchMedia('(pointer: coarse)').matches;
+
+    type View = { scale: number; x: number; y: number };
+    const observers = new WeakMap<HTMLElement, ResizeObserver>();
+
+    const mountViewer = (shell: HTMLElement, output: HTMLElement, index: number) => {
+      const svg = output.querySelector('svg');
+      if (!svg) return;
+      const box = svg.viewBox.baseVal;
+      const width = box?.width || svg.getBoundingClientRect().width;
+      const height = box?.height || svg.getBoundingClientRect().height;
+      svg.removeAttribute('width');
+      svg.style.maxWidth = 'none';
+      svg.style.width = `${width}px`;
+      svg.style.height = `${height}px`;
+
+      const viewport = document.createElement('div');
+      viewport.className = 'mermaid-shell__viewport';
+      viewport.tabIndex = 0;
+      const hintId = `mermaid-keys-${index + 1}`;
+      viewport.setAttribute('aria-describedby', hintId);
+      const canvas = document.createElement('div');
+      canvas.className = 'mermaid-shell__canvas';
+      canvas.append(output);
+      viewport.append(canvas);
+
+      const tools = document.createElement('div');
+      tools.className = 'mermaid-shell__tools';
+      const hint = document.createElement('span');
+      hint.className = 'mermaid-shell__hint';
+      hint.textContent = coarse ? mermaidCopy.hintTouch : mermaidCopy.hintPointer;
+      const keys = document.createElement('span');
+      keys.className = 'visually-hidden';
+      keys.id = hintId;
+      keys.textContent = mermaidCopy.keys;
+      const readout = document.createElement('output');
+      readout.className = 'mermaid-shell__scale';
+      const button = (label: string, glyph: string) => {
+        const element = document.createElement('button');
+        element.type = 'button';
+        element.className = 'mermaid-shell__button';
+        element.setAttribute('aria-label', label);
+        element.title = label;
+        element.textContent = glyph;
+        return element;
+      };
+      const zoomOut = button(mermaidCopy.zoomOut, '−');
+      const zoomIn = button(mermaidCopy.zoomIn, '+');
+      const reset = button(mermaidCopy.reset, '⤢');
+      const group = document.createElement('div');
+      group.className = 'mermaid-shell__controls';
+      group.append(readout, zoomOut, zoomIn, reset);
+      tools.append(hint, keys, group);
+      shell.replaceChildren(viewport, tools);
+
+      let fitted: View = { scale: 1, x: PAD, y: PAD };
+      let view: View = { ...fitted };
+
+      const bounds = (scale: number) => {
+        const w = viewport.clientWidth;
+        const h = viewport.clientHeight;
+        // The diagram may travel until its far edge reaches the padding, and
+        // no further, so it can never be dragged out of sight.
+        const range = (outer: number, inner: number) => {
+          const a = PAD;
+          const b = outer - inner * scale - PAD;
+          return [Math.min(a, b), Math.max(a, b)] as const;
+        };
+        return { x: range(w, width), y: range(h, height) };
+      };
+
+      const apply = (next: View, animate = false) => {
+        const scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, next.scale));
+        const { x, y } = bounds(scale);
+        view = {
+          scale,
+          x: Math.min(x[1], Math.max(x[0], next.x)),
+          y: Math.min(y[1], Math.max(y[0], next.y)),
+        };
+        shell.toggleAttribute('data-mermaid-animate', animate);
+        canvas.style.transform = `translate(${view.x}px, ${view.y}px) scale(${view.scale})`;
+        readout.textContent = `${Math.round(view.scale * 100)}%`;
+        zoomOut.disabled = view.scale <= MIN_SCALE;
+        zoomIn.disabled = view.scale >= MAX_SCALE;
+        const moved =
+          Math.abs(view.scale - fitted.scale) > 0.001 ||
+          Math.abs(view.x - fitted.x) > 0.5 ||
+          Math.abs(view.y - fitted.y) > 0.5;
+        reset.disabled = !moved;
+        // Once a reader has started working the diagram, a touch drag is
+        // theirs in both directions. Until then a vertical swipe still
+        // scrolls the page past it.
+        shell.toggleAttribute('data-mermaid-engaged', moved);
+      };
+
+      const zoomAt = (factor: number, px: number, py: number, animate = false) => {
+        const scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, view.scale * factor));
+        const ratio = scale / view.scale;
+        apply({ scale, x: px - (px - view.x) * ratio, y: py - (py - view.y) * ratio }, animate);
+      };
+      const zoomCentre = (factor: number) =>
+        zoomAt(factor, viewport.clientWidth / 2, viewport.clientHeight / 2, true);
+
+      const fit = () => {
+        const available = Math.max(1, shell.clientWidth - PAD * 2);
+        const tallest = Math.min(window.innerHeight * 0.75, 640);
+        // Width decides the opening scale. Height may only trim it a little:
+        // a tall, narrow flow chart squeezed into one screen came out with
+        // eight-pixel labels, and a frame the reader can drag down is better.
+        const byWidth = available / width;
+        const byHeight = Math.max(MIN_TRIM, (tallest - PAD * 2) / height);
+        const scale = Math.min(1, Math.max(MIN_FIT, Math.min(byWidth, byHeight)));
+        const frame = Math.max(200, Math.min(tallest, height * scale + PAD * 2));
+        viewport.style.height = `${Math.round(frame)}px`;
+        const x = width * scale + PAD * 2 <= shell.clientWidth ? (shell.clientWidth - width * scale) / 2 : PAD;
+        const y = height * scale + PAD * 2 <= frame ? (frame - height * scale) / 2 : PAD;
+        fitted = { scale, x, y };
+        apply(fitted);
+      };
+
+      zoomIn.addEventListener('click', () => zoomCentre(STEP));
+      zoomOut.addEventListener('click', () => zoomCentre(1 / STEP));
+      reset.addEventListener('click', () => apply(fitted, true));
+      viewport.addEventListener('dblclick', () => apply(fitted, true));
+
+      viewport.addEventListener(
+        'wheel',
+        (event) => {
+          if (!event.ctrlKey && !event.metaKey) return;
+          event.preventDefault();
+          const rect = viewport.getBoundingClientRect();
+          zoomAt(Math.exp(-event.deltaY * 0.0025), event.clientX - rect.left, event.clientY - rect.top);
+        },
+        { passive: false },
+      );
+
+      const pointers = new Map<number, { x: number; y: number }>();
+      let pinch: { distance: number } | null = null;
+      const midpoint = () => {
+        const [a, b] = [...pointers.values()];
+        const rect = viewport.getBoundingClientRect();
+        return a && b
+          ? { x: (a.x + b.x) / 2 - rect.left, y: (a.y + b.y) / 2 - rect.top, distance: Math.hypot(a.x - b.x, a.y - b.y) }
+          : null;
+      };
+      viewport.addEventListener('pointerdown', (event) => {
+        if (event.pointerType === 'mouse' && event.button !== 0) return;
+        // Capture keeps the drag alive when the hand leaves the frame. It can
+        // refuse a pointer that is already gone; the drag still works without.
+        try {
+          viewport.setPointerCapture(event.pointerId);
+        } catch {}
+        pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+        shell.setAttribute('data-mermaid-dragging', '');
+        if (pointers.size === 2) pinch = { distance: midpoint()?.distance ?? 0 };
+      });
+      viewport.addEventListener('pointermove', (event) => {
+        const last = pointers.get(event.pointerId);
+        if (!last) return;
+        const current = { x: event.clientX, y: event.clientY };
+        if (pointers.size === 2 && pinch) {
+          pointers.set(event.pointerId, current);
+          const mid = midpoint();
+          if (mid && pinch.distance > 0) zoomAt(mid.distance / pinch.distance, mid.x, mid.y);
+          pinch = { distance: mid?.distance ?? pinch.distance };
+          return;
+        }
+        pointers.set(event.pointerId, current);
+        apply({ scale: view.scale, x: view.x + current.x - last.x, y: view.y + current.y - last.y });
+      });
+      const release = (event: PointerEvent) => {
+        pointers.delete(event.pointerId);
+        if (pointers.size < 2) pinch = null;
+        if (pointers.size === 0) shell.removeAttribute('data-mermaid-dragging');
+      };
+      viewport.addEventListener('pointerup', release);
+      viewport.addEventListener('pointercancel', release);
+
+      viewport.addEventListener('keydown', (event) => {
+        const nudge = 48;
+        const moves: Record<string, () => void> = {
+          '+': () => zoomCentre(STEP),
+          '=': () => zoomCentre(STEP),
+          '-': () => zoomCentre(1 / STEP),
+          '_': () => zoomCentre(1 / STEP),
+          '0': () => apply(fitted, true),
+          ArrowLeft: () => apply({ ...view, x: view.x + nudge }, true),
+          ArrowRight: () => apply({ ...view, x: view.x - nudge }, true),
+          ArrowUp: () => apply({ ...view, y: view.y + nudge }, true),
+          ArrowDown: () => apply({ ...view, y: view.y - nudge }, true),
+        };
+        const move = moves[event.key];
+        if (!move || event.ctrlKey || event.metaKey || event.altKey) return;
+        event.preventDefault();
+        move();
+      });
+
+      // A theme change renders the diagram again into the same figure; the
+      // previous viewer's observer goes with the viewer it was measuring.
+      observers.get(shell)?.disconnect();
+      let lastWidth = shell.clientWidth;
+      const observer = new ResizeObserver(() => {
+        if (Math.abs(shell.clientWidth - lastWidth) < 1) return;
+        lastWidth = shell.clientWidth;
+        fit();
+      });
+      observer.observe(shell);
+      observers.set(shell, observer);
+
+      fit();
+    };
+
     const renderDiagrams = async (refresh = false) => {
       const diagramSources = [
         ...document.querySelectorAll<HTMLElement>('pre[data-language="mermaid"]'),
@@ -88,15 +444,23 @@ const copy = READER_COPY[lang];
         : [];
       if (diagramSources.length || existingShells.length) {
         const { default: mermaid } = await import('mermaid');
-        const dark = document.documentElement.dataset.theme === 'dark';
         mermaid.initialize({
           startOnLoad: false,
           securityLevel: 'strict',
-          theme: dark ? 'dark' : 'neutral',
-          fontFamily: 'system-ui, sans-serif',
+          theme: 'base',
+          themeVariables: themeVariables(),
+          flowchart: { curve: 'basis', padding: 14, nodeSpacing: 44, rankSpacing: 52 },
+          sequence: { mirrorActors: false, messageMargin: 32 },
+          // Hairlines, like every other rule on the page. Mermaid's two-pixel
+          // edges read as a different drawing tool.
+          themeCSS: [
+            '.flowchart-link, .relation, .transition { stroke-width: 1.25px; }',
+            '.node rect, .node polygon, .node circle, .node path, .cluster rect { stroke-width: 1px; }',
+            '.cluster-label, .cluster text { font-weight: 600; }',
+          ].join(' '),
         });
 
-        const diagrams: Array<{ shell: HTMLElement; code: string; source?: HTMLElement; pre?: HTMLElement }> = [];
+        const diagrams: Array<{ shell: HTMLElement; code: string }> = [];
         for (const source of diagramSources) {
           const pre = source.tagName === 'PRE' ? source : source.parentElement;
           if (!pre || pre.dataset.mermaidProcessed) continue;
@@ -109,8 +473,8 @@ const copy = READER_COPY[lang];
           shell.className = 'mermaid-shell';
           shell.dataset.mermaidSource = code;
           pre.dataset.mermaidProcessed = 'true';
-          pre.replaceWith(shell);
-          diagrams.push({ shell, code, source, pre });
+          (expressiveCode ?? pre).replaceWith(shell);
+          diagrams.push({ shell, code });
         }
         for (const shell of existingShells) {
           diagrams.push({ shell, code: shell.dataset.mermaidSource ?? '' });
@@ -122,9 +486,12 @@ const copy = READER_COPY[lang];
           const output = document.createElement('div');
           output.className = 'mermaid';
           output.textContent = code;
+          // Mermaid measures text as it lays out, so the source has to be in
+          // the document, and visible, while it renders.
           shell.replaceChildren(output);
           try {
             await mermaid.run({ nodes: [output], suppressErrors: false });
+            mountViewer(shell, output, index);
           } catch (error) {
             shell.classList.add('mermaid-shell--error');
             shell.replaceChildren();
@@ -145,120 +512,229 @@ const copy = READER_COPY[lang];
   </script>
 )}
 
-{features.video && (
-  <script>
-    const videoCopy = JSON.parse(
-      document.querySelector<HTMLTemplateElement>('[data-reader-copy]')?.dataset.readerCopy ?? '{}',
-    ).video as { fallback: string };
-    function bindVideos() {
-      // The consent control is a link so that it still works with no script;
-      // see transformVideo in src/markdown/rehype-moriium-content.mjs. Here it
-      // is upgraded in place, which means cancelling the navigation it would
-      // otherwise perform.
-      //
-      // It keeps link semantics after binding. An earlier version set
-      // role="button", which told assistive technology to expect Space to
-      // activate it -- and an anchor does not do that, so Space scrolled the
-      // page instead and the promised affordance was simply missing. The
-      // element really is a link to the video at the provider; enhancement
-      // changes where that video opens, not what the control is. Enter
-      // activates it natively, which is what a link is supposed to do.
-      for (const button of document.querySelectorAll<HTMLAnchorElement>('[data-video-src]')) {
-        if (button.dataset.videoBound) continue;
-        button.dataset.videoBound = 'true';
-        button.addEventListener('click', (event) => {
-        const source = button.dataset.videoSrc;
-        if (!source) return;
-        event.preventDefault();
-        const frame = document.createElement('iframe');
-        frame.src = source;
-        frame.title = button.dataset.videoTitle || videoCopy.fallback;
-        frame.loading = 'lazy';
-        frame.allow = 'accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen';
-        frame.allowFullscreen = true;
-        frame.referrerPolicy = 'strict-origin-when-cross-origin';
-        button.replaceWith(frame);
-        frame.focus();
-        });
-      }
-    }
-    bindVideos();
-    window.addEventListener('moriium:content-ready', bindVideos);
-  </script>
-)}
-
 {features.music && (
   <script>
     const musicCopy = JSON.parse(
       document.querySelector<HTMLTemplateElement>('[data-reader-copy]')?.dataset.readerCopy ?? '{}',
     ).music as {
       ready: string; remoteReady: string; blocked: string; response: string; source: string;
-      loading: string; loaded: string; play: string; pause: string; playing: string;
+      loading: string; play: string; pause: string; playing: string;
       paused: string; unavailable: string;
     };
+    const METING_ORIGIN = 'https://meting.spr-aachen.com';
+    const calm = matchMedia('(prefers-reduced-motion: reduce)');
     let activeAudio: HTMLAudioElement | null = null;
 
-    async function loadRemote(card: HTMLElement) {
-      const endpoint = card.dataset.meting;
-      if (!endpoint || new URL(endpoint).origin !== 'https://meting.spr-aachen.com') {
-        throw new Error(musicCopy.blocked);
+    type Lyric = { time: number; text: string };
+
+    // [mm:ss], [mm:ss.xx] and [mm:ss:xx], several stamps to a line allowed.
+    // Tag lines such as [ti:...] carry no time and fall out, and so does a
+    // stamp with no words after it, which is how LRC marks an instrumental gap.
+    const parseLyrics = (source: string): Lyric[] => {
+      const lines: Lyric[] = [];
+      for (const raw of source.split(/\r?\n/)) {
+        const stamps = [...raw.matchAll(/\[(\d{1,3}):(\d{1,2})(?:[.:](\d{1,3}))?\]/g)];
+        const words = raw.replace(/\[[^\]]*\]/g, '').trim();
+        if (!stamps.length || !words) continue;
+        for (const [, minutes = '0', seconds = '0', fraction = '0'] of stamps) {
+          lines.push({
+            time: Number(minutes) * 60 + Number(seconds) + Number(fraction) / 10 ** fraction.length,
+            text: words,
+          });
+        }
       }
+      return lines.sort((a, b) => a.time - b.time);
+    };
+
+    const clock = (seconds: number) => {
+      if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
+      const whole = Math.floor(seconds);
+      return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`;
+    };
+
+    async function fetchRemote(endpoint: string) {
+      if (new URL(endpoint).origin !== METING_ORIGIN) throw new Error(musicCopy.blocked);
       const response = await fetch(endpoint, { credentials: 'omit', referrerPolicy: 'no-referrer' });
       if (!response.ok) throw new Error(`${musicCopy.response} ${response.status}`);
       const raw = await response.json();
       const track = Array.isArray(raw) ? raw[0] : raw;
       const source = String(track?.url ?? track?.audio ?? '');
       if (!source.startsWith('https://')) throw new Error(musicCopy.source);
-      const audio = document.createElement('audio');
-      audio.preload = 'none';
-      audio.src = source;
-      audio.dataset.musicAudio = '';
-      card.append(audio);
-      delete card.dataset.meting;
-      return audio;
+      return {
+        source,
+        cover: String(track?.pic ?? track?.cover ?? ''),
+        lyrics: String(track?.lrc ?? ''),
+      };
     }
 
     function bindMusic() {
       for (const card of document.querySelectorAll<HTMLElement>('[data-music-card]')) {
         if (card.dataset.musicBound) continue;
-        card.dataset.musicBound = 'true';
         const button = card.querySelector<HTMLButtonElement>('[data-music-play]');
+        const label = card.querySelector<HTMLElement>('[data-music-play-label]');
         const status = card.querySelector<HTMLElement>('[data-music-status]');
-        // The card ships inert: the button is disabled and the status says the
-        // controls need JavaScript. Both statements are true of the page until
-        // this line runs, and both stop being true here, so both are replaced
-        // together rather than leaving the reader a working button under a
-        // message telling them it will not work.
-        if (button) button.disabled = false;
-        if (status) status.textContent = card.dataset.meting ? musicCopy.remoteReady : musicCopy.ready;
-        button?.addEventListener('click', async () => {
-        button.disabled = true;
-        try {
-          let audio = card.querySelector<HTMLAudioElement>('[data-music-audio]');
-          if (!audio) {
-            if (status) status.textContent = musicCopy.loading;
-            audio = await loadRemote(card);
-            if (status) status.textContent = musicCopy.loaded;
-            button.textContent = musicCopy.play;
+        const lyricLine = card.querySelector<HTMLElement>('[data-music-lyric]');
+        const seek = card.querySelector<HTMLInputElement>('[data-music-seek]');
+        const time = card.querySelector<HTMLElement>('[data-music-time]');
+        const lyricsLink = card.querySelector<HTMLAnchorElement>('[data-music-lrc]');
+        if (!button || !status || !seek || !time) continue;
+
+        // From here the card's own controls work, so they replace the native
+        // player and the lyrics link that stood in for them.
+        card.dataset.musicBound = 'true';
+        button.disabled = false;
+        status.textContent = card.dataset.meting ? musicCopy.remoteReady : musicCopy.ready;
+
+        let audio = card.querySelector<HTMLAudioElement>('[data-music-audio]');
+        let lyrics: Lyric[] = [];
+        let lyricsSource = lyricsLink?.href ?? '';
+        let lyricsRequested = false;
+        let shownLyric = -1;
+
+        const say = (message: string) => {
+          status.textContent = message;
+          status.hidden = false;
+          if (lyricLine) lyricLine.hidden = true;
+          shownLyric = -1;
+        };
+
+        const showLyric = (index: number) => {
+          if (!lyricLine || index === shownLyric) return;
+          shownLyric = index;
+          const line = lyrics[index];
+          if (!line) {
+            lyricLine.hidden = true;
+            status.hidden = false;
             return;
           }
-
-          if (audio.paused) {
-            if (activeAudio && activeAudio !== audio) activeAudio.pause();
-            await audio.play();
-            activeAudio = audio;
-            button.textContent = musicCopy.pause;
-            if (status) status.textContent = musicCopy.playing;
-          } else {
-            audio.pause();
-            button.textContent = musicCopy.play;
-            if (status) status.textContent = musicCopy.paused;
+          lyricLine.textContent = line.text;
+          lyricLine.hidden = false;
+          status.hidden = true;
+          if (!calm.matches && typeof lyricLine.animate === 'function') {
+            lyricLine.animate(
+              [
+                { opacity: 0, transform: 'translateY(0.4rem)' },
+                { opacity: 1, transform: 'translateY(0)' },
+              ],
+              { duration: 280, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' },
+            );
           }
-        } catch (error) {
-          if (status) status.textContent = error instanceof Error ? error.message : musicCopy.unavailable;
-        } finally {
-          button.disabled = false;
-        }
+        };
+
+        const loadLyrics = async () => {
+          if (lyricsRequested || !lyricsSource) return;
+          lyricsRequested = true;
+          try {
+            const response = await fetch(lyricsSource, { credentials: 'omit', referrerPolicy: 'no-referrer' });
+            if (response.ok) lyrics = parseLyrics(await response.text());
+          } catch {
+            // Lyrics are a garnish. The track plays the same without them.
+          }
+        };
+
+        const paint = () => {
+          if (!audio) return;
+          const duration = Number.isFinite(audio.duration) ? audio.duration : 0;
+          seek.max = String(duration);
+          seek.value = String(audio.currentTime);
+          seek.disabled = duration === 0;
+          seek.style.setProperty('--music-progress', duration ? `${(audio.currentTime / duration) * 100}%` : '0%');
+          time.textContent = `${clock(audio.currentTime)} / ${clock(duration)}`;
+          if (!audio.paused && lyrics.length) {
+            let index = -1;
+            for (let i = 0; i < lyrics.length && (lyrics[i]?.time ?? Infinity) <= audio.currentTime + 0.15; i += 1) index = i;
+            showLyric(index);
+          }
+        };
+
+        const setPlaying = (playing: boolean) => {
+          card.toggleAttribute('data-music-playing', playing);
+          const word = playing ? musicCopy.pause : musicCopy.play;
+          button.setAttribute('aria-label', word);
+          if (label) label.textContent = word;
+        };
+
+        const wire = (element: HTMLAudioElement) => {
+          element.controls = false;
+          element.addEventListener('loadedmetadata', paint);
+          element.addEventListener('durationchange', paint);
+          element.addEventListener('timeupdate', paint);
+          element.addEventListener('play', () => {
+            setPlaying(true);
+            if (!lyrics.length) say(musicCopy.playing);
+          });
+          element.addEventListener('pause', () => {
+            setPlaying(false);
+            // A source that cannot play also fires pause, after its error; the
+            // error is the thing worth saying.
+            if (!element.error) say(musicCopy.paused);
+          });
+          element.addEventListener('ended', () => {
+            element.currentTime = 0;
+            paint();
+          });
+          element.addEventListener('error', () => {
+            setPlaying(false);
+            say(musicCopy.unavailable);
+          });
+        };
+        if (audio) wire(audio);
+
+        seek.addEventListener('input', () => {
+          if (!audio || !Number.isFinite(audio.duration)) return;
+          audio.currentTime = Number(seek.value);
+          paint();
+        });
+
+        button.addEventListener('click', async () => {
+          button.disabled = true;
+          try {
+            if (!audio) {
+              // Nothing about a remote track is fetched until this press, and
+              // this press is also the one that starts it.
+              say(musicCopy.loading);
+              const endpoint = card.dataset.meting ?? '';
+              const remote = await fetchRemote(endpoint);
+              delete card.dataset.meting;
+              const art = card.querySelector<HTMLElement>('[data-music-art]');
+              if (art && card.classList.contains('music-card--no-cover') && remote.cover.startsWith('https://')) {
+                const image = document.createElement('img');
+                image.className = 'music-card__cover';
+                image.alt = '';
+                image.decoding = 'async';
+                image.referrerPolicy = 'no-referrer';
+                image.src = remote.cover;
+                image.addEventListener('load', () => {
+                  art.replaceChildren(image);
+                  card.classList.remove('music-card--no-cover');
+                }, { once: true });
+              }
+              if (!lyricsSource && remote.lyrics.startsWith(`${METING_ORIGIN}/`)) lyricsSource = remote.lyrics;
+              audio = document.createElement('audio');
+              audio.preload = 'none';
+              audio.src = remote.source;
+              audio.dataset.musicAudio = '';
+              card.append(audio);
+              wire(audio);
+            }
+
+            void loadLyrics();
+            if (audio.paused) {
+              if (activeAudio && activeAudio !== audio) activeAudio.pause();
+              activeAudio = audio;
+              await audio.play();
+            } else {
+              audio.pause();
+            }
+          } catch (error) {
+            setPlaying(false);
+            // A browser's own reason ("no supported sources") is not something
+            // to show a reader; the site's own messages are.
+            const own = error instanceof Error && Object.values(musicCopy).some((message) => error.message.startsWith(message));
+            say(own ? (error as Error).message : musicCopy.unavailable);
+          } finally {
+            button.disabled = false;
+          }
         });
       }
     }

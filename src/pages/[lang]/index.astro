@@ -1,7 +1,8 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
+import AboutChannelIcon from '../../components/AboutChannelIcon.astro';
 import '../../styles/public-home.css';
-import { SITE, UI, type Language } from '../../data/site';
+import { CHANNELS, SITE, UI, type Language } from '../../data/site';
 import { formatDate, getListedPosts, postPath, uniqueTaxonomy } from '../../utils/content';
 
 export function getStaticPaths() {
@@ -209,7 +210,6 @@ const copy = {
       ['Morii', '心存迷惘未尝不可，不置可否亦未尝不可'],
       ['Enouia', '『曾想与你对称』'],
     ],
-    authorAbout: '关于',
     calendarTitle: '更新日历',
     calendarWeekdays: ['日', '一', '二', '三', '四', '五', '六'],
     calendarDayActive: (day: number | string) => `${day} 日有更新`,
@@ -217,7 +217,6 @@ const copy = {
     calendarEmpty: '本月无更新。',
     calendarMore: (count: number | string) => `另有 ${count} 篇。`,
     fullArchive: '归档',
-    rss: 'RSS', about: '关于 Moriium',
   },
   ja: {
     heroTitle: '見たものを記す。未完のまま残す。',
@@ -241,10 +240,9 @@ const copy = {
     authorTitle: '運営',
     authorNames: 'Morii & Enouia',
     people: [
-      ['Morii', '心存迷惘未尝不可，不置可否亦未尝不可'],
-      ['Enouia', '『曾想与你对称』'],
+      ['Morii', '惑うも構わぬ、可否を言わぬも構わぬ'],
+      ['Enouia', '『君と対称でありたかった』'],
     ],
-    authorAbout: 'について',
     calendarTitle: '更新カレンダー',
     calendarWeekdays: ['日', '月', '火', '水', '木', '金', '土'],
     calendarDayActive: (day: number | string) => `${day}日に更新`,
@@ -252,7 +250,6 @@ const copy = {
     calendarEmpty: 'この月の更新はありません。',
     calendarMore: (count: number | string) => `ほか ${count} 件。`,
     fullArchive: 'アーカイブ',
-    rss: 'RSS', about: 'Moriium について',
   },
   en: {
     heroTitle: 'Record what was seen. Leave the unfinished as it is.',
@@ -276,10 +273,9 @@ const copy = {
     authorTitle: 'Maintainers',
     authorNames: 'Morii & Enouia',
     people: [
-      ['Morii', '心存迷惘未尝不可，不置可否亦未尝不可'],
-      ['Enouia', '『曾想与你对称』'],
+      ['Morii', 'To be lost is not amiss; nor to say neither.'],
+      ['Enouia', 'Once, I wanted symmetry with you.'],
     ],
-    authorAbout: 'About',
     calendarTitle: 'Update calendar',
     calendarWeekdays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
     calendarDayActive: (day: number | string) => `Updated on the ${englishOrdinal(day)}`,
@@ -287,7 +283,6 @@ const copy = {
     calendarEmpty: 'No entries this month.',
     calendarMore: (count: number | string) => `${count} more.`,
     fullArchive: 'Archive',
-    rss: 'RSS', about: 'About Moriium',
   },
 } as const;
 const c = copy[lang];
@@ -441,20 +436,23 @@ const routeHrefs = [`/${lang}/writing/`, `/${lang}/archive/`, `/${lang}/categori
               <li>
                 <h4>{name}</h4>
                 <p>{role}</p>
+                {/* The three destinations belong to the person named above, so
+                    they sit under that name rather than under the section. */}
+                {name === SITE.author && (
+                  <ul class="aperture-colophon__channels">
+                    {CHANNELS.map((channel) => (
+                      <li>
+                        <a href={channel.href} rel="me">
+                          <AboutChannelIcon name={channel.name} />
+                          <span>{channel.name}</span>
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </li>
             ))}
           </ol>
-          <nav class="aperture-colophon__actions" aria-label={c.authorAbout}>
-            <a class="aperture-action" href={`/${lang}/about/`}>
-              <span>{c.about}</span><i aria-hidden="true">↗</i>
-            </a>
-            <a class="aperture-action" href="https://github.com/Morii9961">
-              <span>GitHub</span><i aria-hidden="true">↗</i>
-            </a>
-            <a class="aperture-action" href={`/${lang}/rss.xml`}>
-              <span>{c.rss}</span><i aria-hidden="true">↗</i>
-            </a>
-          </nav>
         </div>
 
         <div
@@ -470,30 +468,50 @@ const routeHrefs = [`/${lang}/writing/`, `/${lang}/archive/`, `/${lang}/categori
         >
           <div class="aperture-colophon__calendar-head">
             <h3>{c.calendarTitle}</h3>
-            {/* Two native selects: they carry keyboard and screen-reader behaviour
-                for free, and the stylesheet strips the OS chrome back to type. */}
-            {/* Underline plus caret, the same affordance the writing index's
-                filter uses. A bare styled select reads as a label, not a
-                control — the hairline and the chevron are what say it opens. */}
-            <div class="aperture-calendar__picker">
-              <label class="visually-hidden" for="calendar-year">{c.calendarPickYear}</label>
-              <span class="aperture-calendar__field">
-                <select id="calendar-year" data-calendar-year>
+            {/* The same disclosure the writing index's filter uses, on the same
+                declarations, rather than a native select: the OS popup was the
+                one dropdown on the site that did not look like the site. Only
+                a script can act on a choice here, so the static state says the
+                month in plain text and the controls arrive with the module
+                that makes them work. */}
+            <p class="aperture-calendar__static" data-calendar-static>
+              {calendarYear} / {calendarMonths[calendarMonth]?.label}
+            </p>
+            <div class="aperture-calendar__picker" data-calendar-picker hidden>
+              <details class="aperture-calendar__field" data-calendar-pick="year">
+                <summary>
+                  <span class="visually-hidden">{c.calendarPickYear}</span>
+                  <span class="aperture-calendar__value" data-calendar-pick-value>{calendarYear}</span>
+                  <svg class="aperture-calendar__caret" viewBox="0 0 24 24" aria-hidden="true"><path d="m5.5 9 6.5 6.5L18.5 9"></path></svg>
+                </summary>
+                <div class="aperture-calendar__picker-menu" data-calendar-pick-menu>
                   {calendarYears.map((year) => (
-                    <option value={year} selected={year === calendarYear}>{year}</option>
+                    <button
+                      class="aperture-calendar__picker-option"
+                      type="button"
+                      data-calendar-option={year}
+                      aria-pressed={year === calendarYear ? 'true' : 'false'}
+                    >{year}</button>
                   ))}
-                </select>
-                <svg class="aperture-calendar__caret" viewBox="0 0 24 24" aria-hidden="true"><path d="m5.5 9 6.5 6.5L18.5 9"></path></svg>
-              </span>
-              <label class="visually-hidden" for="calendar-month">{c.calendarPickMonth}</label>
-              <span class="aperture-calendar__field">
-                <select id="calendar-month" data-calendar-month>
+                </div>
+              </details>
+              <details class="aperture-calendar__field" data-calendar-pick="month">
+                <summary>
+                  <span class="visually-hidden">{c.calendarPickMonth}</span>
+                  <span class="aperture-calendar__value" data-calendar-pick-value>{calendarMonths[calendarMonth]?.label}</span>
+                  <svg class="aperture-calendar__caret" viewBox="0 0 24 24" aria-hidden="true"><path d="m5.5 9 6.5 6.5L18.5 9"></path></svg>
+                </summary>
+                <div class="aperture-calendar__picker-menu" data-calendar-pick-menu>
                   {calendarMonths.map((month) => (
-                    <option value={month.value} selected={month.value === calendarMonth}>{month.label}</option>
+                    <button
+                      class="aperture-calendar__picker-option"
+                      type="button"
+                      data-calendar-option={month.value}
+                      aria-pressed={month.value === calendarMonth ? 'true' : 'false'}
+                    >{month.label}</button>
                   ))}
-                </select>
-                <svg class="aperture-calendar__caret" viewBox="0 0 24 24" aria-hidden="true"><path d="m5.5 9 6.5 6.5L18.5 9"></path></svg>
-              </span>
+                </div>
+              </details>
             </div>
           </div>
           <div class="aperture-calendar" aria-label={c.calendarTitle}>
@@ -548,8 +566,9 @@ const routeHrefs = [`/${lang}/writing/`, `/${lang}/archive/`, `/${lang}/categori
     type Entry = [string, string, string];
 
     const root = document.querySelector<HTMLElement>('[data-calendar]');
-    const yearSelect = root?.querySelector<HTMLSelectElement>('[data-calendar-year]');
-    const monthSelect = root?.querySelector<HTMLSelectElement>('[data-calendar-month]');
+    const picker = root?.querySelector<HTMLElement>('[data-calendar-picker]');
+    const staticLabel = root?.querySelector<HTMLElement>('[data-calendar-static]');
+    const pickers = root ? [...root.querySelectorAll<HTMLDetailsElement>('[data-calendar-pick]')] : [];
     const grid = root?.querySelector<HTMLElement>('[data-calendar-days]');
     const list = root?.querySelector<HTMLOListElement>('[data-calendar-list]');
     const empty = root?.querySelector<HTMLElement>('[data-calendar-empty]');
@@ -557,7 +576,8 @@ const routeHrefs = [`/${lang}/writing/`, `/${lang}/archive/`, `/${lang}/categori
     const moreLabel = root?.querySelector<HTMLElement>('[data-calendar-more-label]');
     const payload = root?.querySelector<HTMLScriptElement>('[data-calendar-posts]');
 
-    if (root && yearSelect && monthSelect && grid && list && empty && more && moreLabel && payload) {
+    if (root && picker && staticLabel && pickers.length === 2 && grid && list && empty && more && moreLabel && payload) {
+      const state = { year: 0, month: 0 };
       let entries: Entry[] = [];
       try {
         entries = JSON.parse(payload.textContent || '[]') as Entry[];
@@ -573,8 +593,8 @@ const routeHrefs = [`/${lang}/writing/`, `/${lang}/archive/`, `/${lang}/categori
       const pad = (n: number) => String(n).padStart(2, '0');
 
       const render = () => {
-        const year = Number(yearSelect.value);
-        const month = Number(monthSelect.value);
+        const year = state.year;
+        const month = state.month;
         const prefix = `${year}-${pad(month + 1)}`;
         const inMonth = entries.filter((e) => e[0].startsWith(prefix));
         const active = new Set(inMonth.map((e) => Number(e[0].slice(8, 10))));
@@ -632,8 +652,88 @@ const routeHrefs = [`/${lang}/writing/`, `/${lang}/archive/`, `/${lang}/categori
         if (showMore) moreLabel.textContent = moreTemplate.replace('{count}', String(overflow));
       };
 
-      yearSelect.addEventListener('change', render);
-      monthSelect.addEventListener('change', render);
+      // One disclosure per axis, on the writing-index filter's declarations:
+      // a summary printing the current value, a panel of options, the same
+      // keyboard behaviour. A native select was the one dropdown on the site
+      // whose open state belonged to the operating system rather than here.
+      const wire = (details: HTMLDetailsElement, apply: (value: number) => void) => {
+        const summary = details.querySelector('summary');
+        const printed = details.querySelector<HTMLElement>('[data-calendar-pick-value]');
+        const options = [...details.querySelectorAll<HTMLButtonElement>('[data-calendar-option]')];
+        if (!summary || !printed || options.length === 0) return null;
+
+        const choose = (option: HTMLButtonElement) => {
+          for (const other of options) other.setAttribute('aria-pressed', String(other === option));
+          printed.textContent = option.textContent;
+          apply(Number(option.dataset.calendarOption));
+          // Single choice, so the panel closes behind it -- unlike the filter,
+          // where choosing again is the point and the panel stays open.
+          details.open = false;
+          summary.focus();
+        };
+
+        details.addEventListener('click', (event) => {
+          const option = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-calendar-option]');
+          if (option) choose(option);
+        });
+
+        details.addEventListener('keydown', (event) => {
+          if (event.key === 'Escape') {
+            if (!details.open) return;
+            details.open = false;
+            summary.focus();
+            return;
+          }
+          if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+          event.preventDefault();
+          details.open = true;
+          const step = event.key === 'ArrowDown' ? 1 : -1;
+          const current = options.indexOf(document.activeElement as HTMLButtonElement);
+          const next = current < 0
+            ? (step > 0 ? 0 : options.length - 1)
+            : (current + step + options.length) % options.length;
+          options[next]?.focus();
+        });
+
+        // Two of them side by side: the second opening closes the first, or
+        // one panel covers the other.
+        details.addEventListener('toggle', () => {
+          if (!details.open) return;
+          for (const other of pickers) if (other !== details) other.open = false;
+        });
+
+        return options.find((option) => option.getAttribute('aria-pressed') === 'true') ?? options[0];
+      };
+
+      const [yearPicker, monthPicker] = pickers;
+      const yearChosen = yearPicker
+        ? wire(yearPicker, (value) => {
+            state.year = value;
+            render();
+          })
+        : null;
+      const monthChosen = monthPicker
+        ? wire(monthPicker, (value) => {
+            state.month = value;
+            render();
+          })
+        : null;
+
+      document.addEventListener('click', (event) => {
+        for (const details of pickers) {
+          if (details.open && !details.contains(event.target as Node)) details.open = false;
+        }
+      });
+
+      if (yearChosen && monthChosen) {
+        state.year = Number(yearChosen.dataset.calendarOption);
+        state.month = Number(monthChosen.dataset.calendarOption);
+        // The controls only mean anything once this module is running, so the
+        // static state is a plain sentence and they arrive with the behaviour.
+        staticLabel.hidden = true;
+        picker.hidden = false;
+        render();
+      }
     }
   </script>
 </BaseLayout>

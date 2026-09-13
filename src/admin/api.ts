@@ -29,6 +29,8 @@ export type VersionFields = {
   draft: boolean;
   unlisted: boolean;
   copyProtection: boolean;
+  /** Whose article this is: a byline, not the account that saved the version. */
+  author: 'Morii' | 'Enouia';
   markdown: string;
   editorJson: string | null;
 };

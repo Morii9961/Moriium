@@ -9,6 +9,7 @@
 import { createMarkdownProcessor, type Node, type RemarkPlugin } from '@astrojs/markdown-remark';
 import type { DatabaseSync } from 'node:sqlite';
 import { z } from 'astro/zod';
+import { AUTHOR_NAMES } from '../../content-schema.ts';
 import type { ArticleStore, Version } from '../articles.ts';
 import { AdminError } from '../errors.ts';
 
@@ -41,6 +42,7 @@ const publishCandidate = z
     draft: z.literal(false),
     unlisted: z.boolean(),
     copyProtection: z.boolean(),
+    author: z.enum(AUTHOR_NAMES),
     markdown: z.string().trim().min(1),
   })
   .superRefine((value, context) => {
@@ -137,6 +139,7 @@ function contentBlockers(store: ArticleStore, version: Version): string[] {
     draft: version.draft,
     unlisted: version.unlisted,
     copyProtection: version.copyProtection,
+    author: version.author,
     markdown: version.markdown,
   });
   if (!parsed.success) {

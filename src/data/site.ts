@@ -8,6 +8,19 @@ export const SITE = {
 
 export type Language = (typeof SITE.languages)[number];
 
+/**
+ * Where Morii is reachable off-site.
+ *
+ * Shared by the About page, which gives each channel a row of its own, and the
+ * home colophon, which prints the same three as one line under the name. Two
+ * copies of these URLs would eventually disagree about which account is real.
+ */
+export const CHANNELS = [
+  { name: 'GitHub', handle: 'github.com/Morii9961', href: 'https://github.com/Morii9961' },
+  { name: 'X', handle: 'x.com/morii9961', href: 'https://x.com/morii9961' },
+  { name: 'Bilibili', handle: 'space.bilibili.com/670549003', href: 'https://space.bilibili.com/670549003' },
+] as const;
+
 export const UI = {
   zh: {
     label: '中文',

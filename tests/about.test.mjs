@@ -9,7 +9,10 @@ async function read(relativePath) {
 }
 
 test('production about page keeps only the approved public statement and destinations', async () => {
-  const about = await read('src/pages/[lang]/about/index.astro');
+  const [about, site] = await Promise.all([
+    read('src/pages/[lang]/about/index.astro'),
+    read('src/data/site.ts'),
+  ]);
 
   assert.doesNotMatch(about, /bodyClass=|prototypes\.css/);
   assert.match(about, /import type \{ GetStaticPaths \} from 'astro'/);
@@ -17,10 +20,13 @@ test('production about page keeps only the approved public statement and destina
   assert.doesNotMatch(about, /about-kinds|about-colophon|kindList|facts: \[/);
 
   // Every identity Morii approved is present, and the superseded About-page
-  // feed controls are not duplicated now that RSS lives in the footer.
-  assert.match(about, /https:\/\/github\.com\/Morii9961/);
-  assert.match(about, /https:\/\/x\.com\/morii9961/);
-  assert.match(about, /https:\/\/space\.bilibili\.com\/670549003/);
+  // feed controls are not duplicated now that RSS lives in the footer. The
+  // identities themselves live in src/data/site.ts, shared with the home
+  // colophon: two copies of these URLs would eventually name two accounts.
+  assert.match(about, /import \{ CHANNELS, SITE, type Language \}/);
+  assert.match(site, /https:\/\/github\.com\/Morii9961/);
+  assert.match(site, /https:\/\/x\.com\/morii9961/);
+  assert.match(site, /https:\/\/space\.bilibili\.com\/670549003/);
   assert.doesNotMatch(about, /rss\.xml|feedBody|feedLabel|Feeds and elsewhere/);
 
   for (const text of ['写下的、拍下的，慢慢留下', '書いたもの、撮ったものを、少しずつ残す', 'What is written and photographed is kept here over time']) {

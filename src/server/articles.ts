@@ -22,6 +22,7 @@
 // engine stays replaceable and callers talk about articles, not rows.
 
 import type { DatabaseSync } from 'node:sqlite';
+import type { AuthorName } from '../content-schema.ts';
 import { AdminError, isAdminError } from './errors.ts';
 
 export type VersionKind = 'autosave' | 'manual';
@@ -58,6 +59,8 @@ export type VersionFields = {
   draft: boolean;
   unlisted: boolean;
   copyProtection: boolean;
+  /** Whose article this is. Not authorId, which is who saved this revision. */
+  author: AuthorName;
   markdown: string;
   editorJson: string | null;
 };
@@ -118,6 +121,7 @@ type VersionRow = {
   draft: number;
   unlisted: number;
   copy_protection: number;
+  author: string;
   markdown: string;
   editor_json: string | null;
 };
@@ -181,6 +185,7 @@ function toVersion(row: VersionRow, tags: readonly string[]): Version {
     draft: row.draft === 1,
     unlisted: row.unlisted === 1,
     copyProtection: row.copy_protection === 1,
+    author: row.author as AuthorName,
     markdown: row.markdown,
     editorJson: row.editor_json,
   };
@@ -471,9 +476,9 @@ export class ArticleStore {
         `INSERT INTO versions (
            article_id, author_id, kind, created_at,
            title, summary, published_at, updated_at, category,
-           cover, cover_alt, draft, unlisted, copy_protection,
+           cover, cover_alt, draft, unlisted, copy_protection, author,
            markdown, editor_json
-         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         articleId,
@@ -490,6 +495,7 @@ export class ArticleStore {
         input.draft ? 1 : 0,
         input.unlisted ? 1 : 0,
         input.copyProtection ? 1 : 0,
+        input.author,
         input.markdown,
         input.editorJson,
       );

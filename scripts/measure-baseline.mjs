@@ -77,11 +77,8 @@ const SCANNABLE = new Set(['.html', '.css', '.js', '.mjs', '.json', '.xml', '.tx
 const ASSET_REFERENCE = /_astro\/[A-Za-z0-9._-]+/g;
 
 /**
- * Pages measured individually.
- *
- * "ordinary" carries no advanced content marker and is what almost every
- * reader loads. "capability" is the acceptance article that deliberately uses
- * every advanced block, so it is the upper bound rather than the typical case.
+ * Pages measured individually, always. A sample missing from the build is a
+ * failure: a route disappearing is exactly the regression worth catching.
  */
 export const SAMPLES = [
   { kind: 'ordinary', path: 'zh/index.html', label: 'home (zh)' },
@@ -89,8 +86,22 @@ export const SAMPLES = [
   { kind: 'ordinary', path: 'ja/index.html', label: 'home (ja)' },
   { kind: 'ordinary', path: 'zh/writing/index.html', label: 'writing index (zh)' },
   { kind: 'ordinary', path: 'zh/posts/moriium-reconstruction/index.html', label: 'plain article (zh)' },
-  { kind: 'capability', path: 'zh/posts/reader-capabilities/index.html', label: 'capability article (zh)' },
 ];
+
+/** A built article page, by its route. */
+export const ARTICLE_PAGE = /^(?:zh|ja|en)\/posts\/[^/]+\/index\.html$/;
+
+/**
+ * Markup that only a scripted reading block produces. Every other built
+ * article is measured as well: one carrying any of these legitimately loads
+ * the reader enhancements and is held to the capability budget; one carrying
+ * none is held to the ordinary budget like any other page.
+ *
+ * This used to be one fixed acceptance article. Classifying every article by
+ * what it contains measures more, and does not break when that article goes.
+ */
+export const ADVANCED_MARKUP =
+  /data-lightbox|data-language="mermaid"|class="language-mermaid"|class="katex|data-music-card|data-copy-protection="true"|class="expressive-code"/;
 
 /**
  * Budgets, in bytes. Measured 2026-08-31 against the values in the header.
@@ -101,7 +112,7 @@ export const SAMPLES = [
 export const BUDGETS = {
   /** Strict. The smallest advanced module is many times this. */
   ordinaryEagerJs: 8 * 1024,
-  /** The acceptance article legitimately loads the reader enhancements. */
+  /** An article with a scripted reading block legitimately loads the reader enhancements. */
   capabilityEagerJs: 24 * 1024,
   /** Recorded with headroom; dominated by the CJK @font-face declarations. */
   eagerCssGzip: 120 * 1024,
@@ -275,24 +286,38 @@ async function main() {
   console.log('\n  Per page, before any interaction:\n');
   let worstOrdinaryJs = 0;
   let worstCapabilityJs = 0;
+  let capabilityPages = 0;
   let worstCssGzip = 0;
 
-  for (const sample of SAMPLES) {
-    const assets = await eagerAssets(sample.path);
+  const measure = async ({ kind, path, label }) => {
+    const assets = await eagerAssets(path);
     if (assets === null) {
-      failures.push(`${sample.path} is missing from the build.`);
-      continue;
+      failures.push(`${path} is missing from the build.`);
+      return;
     }
     const js = total(assets.js, 'size');
     const cssGzip = total(assets.css, 'gzip');
-    if (sample.kind === 'ordinary') worstOrdinaryJs = Math.max(worstOrdinaryJs, js);
-    else worstCapabilityJs = Math.max(worstCapabilityJs, js);
+    if (kind === 'ordinary') worstOrdinaryJs = Math.max(worstOrdinaryJs, js);
+    else {
+      worstCapabilityJs = Math.max(worstCapabilityJs, js);
+      capabilityPages += 1;
+    }
     worstCssGzip = Math.max(worstCssGzip, cssGzip);
 
     console.log(
-      `    ${sample.label.padEnd(24)} js ${kib(js).padStart(9)}` +
+      `    ${label.padEnd(24)} js ${kib(js).padStart(9)}` +
         `  css ${kib(total(assets.css, 'size')).padStart(9)} (${kib(cssGzip)} gz)`,
     );
+  };
+
+  for (const sample of SAMPLES) await measure(sample);
+
+  const sampled = new Set(SAMPLES.map((sample) => sample.path));
+  const articles = productionPages.filter((file) => ARTICLE_PAGE.test(file) && !sampled.has(file)).sort();
+  for (const path of articles) {
+    const html = await readFile(join(publicRoot, path), 'utf8');
+    const kind = ADVANCED_MARKUP.test(html) ? 'capability' : 'ordinary';
+    await measure({ kind, path, label: path.replace(/\/index\.html$/, '') });
   }
 
   const indexes = production.filter((file) => file.startsWith('search/') && file.endsWith('.json'));
@@ -301,7 +326,11 @@ async function main() {
   console.log(`\n  search index          ${indexes.length} languages, largest ${kib(worstIndexGzip)} gz (loaded on open)`);
 
   check('ordinary page eager JavaScript', worstOrdinaryJs, BUDGETS.ordinaryEagerJs);
-  check('capability page eager JavaScript', worstCapabilityJs, BUDGETS.capabilityEagerJs);
+  if (capabilityPages > 0) {
+    check('capability page eager JavaScript', worstCapabilityJs, BUDGETS.capabilityEagerJs);
+  } else {
+    notes.push('capability page eager JavaScript: no article in this build carries a scripted reading block');
+  }
   check('eager CSS, gzipped', worstCssGzip, BUDGETS.eagerCssGzip);
   check('search index, gzipped', worstIndexGzip, BUDGETS.searchIndexGzip);
 

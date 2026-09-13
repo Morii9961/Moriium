@@ -106,6 +106,7 @@ function fields(overrides = {}) {
     draft: false,
     unlisted: false,
     copyProtection: false,
+    author: 'Morii',
     markdown: '正文。\n',
     editorJson: null,
     ...overrides,

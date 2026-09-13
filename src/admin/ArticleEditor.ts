@@ -42,6 +42,7 @@ function toFields(version: Version): VersionFields {
     draft: version.draft,
     unlisted: version.unlisted,
     copyProtection: version.copyProtection,
+    author: version.author,
     markdown: version.markdown,
     editorJson: version.editorJson,
   };
@@ -60,6 +61,7 @@ function blankFields(): VersionFields {
     draft: false,
     unlisted: false,
     copyProtection: false,
+    author: 'Morii',
     markdown: '',
     editorJson: null,
   };
@@ -459,6 +461,7 @@ export default defineComponent({
             <label><span>封面公开路径（可空）</span><input :value="fields.cover ?? ''" @input="fields.cover = $event.target.value || null; scheduleAutosave()" /></label>
             <label><span>封面替代文字</span><input :value="fields.coverAlt ?? ''" @input="fields.coverAlt = $event.target.value || null; scheduleAutosave()" /></label>
           </div>
+          <label><span>作者</span><select v-model="fields.author" @change="scheduleAutosave"><option value="Morii">Morii</option><option value="Enouia">Enouia</option></select></label>
           <fieldset class="checks">
             <legend>发布属性</legend>
             <label><input v-model="fields.draft" type="checkbox" @change="scheduleAutosave" /> 保留为草稿（不可发布）</label>
