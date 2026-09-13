@@ -65,8 +65,9 @@ const languageLabels = { zh: '中', ja: '日', en: 'EN' } as const;
         </nav>
         <div class="site-actions">
           {/* Search opens in place, like the writing index's: the icon holds
-              its position and the field unfurls to the right, into the room the
-              language and appearance controls used to take. Results drop into a
+              its position and the field unfurls to the right, over the
+              language and appearance controls, which step aside while it is
+              open. Results drop into a
               panel under the field rather than into a dialog over the page.
               The index and the module that reads it still arrive only when the
               field is opened. */}
@@ -109,11 +110,9 @@ const languageLabels = { zh: '中', ja: '日', en: 'EN' } as const;
               <p class="site-search__empty" data-search-empty hidden>{ui.search.empty}</p>
             </div>
           </div>
-          {/* Both hidden for now, at Morii's request. The markup stays so the
-              appearance script keeps working and the stored theme still
-              applies; the footer keeps its own language picker, so language is
-              still reachable while this is folded away. */}
-          <nav class="language-nav" aria-label={ui.languageNav} hidden>
+          {/* Always shown. They step aside only while the search field is
+              open, since it lies over the room they take. */}
+          <nav class="language-nav" aria-label={ui.languageNav}>
             {SITE.languages.map((code, index) => (
               <>
                 {index > 0 && <span aria-hidden="true">/</span>}
@@ -121,7 +120,7 @@ const languageLabels = { zh: '中', ja: '日', en: 'EN' } as const;
               </>
             ))}
           </nav>
-          <button class="theme-toggle" type="button" aria-label={ui.theme} title={ui.theme} data-label-light={ui.themeLight} data-label-dark={ui.themeDark} hidden>
+          <button class="theme-toggle" type="button" aria-label={ui.theme} title={ui.theme} data-label-light={ui.themeLight} data-label-dark={ui.themeDark}>
             <svg class="theme-icon theme-icon--sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.5"></circle><path d="M12 2.5v2M12 19.5v2M4.6 4.6 6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"></path></svg>
             <svg class="theme-icon theme-icon--moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.2 15.1A8.4 8.4 0 0 1 8.9 3.8 8.5 8.5 0 1 0 20.2 15Z"></path></svg>
           </button>

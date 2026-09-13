@@ -287,20 +287,49 @@
     width: 1.4rem;
   }
 
+  /* The actions are a grid, not a row, so the opened search field can lie over
+     the language and appearance controls without moving anything: the icon,
+     the field and the two controls each have a column, and the field spans
+     from its own column to the end, on top of the controls it replaces.
+     Packed to the end as before, so closed the header looks as it always did.
+     Stretched to the header's height, so the results panel hangs from the
+     header's own lower edge. */
   .public-site .site-actions {
-    display: flex;
-    justify-content: flex-start;
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto auto auto;
+    justify-content: end;
     align-items: center;
-    /* Stretched, so the search panel can hang from the header's own edge
-       instead of from a constant that has to be re-guessed every time the
-       header changes height. The controls inside stay centred. */
+    /* Spacing is the controls' own margin: a gap would also open around the
+       empty columns and push the icon away from them. */
+    gap: 0;
     align-self: stretch;
-    /* Fills its column and packs to the start, so the icon is anchored by its
-       left edge. base.css anchors this row by its right edge instead, which
-       made the icon slide left as the field grew beside it -- the opposite of
-       opening to the right. */
     justify-self: stretch;
-    gap: 0.3rem;
+  }
+
+  .public-site .site-actions > .language-nav,
+  .public-site .site-actions > .theme-toggle {
+    grid-row: 1;
+    margin-left: 0.3rem;
+    transition: opacity var(--motion-fast) ease, visibility 0s;
+  }
+
+  .public-site .site-actions > .language-nav {
+    grid-column: 4;
+  }
+
+  .public-site .site-actions > .theme-toggle {
+    grid-column: 5;
+  }
+
+  /* While the field is open the two controls step aside, and come back when it
+     closes. Hidden rather than removed, so the row keeps its measure and the
+     icon does not move. */
+  .public-site .site-actions:has(.site-search[data-search-state='open']) > :is(.language-nav, .theme-toggle) {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity var(--motion-fast) ease, visibility 0s linear var(--motion-fast);
   }
 
   .public-site .site-tool,
@@ -331,14 +360,6 @@
     stroke-width: 1.7;
   }
 
-  /* Their own display values outrank the UA stylesheet's [hidden] rule, so the
-     attribute alone left both controls on screen while claiming to hide them --
-     the same trap .aperture-action[hidden] already guards against. */
-  .public-site .language-nav[hidden],
-  .public-site .theme-toggle[hidden] {
-    display: none;
-  }
-
   .public-site .language-nav {
     display: flex;
     min-height: 2.75rem;
@@ -362,48 +383,50 @@
     color: var(--accent);
   }
 
-  /* Search is part of the header rather than a layer over the page: the icon
-     stays where it is and the field unfurls beside it. The row is packed to the
-     start so that growth goes to the right, into the space the language and
-     appearance controls leave. */
+  /* The surface has no box of its own: its icon, field and panel take their
+     places in the actions grid directly. */
   .public-site .site-search {
-    position: relative;
-    display: flex;
-    align-self: stretch;
-    align-items: center;
+    display: contents;
   }
 
-  /* Closed it is a zero-width field, not a hidden one: the same flex-basis
-     transition the writing index's search uses, so the two read as one
-     gesture. `visibility` is delayed on the way out so the text does not
-     vanish before the field has finished closing. */
+  .public-site .site-search > .site-tool {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  /* Closed, the field is clipped to nothing at the icon's edge; open, it
+     unfurls to the right across the room the two controls leave. It is as tall
+     as the icon beside it, so its rule lands on the icon's lower edge rather
+     than floating above it. `contain` keeps its intrinsic width out of the
+     grid, so it never widens the columns it lies over. `visibility` is delayed
+     on the way out so the text does not vanish before the field has closed. */
   .public-site .site-search__input {
-    flex: 0 0 0;
+    grid-column: 3 / -1;
+    grid-row: 1;
+    justify-self: stretch;
+    width: auto;
     min-width: 0;
-    padding: 0;
+    height: 2.75rem;
+    padding: 0 0 0 0.75rem;
     border: 0;
-    border-bottom: 1px solid transparent;
+    border-bottom: 1px solid var(--line);
     outline: 0;
     appearance: none;
     background: transparent;
     color: var(--ink);
     font-family: var(--font-interface);
     font-size: 0.78rem;
+    contain: inline-size;
+    clip-path: inset(0 100% 0 0);
     visibility: hidden;
-    transition: flex-basis var(--motion-medium) var(--motion-ease),
-      padding-left var(--motion-medium) var(--motion-ease),
-      border-color var(--motion-fast) ease,
+    transition: clip-path var(--motion-medium) var(--motion-ease),
       visibility 0s linear var(--motion-medium);
   }
 
   .public-site .site-search[data-search-state='open'] .site-search__input {
-    flex-basis: min(22rem, 34vw);
-    padding-left: 0.75rem;
-    border-bottom-color: var(--line);
+    clip-path: inset(0);
     visibility: visible;
-    transition: flex-basis var(--motion-medium) var(--motion-ease),
-      padding-left var(--motion-medium) var(--motion-ease),
-      border-color var(--motion-fast) ease,
+    transition: clip-path var(--motion-medium) var(--motion-ease),
       visibility 0s;
   }
 
@@ -415,16 +438,16 @@
     color: var(--ink-faint);
   }
 
-  /* The results hang under the field, left-aligned with the icon that opened
-     it, on the panel the filter and the calendar pickers share. */
+  /* The results hang under the field, from the icon that opened it to the end
+     of the field, on the panel the filter and the calendar pickers share. An
+     absolutely positioned grid child takes its grid area as its containing
+     block, so the panel is exactly that wide and starts at the header's own
+     lower edge. */
   .public-site .site-search__panel {
-    /* Exactly as wide as the opened field, icon to end of input: it reads as
-       the field's own drop, and it can never run past the column and the page
-       edge the way a fixed width did. */
+    grid-column: 2 / -1;
+    grid-row: 1;
     right: 0;
     left: 0;
-    /* The surface is as tall as the header row, so this is the header's own
-       lower edge, whatever height it takes. */
     top: 100%;
     width: auto;
     max-height: min(28rem, 60vh);
@@ -2145,21 +2168,19 @@
     }
 
     .public-site .site-actions {
-      justify-content: flex-end;
-    }
-
-    .public-site .site-actions,
-    .public-site .site-search {
       position: static;
       align-self: auto;
     }
 
     .public-site .site-search__input {
       position: absolute;
-      top: 50%;
-      right: calc(var(--gutter) + 2.75rem + 0.3rem);
+      /* The middle of the first row, where the icon is. Half the header would
+         be the navigation row beneath it at this width. */
+      top: calc(1rem + 2.75rem / 2);
+      right: calc(var(--gutter) + 2 * 2.75rem + 0.6rem);
       left: var(--gutter);
-      height: 2.75rem;
+      grid-column: auto;
+      grid-row: auto;
       background: var(--surface);
       clip-path: inset(0 0 0 100%);
       transform: translateY(-50%);
@@ -2174,6 +2195,8 @@
     }
 
     .public-site .site-search__panel {
+      grid-column: auto;
+      grid-row: auto;
       top: 100%;
       right: var(--gutter);
       left: var(--gutter);

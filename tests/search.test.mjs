@@ -53,21 +53,22 @@ test('the production shell opens search in place and still fetches the index onl
   assert.match(script, /\(state\.trigger \?\? toggle\)\.focus\(\)/);
   assert.match(script, /event\.key === 'ArrowDown'/);
 
-  // The field unfurls rather than appearing, and the row is packed to the start
-  // so that it grows to the right rather than pushing the icon leftwards.
-  assert.match(styles, /\.site-actions\s*{[^}]*justify-content:\s*flex-start/s);
-  assert.match(styles, /\.site-search__input\s*{[^}]*flex:\s*0 0 0[^}]*transition:\s*flex-basis/s);
-  assert.match(styles, /\[data-search-state='open'\] \.site-search__input\s*{[^}]*flex-basis:/s);
+  // The field unfurls rather than appearing: it lies in the actions grid from
+  // its own column to the end, over the two controls, and opens by clip.
+  assert.match(styles, /\.site-actions\s*{[^}]*display:\s*grid;[^}]*justify-content:\s*end/s);
+  assert.match(styles, /\.site-search__input\s*{[^}]*grid-column:\s*3 \/ -1;[^}]*clip-path:\s*inset\(0 100% 0 0\)/s);
+  assert.match(styles, /\[data-search-state='open'\] \.site-search__input\s*{[^}]*clip-path:\s*inset\(0\)/s);
 
   // The results panel is the one the filter and the calendar pickers use.
   assert.match(styles, /\.a-writing-filter__menu,\s*\.aperture-calendar__picker-menu,\s*\.site-search__panel\s*{/);
   assert.match(styles, /\.site-search__results a:focus-visible strong/);
 
-  // Folded away for now, deliberately: language stays reachable in the footer,
-  // and the appearance script keeps working on the hidden control.
-  assert.match(layout, /<nav class="language-nav"[\s\S]*?hidden>/);
-  assert.match(layout, /<button class="theme-toggle"[^>]*hidden>/);
-  // The attribute alone did not hide them: their own display values outrank the
-  // UA [hidden] rule, and both stayed on screen until this was added.
-  assert.match(styles, /\.language-nav\[hidden\],\s*\.public-site \.theme-toggle\[hidden\]\s*{\s*display:\s*none;/);
+  // Language and appearance are always in the header. They were once hidden
+  // outright by mistake; they step aside only while the field is open.
+  assert.doesNotMatch(layout, /<nav class="language-nav"[^>]*hidden>/);
+  assert.doesNotMatch(layout, /<button class="theme-toggle"[^>]*hidden>/);
+  assert.match(
+    styles,
+    /\.site-actions:has\(\.site-search\[data-search-state='open'\]\) > :is\(\.language-nav, \.theme-toggle\)\s*{[^}]*visibility:\s*hidden/s,
+  );
 });
