@@ -856,8 +856,27 @@
     margin-bottom: 0;
   }
 
-  .public-site .article-body :is(.admonition--warning, .admonition--caution) {
-    border-left-color: var(--danger);
+  /* The rule on the left names the kind before the title does. Warning and
+     caution used to share one red and the other three one blue, so five kinds
+     read as two. */
+  .public-site .article-body .admonition--note {
+    border-left-color: var(--admonition-note);
+  }
+
+  .public-site .article-body .admonition--tip {
+    border-left-color: var(--admonition-tip);
+  }
+
+  .public-site .article-body .admonition--important {
+    border-left-color: var(--admonition-important);
+  }
+
+  .public-site .article-body .admonition--warning {
+    border-left-color: var(--admonition-warning);
+  }
+
+  .public-site .article-body .admonition--caution {
+    border-left-color: var(--admonition-caution);
   }
 
   .public-site .protected-post__gate,

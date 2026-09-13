@@ -205,3 +205,28 @@ test('a concealed spoiler is one solid mask and fades rather than switches', asy
     /\.article-body \.spoiler,\s*\.public-site \.article-body \.spoiler \*\s*{[^}]*transition:[^}]*background-color var\(--motion-fast\) ease[^}]*color var\(--motion-fast\) ease/s,
   );
 });
+
+test('each admonition kind has its own quiet hue, in both themes', async () => {
+  const [tokens, reading] = await Promise.all([
+    read('src/styles/public.css'),
+    read('src/styles/public-reading.css'),
+  ]);
+
+  const kinds = ['note', 'tip', 'important', 'warning', 'caution'];
+  const light = tokens.slice(0, tokens.indexOf(":root[data-theme='dark']"));
+  const dark = tokens.slice(tokens.indexOf(":root[data-theme='dark']"));
+  for (const kind of kinds) {
+    // Declared for both themes, and low in chroma: none of them above 0.1.
+    for (const [name, block] of [['light', light], ['dark', dark]]) {
+      const match = new RegExp(String.raw`--admonition-${kind}:\s*oklch\(([\d.]+) ([\d.]+) ([\d.]+)\)`).exec(block);
+      assert.ok(match, `--admonition-${kind} is missing from the ${name} tokens`);
+      assert.ok(Number(match[2]) <= 0.1, `--admonition-${kind} is too saturated in ${name}`);
+    }
+    assert.match(
+      reading,
+      new RegExp(String.raw`\.admonition--${kind}\s*{\s*border-left-color:\s*var\(--admonition-${kind}\);`),
+    );
+  }
+  // Five kinds used to read as two: every warning and caution shared one red.
+  assert.doesNotMatch(reading, /admonition--warning, \.admonition--caution\) {\s*border-left-color:\s*var\(--danger\)/);
+});

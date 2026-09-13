@@ -70,6 +70,18 @@
     --line: #c7d4e3;
     --line-soft: var(--moriium-light-border);
     --accent: #365f8d;
+    /* One quiet hue per admonition kind, so the five tones tell apart at a
+       glance without any of them shouting. The idea -- a hue per kind, in the
+       familiar note/tip/important/warning/caution order -- is taken from the
+       Twilight site; the values are Moriium's own, held to low chroma so they sit
+       beside 雾霾蓝 rather than against it, as DESIGN.md 4.5 asks. Note stays in
+       the site's own blue. Caution carries a little more chroma than the rest,
+       because it is the one that has to stop a reader. */
+    --admonition-note: oklch(0.6 0.06 255);
+    --admonition-tip: oklch(0.62 0.055 160);
+    --admonition-important: oklch(0.58 0.055 300);
+    --admonition-warning: oklch(0.66 0.07 75);
+    --admonition-caution: oklch(0.56 0.09 25);
     --accent-strong: var(--moriium-blue-primary);
     --accent-field: var(--moriium-blue-primary);
     --accent-field-ink: #f6f7ff;
@@ -120,6 +132,13 @@
     --line: #293552;
     --line-soft: var(--moriium-dark-border);
     --accent: #a9b9ef;
+    /* Lighter on the dark canvas, same hues and chroma, so each kind keeps its
+       identity across the two themes. */
+    --admonition-note: oklch(0.72 0.06 255);
+    --admonition-tip: oklch(0.74 0.055 160);
+    --admonition-important: oklch(0.72 0.055 300);
+    --admonition-warning: oklch(0.76 0.07 75);
+    --admonition-caution: oklch(0.7 0.09 25);
     --accent-strong: #c6d0f5;
     --accent-field: var(--moriium-blue-accent);
     --accent-field-ink: #f7f8ff;
