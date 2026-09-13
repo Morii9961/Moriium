@@ -14,6 +14,9 @@ export const FRIENDS: readonly FriendLink[] = [
   {
     name: 'Enouia',
     url: 'https://enouia.morii9961.top/',
+    // The small site's own favicon, copied from enouia/public/favicon.svg so
+    // the about page makes no request to another host to draw it.
+    avatar: '/friends/enouia.svg',
     // The Chinese is the small site's own line, from its og:description.
     description: {
       zh: '窗外很远，手边很近。',

@@ -25,3 +25,14 @@ test('friends are cells in the same directory strip as the channels, not a list 
   // The blue field on hover, with the mark turned over so it stays visible.
   assert.match(component, /\.about-friends a:hover \.about-friends__mark,[^{]*\{[^}]*background: var\(--accent-field-ink\);/s);
 });
+
+test("Enouia's cell uses the small site's own icon, served from this site", async () => {
+  const [friends, copied, original] = await Promise.all([
+    read('src/data/friends.ts'),
+    read('public/friends/enouia.svg'),
+    read('enouia/public/favicon.svg'),
+  ]);
+  assert.match(friends, /avatar: '\/friends\/enouia\.svg'/);
+  assert.equal(copied, original, 'the copy has drifted from the small site favicon');
+  assert.doesNotMatch(copied, /<script|href=|url\(/i);
+});

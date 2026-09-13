@@ -101,6 +101,14 @@ const initial = (name: string) => Array.from(name.trim())[0]?.toUpperCase() ?? '
     object-fit: cover;
   }
 
+  /* A friend's own icon keeps its own shape and colours: no blue square
+     behind it, and nothing to turn over on hover. */
+  .about-friends__mark:has(img),
+  .about-friends a:hover .about-friends__mark:has(img),
+  .about-friends a:focus-visible .about-friends__mark:has(img) {
+    background: transparent;
+  }
+
   .about-friends__arrow {
     color: var(--accent);
     font-family: var(--font-data);
