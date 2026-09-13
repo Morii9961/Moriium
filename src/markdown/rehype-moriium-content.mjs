@@ -2,9 +2,11 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { readerCopyForFile } from './reader-copy.mjs';
 
+// Neither may start on its own. YouTube's embed waits for a press by default;
+// Bilibili's player starts playing unless told otherwise, hence autoplay=0.
 const VIDEO_PROVIDERS = {
   youtube: (id) => `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}`,
-  bilibili: (id) => `https://player.bilibili.com/player.html?bvid=${encodeURIComponent(id)}`,
+  bilibili: (id) => `https://player.bilibili.com/player.html?bvid=${encodeURIComponent(id)}&autoplay=0`,
 };
 const ALLOWED_METING_ORIGIN = 'https://meting.spr-aachen.com';
 
@@ -96,32 +98,34 @@ function transformVideo(node, copy) {
   }
 
   const embed = VIDEO_PROVIDERS[provider]?.(id);
-  // The consent control is a link, not a button. Deferring the iframe until the
-  // reader asks is the point, but a button carrying the URL in a data attribute
-  // leaves a reader without JavaScript with no way to reach the video at all.
-  // As a link it degrades to what it is — a way to open the video at the
-  // provider — and ReaderEnhancements upgrades it to an inline frame in place.
-  // The href is the same allowlisted embed URL, so this adds no new origin.
+  // The player is in the page as built, rather than a consent link a script
+  // swaps for a frame. Morii chose to have videos load without a click, so:
+  //
+  //   * loading="lazy" -- the browser, not this code, decides how near is near.
+  //     Chrome starts fetching a lazy frame a screen or more before it arrives,
+  //     so on a short article every player loads with the page and the provider
+  //     is contacted on arrival; only a video far down a long article waits;
+  //   * no autoplay -- the allow list leaves autoplay out, and each provider
+  //     URL above is one that waits for a press;
+  //   * no script -- a frame needs none, so this also works for a reader
+  //     without JavaScript, which the consent link only approximated.
+  //
+  // The origin is still the allowlisted provider, so the CSP's frame-src is
+  // unchanged. The note says it is a third party, because the frame does not.
   node.children = embed
     ? [
-        element(
-          'a',
-          {
-            className: ['video-consent'],
-            href: embed,
-            rel: ['noopener', 'noreferrer'],
-            dataVideoSrc: embed,
-            dataVideoTitle: title,
-            ariaLabel: `${copy.video.load}${title}`,
-          },
-          [
-            element('span', { className: ['video-consent__title'] }, [text(title)]),
-            element('span', { className: ['video-consent__note'] }, [
-              text(copy.video.thirdParty),
-            ]),
-          ],
-        ),
-        element('figcaption', {}, [text(title)]),
+        element('iframe', {
+          src: embed,
+          title,
+          loading: 'lazy',
+          allow: 'accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen',
+          allowFullScreen: true,
+          referrerPolicy: 'strict-origin-when-cross-origin',
+        }),
+        element('figcaption', {}, [
+          element('span', { className: ['video-card__title'] }, [text(title)]),
+          element('span', { className: ['video-card__note'] }, [text(copy.video.thirdParty)]),
+        ]),
       ]
     : [element('p', { className: ['embed-error'] }, [text(copy.video.blocked)])];
 }

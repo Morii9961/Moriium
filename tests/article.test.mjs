@@ -169,7 +169,7 @@ test('the article layout keeps responsive reading columns and keyboard states', 
   assert.match(styles, /@media print/);
   assert.match(styles, /break-inside: avoid/);
   assert.match(base, /@media \(prefers-reduced-motion: reduce\)/);
-  assert.match(base, /\.video-consent\s*{[^}]*width:\s*100%[^}]*min-height:\s*0[^}]*aspect-ratio:/s);
+  assert.match(base, /\.video-card iframe,\s*\.video-card video\s*{[^}]*width:\s*100%[^}]*aspect-ratio:\s*var\(--video-ratio/s);
 });
 
 test('one Expressive Code configuration drives every renderer', async () => {

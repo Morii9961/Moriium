@@ -1,7 +1,7 @@
 ---
 title: 视频嵌入的几种比例
 slug: zh/video-embeds
-summary: YouTube 与 Bilibili 的视频在读者点击之前只是占位链接。这里放了 16:9、4:3 和竖屏三种比例，检查占位尺寸、点击后的加载，以及禁用脚本时能否跳转到视频页面。
+summary: YouTube 与 Bilibili 的播放器直接放在页面里，由浏览器按懒加载距离加载，不会自动播放。这里放了 16:9、4:3 和竖屏三种比例，检查播放器尺寸、懒加载，以及禁用脚本时是否照常可用。
 publishedAt: 2026-07-20T12:00:00+08:00
 lang: zh
 translationKey: testbed-video
@@ -15,7 +15,7 @@ unlisted: false
 copyProtection: false
 ---
 
-视频是第三方内容。Moriium 不会在页面打开时加载任何播放器，只有读者主动点击后，才会把占位换成嵌入框。
+视频是第三方内容。播放器直接写在页面里，不需要点击，也不会自己开始播放。何时加载由浏览器决定：Chrome 会提前一两屏开始加载，所以这篇文章一打开，四个播放器就都会连接外部服务；只有长文章里很靠后的视频才会晚一些加载。
 
 ## YouTube · 16:9
 
@@ -23,7 +23,7 @@ copyProtection: false
 
 ## YouTube · 4:3
 
-老视频常见的 4:3 比例，占位框应该比 16:9 更高：
+老视频常见的 4:3 比例，播放器应该比 16:9 更高：
 
 ::video{provider="youtube" id="jNQXAC9IVRw" title="Me at the zoo" ratio="4/3"}
 

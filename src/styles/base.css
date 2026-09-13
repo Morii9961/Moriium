@@ -449,7 +449,7 @@
   .github-card__meta,
   .music-card__artist,
   .music-card__status,
-  .video-consent__note {
+  .video-card__note {
     color: var(--ink-muted);
     font-size: 0.82rem;
   }
@@ -466,22 +466,8 @@
     border: 0;
   }
 
-  .video-consent {
-    width: 100%;
-    min-height: 0;
-    aspect-ratio: var(--video-ratio, 16 / 9);
-    border: 0;
-    background: transparent;
-    color: var(--ink);
-    cursor: pointer;
-  }
-
-  .video-consent span {
+  .video-card figcaption span {
     display: block;
-  }
-
-  .video-consent__title {
-    font-size: 1.25rem;
   }
 
   .music-card {

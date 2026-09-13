@@ -175,48 +175,6 @@ const copy = READER_COPY[lang];
   </script>
 )}
 
-{features.video && (
-  <script>
-    const videoCopy = JSON.parse(
-      document.querySelector<HTMLTemplateElement>('[data-reader-copy]')?.dataset.readerCopy ?? '{}',
-    ).video as { fallback: string };
-    function bindVideos() {
-      // The consent control is a link so that it still works with no script;
-      // see transformVideo in src/markdown/rehype-moriium-content.mjs. Here it
-      // is upgraded in place, which means cancelling the navigation it would
-      // otherwise perform.
-      //
-      // It keeps link semantics after binding. An earlier version set
-      // role="button", which told assistive technology to expect Space to
-      // activate it -- and an anchor does not do that, so Space scrolled the
-      // page instead and the promised affordance was simply missing. The
-      // element really is a link to the video at the provider; enhancement
-      // changes where that video opens, not what the control is. Enter
-      // activates it natively, which is what a link is supposed to do.
-      for (const button of document.querySelectorAll<HTMLAnchorElement>('[data-video-src]')) {
-        if (button.dataset.videoBound) continue;
-        button.dataset.videoBound = 'true';
-        button.addEventListener('click', (event) => {
-        const source = button.dataset.videoSrc;
-        if (!source) return;
-        event.preventDefault();
-        const frame = document.createElement('iframe');
-        frame.src = source;
-        frame.title = button.dataset.videoTitle || videoCopy.fallback;
-        frame.loading = 'lazy';
-        frame.allow = 'accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen';
-        frame.allowFullscreen = true;
-        frame.referrerPolicy = 'strict-origin-when-cross-origin';
-        button.replaceWith(frame);
-        frame.focus();
-        });
-      }
-    }
-    bindVideos();
-    window.addEventListener('moriium:content-ready', bindVideos);
-  </script>
-)}
-
 {features.music && (
   <script>
     const musicCopy = JSON.parse(

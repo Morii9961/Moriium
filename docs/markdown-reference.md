@@ -52,7 +52,7 @@ Mermaid loads only on marked articles, uses strict security mode, follows the cu
 ::video{provider="local" src="/media/posts/example/video.mp4" title="Readable video title" ratio="16/9"}
 ```
 
-YouTube and Bilibili remain placeholders until a reader chooses to load them. New providers require directive validation and CSP changes. Local video uses native controls and `preload="none"`.
+YouTube and Bilibili render their player directly in the page with `loading="lazy"`: it loads without a click once it is within the browser's lazy-load distance -- in Chrome a screen or more ahead, so on a short article the provider is contacted on arrival -- needs no JavaScript, and never autoplays (Bilibili's player plays by default, so it is given `autoplay=0`). A caption notes that the video is served by a third party. New providers require directive validation and CSP changes. Local video uses native controls and `preload="none"`.
 
 ## GitHub repository cards
 

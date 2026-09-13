@@ -5,8 +5,8 @@ export const READER_COPY = {
     github: { eyebrow: 'GitHub 仓库', invalid: '无效仓库', repository: '仓库' },
     image: { open: '查看图片：', fallback: '文章图片' },
     video: {
-      fallback: '嵌入视频', load: '载入视频：',
-      thirdParty: '第三方视频。载入后将连接外部服务。',
+      fallback: '嵌入视频',
+      thirdParty: '第三方视频，由外部服务提供。',
       blocked: '此视频来源未获允许。', unsupported: '浏览器不支持 HTML 视频。',
     },
     music: {
@@ -29,8 +29,8 @@ export const READER_COPY = {
     github: { eyebrow: 'GitHub リポジトリ', invalid: '無効なリポジトリ', repository: 'リポジトリ' },
     image: { open: '画像を開く：', fallback: '記事の画像' },
     video: {
-      fallback: '埋め込み動画', load: '動画を読み込む：',
-      thirdParty: '外部サービスの動画です。読み込むと外部サービスに接続します。',
+      fallback: '埋め込み動画',
+      thirdParty: '外部サービスの動画です。',
       blocked: 'この動画ソースは許可されていません。', unsupported: 'このブラウザーは HTML 動画に対応していません。',
     },
     music: {
@@ -53,8 +53,8 @@ export const READER_COPY = {
     github: { eyebrow: 'GitHub repository', invalid: 'Invalid repository', repository: 'Repository' },
     image: { open: 'Open image: ', fallback: 'article image' },
     video: {
-      fallback: 'Embedded video', load: 'Load video: ',
-      thirdParty: 'Third-party video. Loading it connects to an external service.',
+      fallback: 'Embedded video',
+      thirdParty: 'Third-party video, served by an external service.',
       blocked: 'This video source is not allowed.', unsupported: 'Your browser does not support HTML video.',
     },
     music: {

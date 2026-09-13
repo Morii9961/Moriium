@@ -2,7 +2,8 @@
 //
 // AGENTS.md requires no-JavaScript fallbacks for links, images, GitHub
 // repositories, and protected-post metadata, and requires network media to wait
-// for a deliberate action. Those two rules pull against each other: the easiest
+// for a deliberate action -- video excepted, which loads lazily as the reader
+// scrolls near it. Those two rules pull against each other: the easiest
 // way to defer a third-party request is a button that only JavaScript can use,
 // which leaves a reader without scripts looking at a control that does nothing.
 //
@@ -25,7 +26,7 @@ import { publicOutputRoot } from '../scripts/lib/public-output.mjs';
 const out = publicOutputRoot();
 const CAPABILITY_PAGE = 'zh/posts/reader-capabilities/index.html';
 
-/** The origins a reader may reach only after asking. */
+/** The only origins a video player may come from. */
 const PROVIDER_ORIGINS = ['https://www.youtube-nocookie.com', 'https://player.bilibili.com'];
 
 let capability;
@@ -41,12 +42,12 @@ describe('reader language', () => {
     assert.match(capability, /title="复制代码"/);
     assert.match(capability, /data-copied="已复制"/);
     assert.match(capability, /aria-label="显示隐藏内容"/);
-    assert.match(capability, /第三方视频。载入后将连接外部服务。/);
+    assert.match(capability, /第三方视频，由外部服务提供。/);
     assert.match(capability, /歌曲来自外部服务，需要 JavaScript 才能载入。/);
     assert.match(capability, />脚注</);
     assert.match(capability, /aria-label="返回注记 1"/);
     assert.doesNotMatch(capability, /title="Copy code"/);
-    assert.doesNotMatch(capability, /Third-party video\. Loading it connects to an external service\./);
+    assert.doesNotMatch(capability, /Third-party video, served by an external service\./);
   });
 });
 
@@ -121,55 +122,42 @@ describe('spoilers', () => {
 });
 
 describe('remote video', () => {
-  it('renders no iframe until the reader asks', async () => {
+  // Morii chose to have videos load without a click. What stays guarded is how:
+  // the player is a lazy frame (the browser decides the distance, and Chrome's
+  // is generous), never starts on its own, needs no script, and comes only from
+  // an allowlisted provider.
+  const frameIn = (html) => /<iframe[^>]*>/.exec(html)?.[0];
+
+  it('renders the player lazily, from the allowlist, without a script', async () => {
     const html = await renderPrivateMarkdown('::video{provider="youtube" id="aqz-KE-bpKQ" title="Video fixture"}');
-    assert.ok(!/<iframe/i.test(html), 'a remote video must not be an iframe at rest');
+    const frame = frameIn(html);
+    assert.ok(frame, 'a remote video is expected to render its player');
+    assert.match(frame, /loading="lazy"/, 'the player must wait until the reader scrolls near it');
+    assert.match(frame, /title="Video fixture"/, 'the frame needs a readable title');
+    const src = /src="([^"]+)"/.exec(frame)?.[1] ?? '';
+    assert.ok(PROVIDER_ORIGINS.some((origin) => src.startsWith(origin)), `${src} is outside the provider allowlist`);
     assert.match(html, /Video fixture/);
   });
 
-  it('leaves a link a reader without JavaScript can actually open', async () => {
-    const html = await renderPrivateMarkdown('::video{provider="youtube" id="aqz-KE-bpKQ" title="Video fixture"}');
-    const consent = /<(a|button)[^>]*data-video-src="([^"]+)"[^>]*>/.exec(html);
-    assert.ok(consent, 'the consent control is expected in the output');
-    assert.equal(
-      consent[1],
-      'a',
-      'the consent control must be a real link, or a reader without JavaScript has no way to reach the video',
-    );
-    assert.match(consent[0], /href="https:\/\//, 'the link needs a resolvable destination');
+  it('never starts playing on its own', async () => {
+    for (const markdown of [
+      '::video{provider="youtube" id="aqz-KE-bpKQ" title="YouTube fixture"}',
+      '::video{provider="bilibili" id="BV1GJ411x7h7" title="Bilibili fixture"}',
+    ]) {
+      const frame = frameIn(await renderPrivateMarkdown(markdown));
+      assert.ok(frame);
+      const allow = /allow="([^"]*)"/.exec(frame)?.[1] ?? '';
+      assert.doesNotMatch(allow, /autoplay/, 'the frame must not be granted autoplay');
+      assert.doesNotMatch(frame, /autoplay=1/);
+    }
+    // Bilibili's player plays by default unless told not to.
+    const bilibili = frameIn(await renderPrivateMarkdown('::video{provider="bilibili" id="BV1GJ411x7h7" title="B"}'));
+    assert.match(bilibili, /autoplay=0/);
   });
 
-  it('offers the same honest path in the built article', () => {
-    const consent = /<(a|button)[^>]*data-video-src="([^"]+)"[^>]*>/.exec(capability);
-    assert.ok(consent, 'the built article is expected to contain a video consent control');
-    assert.equal(consent[1], 'a', 'the built article leaves no no-JavaScript path to the video');
-    const href = /href="([^"]+)"/.exec(consent[0]);
-    assert.ok(href, 'the consent control must carry an href');
-    assert.ok(
-      PROVIDER_ORIGINS.some((origin) => href[1].startsWith(origin)),
-      `${href?.[1]} is outside the video provider allowlist`,
-    );
-  });
-
-  it('keeps link semantics after enhancement, so the keyboard contract holds', () => {
-    // A link activates on Enter and not on Space. Claiming role="button"
-    // promises Space as well, and an anchor cannot deliver it -- the key just
-    // scrolls the page. Either the element implements the button contract in
-    // full or it stays the link it already is; it may not advertise one and
-    // behave as the other.
-    const consent = /<a[^>]*data-video-src="[^"]+"[^>]*>/.exec(capability);
-    assert.ok(consent, 'the built article is expected to carry a video consent link');
-    assert.doesNotMatch(consent[0], /role=/, 'the static markup must not override link semantics');
-
-    const chunk = readdirSync(join(out, '_astro'))
-      .filter((name) => name.startsWith('ReaderEnhancements') && name.endsWith('.js'))
-      .map((name) => readFileSync(join(out, '_astro', name), 'utf8'))
-      .find((code) => code.includes('videoBound'));
-    assert.ok(chunk, 'the video binding is expected in the build');
-    assert.ok(
-      !/setAttribute\(\s*[`'"]role[`'"]/.test(chunk),
-      'the script must not add role="button" to an anchor it cannot make behave like one',
-    );
+  it('says in the page that the video is a third party', () => {
+    assert.match(capability, /<iframe[^>]*loading="lazy"/);
+    assert.match(capability, /class="video-card__note"/);
   });
 
   it('refuses a provider that is not on the allowlist', async () => {
