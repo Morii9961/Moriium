@@ -232,3 +232,18 @@ test('each admonition kind has its own quiet hue, in both themes', async () => {
   // Five kinds used to read as two: every warning and caution shared one red.
   assert.doesNotMatch(reading, /admonition--warning, \.admonition--caution\) {\s*border-left-color:\s*var\(--danger\)/);
 });
+
+test('a sideways scroller in the prose draws a quiet bar in the chosen theme', async () => {
+  const [base, reading] = await Promise.all([
+    read('src/styles/base.css'),
+    read('src/styles/public-reading.css'),
+  ]);
+
+  // "light dark" alone let a dark system paint dark native scrollbars over
+  // the light theme's code blocks.
+  assert.match(base, /html\[data-theme='light'\] \{\s*color-scheme: light;/);
+  assert.match(base, /html\[data-theme='dark'\] \{\s*color-scheme: dark;/);
+  assert.match(reading, /\.public-site \.article-body \{\s*scrollbar-color: var\(--ink-faint\) transparent;/);
+  // Expressive Code resets its descendants from outside any layer.
+  assert.match(reading, /\.expressive-code pre \{\s*scrollbar-width: thin !important;/);
+});

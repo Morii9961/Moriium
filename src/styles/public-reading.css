@@ -777,6 +777,19 @@
     margin-block: clamp(1.75rem, 3vw, 2.5rem);
   }
 
+  /* Everything in the prose that scrolls sideways — code, tables, formulas,
+     diagrams — gets one quiet bar in the site's line colour. The colour is
+     inherited, so it reaches inside Expressive Code; the width is not, and
+     Expressive Code resets every property on its descendants from outside any
+     layer, which only an important declaration in a layer outranks. */
+  .public-site .article-body {
+    scrollbar-color: var(--ink-faint) transparent;
+  }
+
+  .public-site .article-body .expressive-code pre {
+    scrollbar-width: thin !important;
+  }
+
   .public-site .article-body :is(.katex-display, mjx-container) {
     overflow-x: auto;
     overflow-y: hidden;

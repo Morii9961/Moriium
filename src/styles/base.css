@@ -11,6 +11,17 @@
     color-scheme: light dark;
   }
 
+  /* Once the page has chosen a theme, the browser's own parts follow it. Left
+     at "light dark", a reader whose system is dark got dark native scrollbars
+     drawn across the light theme's code blocks. */
+  html[data-theme='light'] {
+    color-scheme: light;
+  }
+
+  html[data-theme='dark'] {
+    color-scheme: dark;
+  }
+
   /* Smooth scrolling has to be asked for here rather than switched off later:
      the site-wide reduced-motion reset only reaches `.public-site *`, and the
      element that actually scrolls the document is `html`, which sits outside
