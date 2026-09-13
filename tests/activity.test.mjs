@@ -4,7 +4,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ACTIVITY_START_YEAR, activityYears, calendarDays, activityStats, validateActivity, intensity, dateInShanghai } from '../src/lib/activity.ts';
-import { importUsage, importGitHub } from '../scripts/lib/activity-import.ts';
+import { importUsage, importGitHub, mergeActivityDays } from '../scripts/lib/activity-import.ts';
 import { coworkConfigDirs } from '../scripts/lib/cowork.ts';
 import { importCodexUsage } from '../scripts/lib/codex-usage.ts';
 
@@ -127,10 +127,17 @@ test('collected days are retained by a fixed archive floor, not a rolling window
   assert.match(source, /const ARCHIVE_START = '2026-01-01';/);
   // The floor must never evict a day the current GitHub lookback just returned.
   assert.match(source, /const RETAIN_FROM = ARCHIVE_START < start \? ARCHIVE_START : start;/);
-  assert.equal(source.match(/day\.date >= RETAIN_FROM && day\.date <= end/g)?.length, 2);
+  assert.equal(source.match(/day\.date >= RETAIN_FROM && day\.date <= end/g)?.length, 1);
+  assert.match(source, /snapshot.days = mergeActivityDays/);
   assert.doesNotMatch(source, /day\.date >= start &&/);
   // The one-year window survives only where GitHub's calendar query requires it.
   assert.match(source, /from: `\$\{start\}T00:00:00Z`/);
+});
+
+test('advancing the GitHub query window preserves its oldest archived day', () => {
+  const previous = [{ date: '2025-09-13', value: 2 }, { date: '2026-09-12', value: 5 }];
+  const incoming = [{ date: '2026-09-12', value: 6 }, { date: '2026-09-13', value: 1 }];
+  assert.deepEqual(mergeActivityDays(previous, incoming, '2026-09-13'), [previous[0], ...incoming]);
 });
 
 test('Cowork discovery claims both store names and only tasks that recorded usage', { skip: process.platform === 'darwin' && 'the macOS path derives from the home directory' }, async () => {

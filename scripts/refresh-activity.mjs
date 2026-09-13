@@ -24,7 +24,7 @@ import { SOURCES, dateInShanghai, validateActivity } from '../src/lib/activity.t
 
 const exec = promisify(execFile);
 const root = resolve(import.meta.dirname, '..');
-const snapshot = resolve(root, 'src/data/activity.json');
+const snapshot = process.env.MORIIUM_ACTIVITY_OUTPUT ? resolve(process.env.MORIIUM_ACTIVITY_OUTPUT) : resolve(root, 'src/data/activity.json');
 const archive = process.env.MORIIUM_ACTIVITY_ARCHIVE
   ? resolve(process.env.MORIIUM_ACTIVITY_ARCHIVE)
   : resolve(root, '..', 'Moriium_ActivityArchive');

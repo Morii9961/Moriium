@@ -1,0 +1,29 @@
+---
+import type { Language } from '../data/site';
+import { statusCopy } from '../data/status-copy';
+import { emptyManifest } from '../lib/status';
+import { renderStatus, statusSummary } from '../lib/status-markup';
+import '../styles/status.css';
+interface Props { lang: Language }
+const { lang } = Astro.props;
+const c = statusCopy[lang];
+const now = Date.now();
+const manifest = emptyManifest(now);
+---
+<section id="status" class="a-about-page__band about-status" aria-labelledby="about-status-title" data-status-root data-lang={lang}>
+  <header class="a-about-page__head"><h2 id="about-status-title">{c.title}</h2><p>{c.subtitle}</p></header>
+  <p class="about-status__intro">{c.intro}</p>
+  <div class="about-status__body">
+    <p class="status-overview" data-status-summary>{statusSummary(manifest, lang, now)}</p>
+    <p class="status-note" data-status-note>{c.snapshot}</p>
+    <ul class="status-list" data-status-list set:html={renderStatus(manifest, lang, now)} />
+    <ul class="status-legend">
+      {(['normal', 'incident', 'incomplete', 'empty'] as const).map(kind => <li><span class="status-day" data-kind={kind} aria-hidden="true"></span>{c.days[kind]}</li>)}
+    </ul>
+    <p class="status-note">{c.scope}</p>
+    <p class="status-live" role="status" aria-live="polite" aria-atomic="true" data-status-live></p>
+  </div>
+</section>
+<script>
+  import '../scripts/about-live';
+</script>

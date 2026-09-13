@@ -1,0 +1,11 @@
+[Unit]
+Description=Publish status every minute; probe sites every five minutes
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=1min
+AccuracySec=1s
+Unit=moriium-status.service
+
+[Install]
+WantedBy=timers.target

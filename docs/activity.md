@@ -45,10 +45,12 @@ push, deploy, create a scheduled job or upload raw logs.
 
 ## Keep it current
 
-The page is a build-time snapshot and cannot be live: two of the three sources exist
-only on this computer, so no amount of server rendering would reach them. Freshness is
-therefore bounded by how often this computer collects and the site is rebuilt, and each
-calendar prints its own collection timestamp so the delay is visible rather than implied.
+The initial page is a build-time snapshot. The optional workflow in
+[ADR 0003](adr-0003-about-status.md) collects on this computer and uploads only
+daily aggregates to the static status publisher. When that workflow is deployed,
+the About page refreshes the calendars from a versioned JSON file without a site
+rebuild. Without JavaScript or a valid public update, the build snapshot remains
+readable. Each calendar retains its own collection timestamp.
 
 `pnpm activity:refresh [source]` is the routine. It runs the collector, prints how many
 days and tokens each source gained, warns if the archive lost recorded days, and copies
@@ -57,30 +59,12 @@ the snapshot to `../Moriium_ActivityArchive/activity-<date>.json`
 record; its `README.md` explains each file. It stays outside the repository and is never
 committed.
 
-Daily is the right cadence: the sources publish nothing finer than a day, and the
-current day is always incomplete. A fixed clock alone is the wrong trigger, though,
-because the machine is not always on. Register two triggers. The nightly one collects
-the day that is ending; the logon one catches up whatever was missed while the computer
-was off, and waits fifteen minutes first, because nothing new has been written at the
-moment of logon and the boot should not compete with a collection.
-
-The task runs with no console. `S4U` gives it a non-interactive session, so no window
-appears; that is also why the run log matters, since nothing else would surface a
-failure.
-
-```powershell
-$action = New-ScheduledTaskAction -Execute 'C:\Program Files\nodejs\node.exe' -Argument 'scripts\refresh-activity.mjs' -WorkingDirectory 'E:\Moriium'
-$logon = New-ScheduledTaskTrigger -AtLogOn
-$logon.Delay = 'PT15M'
-$nightly = New-ScheduledTaskTrigger -Daily -At 23:30
-$settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -DontStopIfGoingOnBatteries -MultipleInstances IgnoreNew -ExecutionTimeLimit (New-TimeSpan -Minutes 15)
-$principal = New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType S4U
-Register-ScheduledTask -TaskName 'Moriium activity refresh' -Action $action -Trigger @($logon, $nightly) -Settings $settings -Principal $principal
-```
-
-Verify the first run in `refresh.log` rather than assuming it worked. A non-interactive
-session has no desktop and a slightly different environment, so if `gh` or `codex` cannot
-authenticate there, re-register with `-LogonType Interactive` and accept a brief window.
+The approved unattended workflow collects hourly while the workstation is logged
+in, with a delayed logon catch-up. It uses a separate data directory, archive and
+sequence, and a hidden PowerShell wrapper. The registration script and acceptance
+steps are in [status operations](status-operations.md). Do not also schedule the
+manual collector against that same data file. A scheduled task's existence does
+not prove that its credentials or upload work: inspect its first run.
 
 A missed day is recoverable as long as its source still remembers it, and all three
 now do: Claude Code retains transcripts for 3650 days, GitHub's calendar answers for a
@@ -94,9 +78,11 @@ only in local transcripts; no scheduler elsewhere can reach it. Codex is server-
 could in principle be read from anywhere, but only by handing its login to that other
 place, which buys a heatmap with a credential that can spend the account's quota. Do not.
 
-Publishing stays a separate, deliberate act: `pnpm build`, then the ordinary release.
-No scheduled job commits, pushes or deploys, and none may be added without Morii asking
-for it.
+Manual publishing remains `pnpm build`, followed by the ordinary release. Morii has
+approved implementing a separate hourly aggregate upload and a one-minute status
+publisher with five-minute site probes. Their deployment and scheduler registration are still separate steps;
+see [status operations](status-operations.md). Neither workflow commits or pushes
+code, and the automated uploader does not deploy the site.
 
 ## Meaning of the numbers
 
@@ -128,7 +114,9 @@ for it.
   at the end while the year is still in progress. Future dates retain faint solid
   outlines and cannot be selected. Neither state adds a legend label. Previously collected values
   survive later log cleanup.
-- `src/data/activity.json` is the archive of record, not a cache of the last year.
+- `src/data/activity.json` is the manual archive and build fallback, not a cache of the last year.
+  Unattended collection retains a separate persistent archive; preserve both and
+  initialize any replacement from the latest complete archive.
   Collected days are kept from 2026-01-01 onward and none is ever dropped for age.
   Every source deletes its own logs eventually, so a day discarded here cannot be
   collected a second time. GitHub's required one-year query currently reaches before

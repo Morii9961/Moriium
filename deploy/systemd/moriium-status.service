@@ -1,0 +1,20 @@
+[Unit]
+Description=Moriium public status snapshot publisher
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=moriium-status
+Group=moriium-status
+WorkingDirectory=/opt/moriium-status
+ExecStart=/usr/bin/node /opt/moriium-status/scripts/status-publish.mjs
+Environment=MORIIUM_STATUS_ROOT=/var/lib/moriium-status
+Environment=MORIIUM_STATUS_CONFIG=/etc/moriium/status-sites.json
+UMask=0027
+TimeoutStartSec=90
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/moriium-status

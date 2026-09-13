@@ -191,3 +191,15 @@ and semantic colors under `DESIGN.md`. Links are text rows with a visible domain
 and optional translated description. No upstream code or assets are copied.
 No dependency, avatar request, friend feed, submission form, or runtime fetch is
 introduced. An empty list displays a short localized sentence.
+## About status panel — 2026-09-13
+
+The inspected [OpenAI status page](https://status.openai.com/) and
+[Claude status page](https://status.claude.com/) separate a short overall summary,
+individual components and historical incidents. This implementation adopts that
+information hierarchy in the existing About section rhythm. It does not adopt
+their palettes, subscription forms or dashboard containers. Morii's follow-up
+requests the OpenAI page's full-width segmented timeline. The implementation
+retains 90 real daily summaries and adds date endpoints and a legend, using
+Morii's supplied light/dark OKLCH colors. All timeline segments use solid fills. Text and native disclosures
+explain unknown data, interruptions and incomplete history. No global identity
+tokens change, and pre-monitoring dates stay empty.
