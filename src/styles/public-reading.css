@@ -748,6 +748,31 @@
     word-break: break-all;
   }
 
+  /* Spoiler ------------------------------------------------------------- */
+
+  /* The mask is the spoiler's own ink background. Anything inside that paints a
+     background of its own -- inline code does -- sat on top of it as a grey
+     patch, and gave away the shape of what was hidden. While concealed, nothing
+     inside paints; revealed, everything gets its own colours back. */
+  .public-site .article-body .spoiler:not(:hover, :focus, [data-revealed='true']) * {
+    border-color: transparent;
+    background-color: transparent;
+    color: transparent;
+  }
+
+  /* A colour change, so the site's plain ease rather than its travel curve, in
+     fast time: the text comes up out of the ink instead of switching on. The
+     children take the same transition, or inline code would snap into place
+     while the words around it were still fading. Reduced motion shortens this
+     to nothing through the global reset, and the change of state stays. */
+  .public-site .article-body .spoiler,
+  .public-site .article-body .spoiler * {
+    transition:
+      background-color var(--motion-fast) ease,
+      color var(--motion-fast) ease,
+      border-color var(--motion-fast) ease;
+  }
+
   .public-site .article-body .expressive-code {
     margin-block: clamp(1.75rem, 3vw, 2.5rem);
   }

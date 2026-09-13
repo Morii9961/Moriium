@@ -188,3 +188,20 @@ test('one Expressive Code configuration drives every renderer', async () => {
   assert.match(shared, /frameBoxShadowCssValue: 'none'/);
   assert.match(shared, /editorActiveTabIndicatorTopColor: 'var\(--accent-field\)'/);
 });
+
+test('a concealed spoiler is one solid mask and fades rather than switches', async () => {
+  const styles = await read('src/styles/public-reading.css');
+
+  // Inline code paints its own background, which sat on the mask as a grey
+  // patch the shape of the hidden word. While concealed nothing inside paints.
+  assert.match(
+    styles,
+    /\.spoiler:not\(:hover, :focus, \[data-revealed='true'\]\) \*\s*{[^}]*background-color:\s*transparent;[^}]*color:\s*transparent;/s,
+  );
+  // The reveal is a colour change in fast time, on the spoiler and on what it
+  // holds, so inline code does not snap in while the words around it fade.
+  assert.match(
+    styles,
+    /\.article-body \.spoiler,\s*\.public-site \.article-body \.spoiler \*\s*{[^}]*transition:[^}]*background-color var\(--motion-fast\) ease[^}]*color var\(--motion-fast\) ease/s,
+  );
+});
