@@ -619,7 +619,7 @@
   }
 
   /* Shown at its own size, up to the measure. `width: 100%` in base.css
-     stretched a small image to fill the column, so the 320px testbed thumbnail
+     stretched a small image to fill the column, so a 320px thumbnail
      was drawn at 442px and blurred -- while the same file inside a figure
      stayed sharp, because there the link shrink-wraps around it. The two
      positions now agree. */

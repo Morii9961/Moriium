@@ -8,7 +8,7 @@
 // each crossing is checked with Enouia, the value a silent drop would erase.
 
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, describe, it } from 'node:test';
@@ -105,14 +105,28 @@ describe('the byline', () => {
   });
 
   it('reaches the reader, and names the real author to machines too', () => {
-    const page = join(publicOutputRoot(), 'zh/posts/tea-house-notes/index.html');
-    assert.ok(existsSync(page), 'run `pnpm build` before this assertion');
-    const html = readFileSync(page, 'utf8');
+    // Every published article, whoever wrote it: the byline on the page and in
+    // the structured data is the one its frontmatter names, or Morii by default.
+    const root = join('src', 'content', 'posts');
+    const files = readdirSync(root, { recursive: true }).filter((file) => String(file).endsWith('.md'));
+    let checked = 0;
+    for (const file of files) {
+      const { frontmatter } = parseFrontmatter(readFileSync(join(root, String(file)), 'utf8'));
+      if (frontmatter.draft) continue;
+      const [lang, slug] = String(frontmatter.slug).split('/');
+      const page = join(publicOutputRoot(), lang, 'posts', slug, 'index.html');
+      assert.ok(existsSync(page), `run \`pnpm build\` before this assertion (${page})`);
+      const html = readFileSync(page, 'utf8');
+      const author = frontmatter.author ?? 'Morii';
+      const label = { zh: '作者', ja: '著者', en: 'Author' }[lang];
 
-    assert.match(html, /<dt>作者<\/dt><dd>Enouia<\/dd>/);
-    const structured = JSON.parse(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/.exec(html)[1]);
-    assert.equal(structured.author.name, 'Enouia');
-    // The site, which publishes both, is still the publisher.
-    assert.equal(structured.publisher.name, 'Morii');
+      assert.ok(html.includes(`<dt>${label}</dt><dd>${author}</dd>`), `${file} does not name ${author} on the page`);
+      const structured = JSON.parse(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/.exec(html)[1]);
+      assert.equal(structured.author.name, author, `${file} names the wrong author to machines`);
+      // The site, which publishes both, is still the publisher.
+      assert.equal(structured.publisher.name, 'Morii');
+      checked += 1;
+    }
+    assert.ok(checked > 0, 'no published article was checked');
   });
 });
