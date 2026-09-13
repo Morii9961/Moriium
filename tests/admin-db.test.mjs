@@ -103,7 +103,7 @@ describe('the admin database', () => {
     const shared = schema.slice(schema.indexOf('const sharedMetadata'), schema.indexOf('publicPostMetadataSchema'));
     const declared = [...shared.matchAll(/^\s{2}([a-zA-Z]+):/gm)].map((match) => match[1]);
 
-    assert.equal(declared.length, 15, `expected 15 frontmatter fields, parsed ${declared.join(', ')}`);
+    assert.equal(declared.length, 16, `expected 16 frontmatter fields, parsed ${declared.join(', ')}`);
 
     const db = freshDatabase();
     const columns = new Set(

@@ -25,7 +25,7 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Open `http://127.0.0.1:4321/zh/`. The complete reading fixture is at `/zh/posts/reader-capabilities/` and is intentionally omitted from indexes.
+Open `http://127.0.0.1:4321/zh/`. What each reading capability does without JavaScript is checked by `tests/reader-fallbacks.test.mjs`, which renders its own fixture document rather than relying on a published article.
 
 ## Checks
 

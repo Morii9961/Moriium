@@ -3,6 +3,7 @@
 
 import type { DatabaseSync } from 'node:sqlite';
 import { z } from 'astro/zod';
+import { AUTHOR_NAMES } from '../../content-schema.ts';
 import { ArticleStore, type NewArticle, type SaveInput, type VersionFields } from '../articles.ts';
 import type { AuthorSession } from '../auth/session.ts';
 import { AdminError } from '../errors.ts';
@@ -33,6 +34,7 @@ const versionFields = z
     draft: z.boolean(),
     unlisted: z.boolean(),
     copyProtection: z.boolean(),
+    author: z.enum(AUTHOR_NAMES),
     markdown: z.string(),
     editorJson: z.string().nullable(),
   })

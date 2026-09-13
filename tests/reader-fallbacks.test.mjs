@@ -2,7 +2,8 @@
 //
 // AGENTS.md requires no-JavaScript fallbacks for links, images, GitHub
 // repositories, and protected-post metadata, and requires network media to wait
-// for a deliberate action. Those two rules pull against each other: the easiest
+// for a deliberate action -- video excepted, which loads lazily as the reader
+// scrolls near it. Those two rules pull against each other: the easiest
 // way to defer a third-party request is a button that only JavaScript can use,
 // which leaves a reader without scripts looking at a control that does nothing.
 //
@@ -23,30 +24,50 @@ import { renderPrivateMarkdown } from '../scripts/lib/render-markdown.mjs';
 import { publicOutputRoot } from '../scripts/lib/public-output.mjs';
 
 const out = publicOutputRoot();
-const CAPABILITY_PAGE = 'zh/posts/reader-capabilities/index.html';
 
-/** The origins a reader may reach only after asking. */
+/** The only origins a video player may come from. */
 const PROVIDER_ORIGINS = ['https://www.youtube-nocookie.com', 'https://player.bilibili.com'];
+
+// One Chinese document carrying every capability at once, rendered through the
+// pipeline the build uses. This used to be a published acceptance article; it
+// lives here now, so the checks do not depend on any article staying online.
+const CAPABILITY_MARKDOWN = `
+![A descriptive fixture](/fixtures/reader-image.svg)
+
+\`\`\`ts
+const fixture = true;
+\`\`\`
+
+This is :spoiler[hidden text].
+
+::github{repo="Morii9961/Moriium"}
+
+::video{provider="youtube" id="aqz-KE-bpKQ" title="Video fixture"}
+
+::music{title="Final Resonance" artist="ARForest" meting="https://meting.spr-aachen.com/api?server=netease&type=song&id=1"}
+
+A footnote.[^1]
+
+[^1]: Footnote body.
+`;
 
 let capability;
 
-before(() => {
-  const path = join(out, CAPABILITY_PAGE);
-  assert.ok(existsSync(path), 'run `pnpm build` before these fallback assertions');
-  capability = readFileSync(path, 'utf8');
+before(async () => {
+  capability = await renderPrivateMarkdown(CAPABILITY_MARKDOWN, 'zh');
 });
 
 describe('reader language', () => {
-  it('uses Chinese controls throughout the built Chinese capability article', () => {
+  it('uses Chinese controls throughout a Chinese document', () => {
     assert.match(capability, /title="复制代码"/);
     assert.match(capability, /data-copied="已复制"/);
     assert.match(capability, /aria-label="显示隐藏内容"/);
-    assert.match(capability, /第三方视频。载入后将连接外部服务。/);
+    assert.match(capability, /第三方视频，由外部服务提供。/);
     assert.match(capability, /歌曲来自外部服务，需要 JavaScript 才能载入。/);
     assert.match(capability, />脚注</);
     assert.match(capability, /aria-label="返回注记 1"/);
     assert.doesNotMatch(capability, /title="Copy code"/);
-    assert.doesNotMatch(capability, /Third-party video\. Loading it connects to an external service\./);
+    assert.doesNotMatch(capability, /Third-party video, served by an external service\./);
   });
 });
 
@@ -59,7 +80,7 @@ describe('images', () => {
     assert.match(html, /<img[^>]+alt="A descriptive fixture"/);
   });
 
-  it('are a plain anchor in the built article too', () => {
+  it('are a plain anchor inside a full document too', () => {
     assert.match(capability, /<a[^>]*href="\/fixtures\/reader-image\.svg"[^>]*data-lightbox/);
   });
 });
@@ -99,7 +120,7 @@ describe('spoilers', () => {
   // quietly counted as a pass.
   it('keep the hidden text in the document with an accessible control', () => {
     const spoiler = /<span[^>]*data-spoiler[^>]*>([\s\S]*?)<\/span>/.exec(capability);
-    assert.ok(spoiler, 'the capability article is expected to contain a spoiler');
+    assert.ok(spoiler, 'the capability document is expected to contain a spoiler');
     assert.ok(spoiler[1].trim().length > 0, 'spoiler text must stay in the document');
     assert.match(spoiler[0], /role="button"/);
     assert.match(spoiler[0], /aria-label="[^"]+"/);
@@ -121,55 +142,42 @@ describe('spoilers', () => {
 });
 
 describe('remote video', () => {
-  it('renders no iframe until the reader asks', async () => {
+  // Morii chose to have videos load without a click. What stays guarded is how:
+  // the player is a lazy frame (the browser decides the distance, and Chrome's
+  // is generous), never starts on its own, needs no script, and comes only from
+  // an allowlisted provider.
+  const frameIn = (html) => /<iframe[^>]*>/.exec(html)?.[0];
+
+  it('renders the player lazily, from the allowlist, without a script', async () => {
     const html = await renderPrivateMarkdown('::video{provider="youtube" id="aqz-KE-bpKQ" title="Video fixture"}');
-    assert.ok(!/<iframe/i.test(html), 'a remote video must not be an iframe at rest');
+    const frame = frameIn(html);
+    assert.ok(frame, 'a remote video is expected to render its player');
+    assert.match(frame, /loading="lazy"/, 'the player must wait until the reader scrolls near it');
+    assert.match(frame, /title="Video fixture"/, 'the frame needs a readable title');
+    const src = /src="([^"]+)"/.exec(frame)?.[1] ?? '';
+    assert.ok(PROVIDER_ORIGINS.some((origin) => src.startsWith(origin)), `${src} is outside the provider allowlist`);
     assert.match(html, /Video fixture/);
   });
 
-  it('leaves a link a reader without JavaScript can actually open', async () => {
-    const html = await renderPrivateMarkdown('::video{provider="youtube" id="aqz-KE-bpKQ" title="Video fixture"}');
-    const consent = /<(a|button)[^>]*data-video-src="([^"]+)"[^>]*>/.exec(html);
-    assert.ok(consent, 'the consent control is expected in the output');
-    assert.equal(
-      consent[1],
-      'a',
-      'the consent control must be a real link, or a reader without JavaScript has no way to reach the video',
-    );
-    assert.match(consent[0], /href="https:\/\//, 'the link needs a resolvable destination');
+  it('never starts playing on its own', async () => {
+    for (const markdown of [
+      '::video{provider="youtube" id="aqz-KE-bpKQ" title="YouTube fixture"}',
+      '::video{provider="bilibili" id="BV1GJ411x7h7" title="Bilibili fixture"}',
+    ]) {
+      const frame = frameIn(await renderPrivateMarkdown(markdown));
+      assert.ok(frame);
+      const allow = /allow="([^"]*)"/.exec(frame)?.[1] ?? '';
+      assert.doesNotMatch(allow, /autoplay/, 'the frame must not be granted autoplay');
+      assert.doesNotMatch(frame, /autoplay=1/);
+    }
+    // Bilibili's player plays by default unless told not to.
+    const bilibili = frameIn(await renderPrivateMarkdown('::video{provider="bilibili" id="BV1GJ411x7h7" title="B"}'));
+    assert.match(bilibili, /autoplay=0/);
   });
 
-  it('offers the same honest path in the built article', () => {
-    const consent = /<(a|button)[^>]*data-video-src="([^"]+)"[^>]*>/.exec(capability);
-    assert.ok(consent, 'the built article is expected to contain a video consent control');
-    assert.equal(consent[1], 'a', 'the built article leaves no no-JavaScript path to the video');
-    const href = /href="([^"]+)"/.exec(consent[0]);
-    assert.ok(href, 'the consent control must carry an href');
-    assert.ok(
-      PROVIDER_ORIGINS.some((origin) => href[1].startsWith(origin)),
-      `${href?.[1]} is outside the video provider allowlist`,
-    );
-  });
-
-  it('keeps link semantics after enhancement, so the keyboard contract holds', () => {
-    // A link activates on Enter and not on Space. Claiming role="button"
-    // promises Space as well, and an anchor cannot deliver it -- the key just
-    // scrolls the page. Either the element implements the button contract in
-    // full or it stays the link it already is; it may not advertise one and
-    // behave as the other.
-    const consent = /<a[^>]*data-video-src="[^"]+"[^>]*>/.exec(capability);
-    assert.ok(consent, 'the built article is expected to carry a video consent link');
-    assert.doesNotMatch(consent[0], /role=/, 'the static markup must not override link semantics');
-
-    const chunk = readdirSync(join(out, '_astro'))
-      .filter((name) => name.startsWith('ReaderEnhancements') && name.endsWith('.js'))
-      .map((name) => readFileSync(join(out, '_astro', name), 'utf8'))
-      .find((code) => code.includes('videoBound'));
-    assert.ok(chunk, 'the video binding is expected in the build');
-    assert.ok(
-      !/setAttribute\(\s*[`'"]role[`'"]/.test(chunk),
-      'the script must not add role="button" to an anchor it cannot make behave like one',
-    );
+  it('says in the page that the video is a third party', () => {
+    assert.match(capability, /<iframe[^>]*loading="lazy"/);
+    assert.match(capability, /class="video-card__note"/);
   });
 
   it('refuses a provider that is not on the allowlist', async () => {
@@ -225,9 +233,9 @@ describe('remote music', () => {
     );
   });
 
-  it('says the same thing in the built article', () => {
+  it('says the same thing in Chinese', () => {
     const status = /<p[^>]*data-music-status[^>]*>([\s\S]*?)<\/p>/.exec(capability);
-    assert.ok(status, 'the built article is expected to carry a music status line');
+    assert.ok(status, 'the capability document is expected to carry a music status line');
     assert.match(status[1], /JavaScript/);
     assert.doesNotMatch(status[1], /press play/i);
   });
@@ -259,6 +267,29 @@ describe('local music', () => {
     assert.match(play[0], /disabled/, 'a scripted control must not ship enabled');
   });
 
+  it('keeps its scripted transport out of sight until the script binds it', async () => {
+    const html = await renderPrivateMarkdown(
+      '::music{title="Fixture" artist="Morii" cover="/media/cover.webp" audio="/media/fixture.mp3" lrc="/media/fixture.lrc"}',
+    );
+    const styles = readFileSync('src/styles/base.css', 'utf8');
+    // The row with the play button, the seek bar and the time is in the
+    // markup, but a stylesheet rule hides it on any card the script has not
+    // marked bound, and hides the native player and lyrics link once it has.
+    assert.match(html, /class="music-card__controls"/);
+    assert.match(
+      styles,
+      /\.music-card:not\(\[data-music-bound\]\) \.music-card__controls,\s*\.music-card\[data-music-bound\] audio,\s*\.music-card\[data-music-bound\] \.music-card__lyrics\s*\{\s*display: none;/,
+    );
+    // The seek bar ships disabled too, and the lyric line is not a live region,
+    // or a screen reader would recite the song over itself.
+    assert.match(/<input[^>]*data-music-seek[^>]*>/.exec(html)?.[0] ?? '', /disabled/);
+    assert.match(/<p[^>]*data-music-lyric[^>]*>/.exec(html)?.[0] ?? '', /aria-hidden="true"/);
+    assert.doesNotMatch(/<p[^>]*data-music-lyric[^>]*>/.exec(html)?.[0] ?? '', /aria-live/);
+    // The cover is the card's artwork, not a photograph to open in the lightbox.
+    assert.match(html, /<div class="music-card__art" data-music-art=""><img[^>]*class="music-card__cover"/);
+    assert.doesNotMatch(html, /<a[^>]*data-lightbox[^>]*><img[^>]*music-card__cover/);
+  });
+
   it('points the reader at the control that does work', async () => {
     const html = await renderPrivateMarkdown(LOCAL);
     const status = /<p[^>]*data-music-status[^>]*>([\s\S]*?)<\/p>/.exec(html);
@@ -271,19 +302,44 @@ describe('local music', () => {
 describe('copy protection', () => {
   it('is applied by script only, so copying still works without JavaScript', () => {
     // The restriction lives in a copy listener. Nothing in the markup may block
-    // selection, or a reader without scripts would lose ordinary copying.
-    assert.ok(!/user-select:\s*none/i.test(capability), 'copy protection must not be baked into the markup');
-    assert.match(capability, /data-copy-protection="true"/);
+    // selection, or a reader without scripts would lose ordinary copying. The
+    // article only declares the setting; the listener reads it.
+    const layout = readFileSync('src/layouts/ArticleLayout.astro', 'utf8');
+    const reader = readFileSync('src/components/ReaderEnhancements.astro', 'utf8');
+    // Expressive Code's own stylesheet turns selection off for its line
+    // numbers and copy button, which is about code chrome, not the prose; only
+    // the markup outside a style block is in question here.
+    const markup = capability.replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '');
+    assert.ok(!/user-select:\s*none/i.test(markup), 'copy protection must not be baked into the markup');
+    assert.match(layout, /data-copy-protection=\{String\(features\.copyProtection\)\}/);
+    assert.match(reader, /querySelector<HTMLElement>\('\[data-copy-protection="true"\]'\)/);
+    assert.match(reader, /addEventListener\('copy'/);
   });
 });
 
 describe('protected articles', () => {
   it('publish no draft ciphertext into the reader tree', () => {
+    // Which languages own a protected route is a fact about the content, not
+    // about the entries that happened to exist when this was written. Reading it
+    // keeps both halves of the rule under test: a draft envelope must stay out
+    // of the reader tree, and a published one must reach it.
+    const collection = new URL('../src/content/protected/', import.meta.url);
+    const published = new Set(
+      readdirSync(collection, { recursive: true })
+        .map((entry) => String(entry).split('\\').join('/'))
+        .filter((entry) => entry.endsWith('.json'))
+        .map((entry) => JSON.parse(readFileSync(new URL(entry, collection), 'utf8')))
+        .filter((data) => data.draft !== true)
+        .map((data) => data.lang),
+    );
+
     for (const lang of ['zh', 'ja', 'en']) {
       assert.equal(
         existsSync(join(out, lang, 'protected')),
-        false,
-        `${lang}/protected/ was built, but the only protected entry is a draft`,
+        published.has(lang),
+        published.has(lang)
+          ? `${lang}/protected/ is missing although a published protected article exists`
+          : `${lang}/protected/ was built, but every protected entry for ${lang} is a draft`,
       );
     }
   });

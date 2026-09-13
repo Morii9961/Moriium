@@ -4,11 +4,43 @@
   navigation: auto;
 }
 
-::view-transition-group(root),
-::view-transition-old(root),
+/* A navigation used to cross-fade the whole viewport against itself. Between
+   two pages that share a header, a footer and a ground colour, that is a
+   dissolve between two nearly identical images: it ran, and there was nothing
+   to see. So the parts that do not change are lifted out of the root snapshot
+   and held still, and the part that does change carries the motion.
+   DESIGN.md 10.2 puts a route change in the medium tier. */
+.site-header {
+  view-transition-name: site-header;
+}
+
+.site-footer {
+  view-transition-name: site-footer;
+}
+
+::view-transition-old(root) {
+  animation: moriium-route-out var(--motion-route-exit) var(--motion-route-ease) both;
+}
+
 ::view-transition-new(root) {
-  animation-duration: var(--motion-fast);
-  animation-timing-function: var(--motion-ease);
+  animation: moriium-route-in var(--motion-route-enter) var(--motion-route-ease)
+    calc(var(--motion-route-exit) / 2) both;
+}
+
+/* The page leaving barely travels: it mostly gets out of the way, and the
+   arriving page is the one that moves, rising the last few pixels into place. */
+@keyframes moriium-route-out {
+  to {
+    opacity: 0;
+    transform: translateY(calc(var(--motion-route-travel) * -0.5));
+  }
+}
+
+@keyframes moriium-route-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--motion-route-travel));
+  }
 }
 
 @layer tokens {
@@ -38,6 +70,18 @@
     --line: #c7d4e3;
     --line-soft: var(--moriium-light-border);
     --accent: #365f8d;
+    /* One quiet hue per admonition kind, so the five tones tell apart at a
+       glance without any of them shouting. The idea -- a hue per kind, in the
+       familiar note/tip/important/warning/caution order -- is taken from the
+       Twilight site; the values are Moriium's own, held to low chroma so they sit
+       beside 雾霾蓝 rather than against it, as DESIGN.md 4.5 asks. Note stays in
+       the site's own blue. Caution carries a little more chroma than the rest,
+       because it is the one that has to stop a reader. */
+    --admonition-note: oklch(0.6 0.06 255);
+    --admonition-tip: oklch(0.62 0.055 160);
+    --admonition-important: oklch(0.58 0.055 300);
+    --admonition-warning: oklch(0.66 0.07 75);
+    --admonition-caution: oklch(0.56 0.09 25);
     --accent-strong: var(--moriium-blue-primary);
     --accent-field: var(--moriium-blue-primary);
     --accent-field-ink: #f6f7ff;
@@ -60,6 +104,18 @@
     --motion-fast: 220ms;
     --motion-medium: 520ms;
     --motion-ease: cubic-bezier(0.16, 1, 0.3, 1);
+    /* A route change, in DESIGN.md's medium tier: the page leaving clears in
+       220ms, the arriving page takes 420ms, 530ms end to end -- close to the
+       560ms medium precedent in 10. Travel stays small on purpose: enough to
+       read as a change of page, not a slide.
+       The site's own ease-out is deliberately strong, which is right for a
+       control answering a click and wrong here: it spends most of its distance
+       in the first quarter of the time, so at page scale it reads as a snap.
+       This is easeOutCubic, which covers the distance evenly and lands soft. */
+    --motion-route-exit: 220ms;
+    --motion-route-enter: 420ms;
+    --motion-route-travel: 12px;
+    --motion-route-ease: cubic-bezier(0.33, 1, 0.68, 1);
   }
 
   :root:lang(ja) {
@@ -76,6 +132,13 @@
     --line: #293552;
     --line-soft: var(--moriium-dark-border);
     --accent: #a9b9ef;
+    /* Lighter on the dark canvas, same hues and chroma, so each kind keeps its
+       identity across the two themes. */
+    --admonition-note: oklch(0.72 0.06 255);
+    --admonition-tip: oklch(0.74 0.055 160);
+    --admonition-important: oklch(0.72 0.055 300);
+    --admonition-warning: oklch(0.76 0.07 75);
+    --admonition-caution: oklch(0.7 0.09 25);
     --accent-strong: #c6d0f5;
     --accent-field: var(--moriium-blue-accent);
     --accent-field-ink: #f7f8ff;
@@ -224,11 +287,49 @@
     width: 1.4rem;
   }
 
+  /* The actions are a grid, not a row, so the opened search field can lie over
+     the language and appearance controls without moving anything: the icon,
+     the field and the two controls each have a column, and the field spans
+     from its own column to the end, on top of the controls it replaces.
+     Packed to the end as before, so closed the header looks as it always did.
+     Stretched to the header's height, so the results panel hangs from the
+     header's own lower edge. */
   .public-site .site-actions {
-    display: flex;
-    justify-content: flex-end;
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto auto auto;
+    justify-content: end;
     align-items: center;
-    gap: 0.3rem;
+    /* Spacing is the controls' own margin: a gap would also open around the
+       empty columns and push the icon away from them. */
+    gap: 0;
+    align-self: stretch;
+    justify-self: stretch;
+  }
+
+  .public-site .site-actions > .language-nav,
+  .public-site .site-actions > .theme-toggle {
+    grid-row: 1;
+    margin-left: 0.3rem;
+    transition: opacity var(--motion-fast) ease, visibility 0s;
+  }
+
+  .public-site .site-actions > .language-nav {
+    grid-column: 4;
+  }
+
+  .public-site .site-actions > .theme-toggle {
+    grid-column: 5;
+  }
+
+  /* While the field is open the two controls step aside, and come back when it
+     closes. Hidden rather than removed, so the row keeps its measure and the
+     icon does not move. */
+  .public-site .site-actions:has(.site-search[data-search-state='open']) > :is(.language-nav, .theme-toggle) {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity var(--motion-fast) ease, visibility 0s linear var(--motion-fast);
   }
 
   .public-site .site-tool,
@@ -251,9 +352,7 @@
   }
 
   .public-site .site-tool svg,
-  .public-site .theme-toggle svg,
-  .public-site .site-search__close svg,
-  .public-site .site-search__field svg {
+  .public-site .theme-toggle svg {
     width: 1.05rem;
     fill: none;
     stroke: currentColor;
@@ -284,88 +383,89 @@
     color: var(--accent);
   }
 
+  /* The surface has no box of its own: its icon, field and panel take their
+     places in the actions grid directly. */
   .public-site .site-search {
-    width: min(48rem, calc(100% - 2rem));
-    max-height: min(42rem, calc(100vh - 2rem));
-    padding: 0;
+    display: contents;
+  }
+
+  .public-site .site-search > .site-tool {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  /* Closed, the field is clipped to nothing at the icon's edge; open, it
+     unfurls to the right across the room the two controls leave. It is as tall
+     as the icon beside it, so its rule lands on the icon's lower edge rather
+     than floating above it. `contain` keeps its intrinsic width out of the
+     grid, so it never widens the columns it lies over. `visibility` is delayed
+     on the way out so the text does not vanish before the field has closed. */
+  .public-site .site-search__input {
+    grid-column: 3 / -1;
+    grid-row: 1;
+    justify-self: stretch;
+    width: auto;
+    min-width: 0;
+    height: 2.75rem;
+    padding: 0 0 0 0.75rem;
     border: 0;
-    border-radius: 0;
-    background: var(--surface-raised);
+    border-bottom: 1px solid var(--line);
+    outline: 0;
+    appearance: none;
+    background: transparent;
     color: var(--ink);
-    box-shadow: 0 1.5rem 5rem rgb(4 9 22 / 24%);
+    font-family: var(--font-interface);
+    font-size: 0.78rem;
+    contain: inline-size;
+    clip-path: inset(0 100% 0 0);
+    visibility: hidden;
+    transition: clip-path var(--motion-medium) var(--motion-ease),
+      visibility 0s linear var(--motion-medium);
   }
 
-  .public-site .site-search::backdrop {
-    background: rgb(8 12 24 / 72%);
+  .public-site .site-search[data-search-state='open'] .site-search__input {
+    clip-path: inset(0);
+    visibility: visible;
+    transition: clip-path var(--motion-medium) var(--motion-ease),
+      visibility 0s;
   }
 
+  .public-site .site-search__input::-webkit-search-cancel-button {
+    display: none;
+  }
+
+  .public-site .site-search__input::placeholder {
+    color: var(--ink-faint);
+  }
+
+  /* The results hang under the field, from the icon that opened it to the end
+     of the field, on the panel the filter and the calendar pickers share. An
+     absolutely positioned grid child takes its grid area as its containing
+     block, so the panel is exactly that wide and starts at the header's own
+     lower edge. */
   .public-site .site-search__panel {
-    padding: clamp(1.5rem, 5vw, 4rem);
-    border-top: 0.6rem solid var(--accent-field);
+    grid-column: 2 / -1;
+    grid-row: 1;
+    right: 0;
+    left: 0;
+    top: 100%;
+    width: auto;
+    max-height: min(28rem, 60vh);
+    overflow-y: auto;
+    padding: 0.9rem 1.1rem 1.1rem;
+    scrollbar-width: thin;
   }
 
-  .public-site .site-search__panel > header {
-    display: flex;
-    justify-content: space-between;
-    gap: 2rem;
-    align-items: start;
-  }
-
-  .public-site .site-search__kicker,
-  .public-site .site-search__panel > label,
   .public-site .site-search__summary,
+  .public-site .site-search__empty,
   .public-site .site-search__results time {
     color: var(--ink-faint);
     font-family: var(--font-data);
     font-size: 0.62rem;
   }
 
-  .public-site .site-search h2 {
-    margin-top: 0.5rem;
-    font-family: var(--font-display);
-    font-size: clamp(2rem, 5vw, 4rem);
-    font-weight: 650;
-    letter-spacing: -0.06em;
-  }
-
-  .public-site .site-search__close {
-    display: grid;
-    width: 2.75rem;
-    height: 2.75rem;
-    flex: none;
-    place-items: center;
-    border: 1px solid var(--line);
-    background: transparent;
-    color: var(--ink);
-    cursor: pointer;
-  }
-
-  .public-site .site-search__panel > label {
-    display: block;
-    margin-top: 3rem;
-    margin-bottom: 0.7rem;
-  }
-
-  .public-site .site-search__field {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 1rem;
-    align-items: center;
-    border-bottom: 2px solid var(--ink);
-  }
-
-  .public-site .site-search__field input {
-    width: 100%;
-    padding: 1rem 0;
-    border: 0;
-    outline: 0;
-    background: transparent;
-    color: var(--ink);
-    font-size: 1.05rem;
-  }
-
   .public-site .site-search__summary {
-    margin-block: 1rem 1.5rem;
+    margin-bottom: 0.6rem;
   }
 
   .public-site .site-search__results {
@@ -380,16 +480,32 @@
 
   .public-site .site-search__results a {
     display: grid;
-    grid-template-columns: 7rem 1fr auto;
-    gap: 1rem;
-    align-items: center;
-    min-height: 5rem;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.2rem 1rem;
+    min-height: 3.5rem;
+    align-content: center;
+    padding-block: 0.5rem;
     text-decoration: none;
   }
 
+  .public-site .site-search__results span {
+    grid-column: 1;
+    color: var(--ink-faint);
+    font-family: var(--font-data);
+    font-size: 0.58rem;
+  }
+
   .public-site .site-search__results strong {
+    grid-column: 1;
     font-family: var(--font-display);
+    font-size: 0.95rem;
     font-weight: 580;
+  }
+
+  .public-site .site-search__results time {
+    grid-column: 2;
+    grid-row: 1 / -1;
+    align-self: center;
   }
 
   .public-site .site-search__results a:hover strong,
@@ -533,19 +649,25 @@
 
   .public-site .site-footer__group--utility {
     grid-template-columns: auto minmax(0, 1fr);
+    row-gap: 0.5rem;
   }
 
+  /* The controls are not a column of their own. The language row sits beside
+     the label, and the feed picker starts where the label starts: it belongs to
+     the group rather than to the languages, and indenting it under them read as
+     a fourth language. */
   .public-site .site-footer__utility-controls {
-    display: grid;
-    justify-items: start;
+    display: contents;
   }
 
   .public-site .site-footer__languages {
+    grid-column: 2;
     display: flex;
     gap: clamp(1rem, 2vw, 1.75rem);
   }
 
   .public-site .site-footer__rss-picker {
+    grid-column: 1 / -1;
     position: relative;
     width: fit-content;
   }
@@ -656,6 +778,16 @@
   .aperture-action:hover i,
   .aperture-action:focus-visible i {
     transform: translate(0.25rem, -0.25rem);
+  }
+
+  /* A way back is a phrase, not a row with two ends: the arrow stays beside the
+     words rather than being pushed to the far edge of whatever holds it. The
+     taxonomy pages only looked right because their container shrink-wrapped it;
+     in the article's outline rail space-between put 103px between the two. */
+  .aperture-action--back {
+    width: fit-content;
+    justify-content: flex-start;
+    gap: 0.6rem;
   }
 
   /* A way back reads the other direction: its arrow leads the word and steps
@@ -832,7 +964,11 @@
     border-bottom-color: var(--accent-field);
   }
 
+  /* One control, two places: the writing index's filter and the home
+     calendar's year and month pickers are the same disclosure, so they share
+     these declarations rather than each carrying a copy that drifts. */
   .a-writing-filter > summary,
+  .aperture-calendar__field > summary,
   .a-writing-search__toggle {
     display: inline-flex;
     min-height: 2.75rem;
@@ -851,23 +987,28 @@
 
   /* The rule belongs to the whole search control, so it runs under the icon and
      the field together once the field is open. */
-  .a-writing-filter > summary {
+  .a-writing-filter > summary,
+  .aperture-calendar__field > summary {
     border-bottom: 1px solid var(--line);
   }
 
-  .a-writing-filter > summary::-webkit-details-marker {
+  .a-writing-filter > summary::-webkit-details-marker,
+  .aperture-calendar__field > summary::-webkit-details-marker {
     display: none;
   }
 
   .a-writing-filter > summary:hover,
   .a-writing-filter[open] > summary,
+  .aperture-calendar__field > summary:hover,
+  .aperture-calendar__field[open] > summary,
   .a-writing-search:hover .a-writing-search__toggle,
   .a-writing-search:focus-within .a-writing-search__toggle {
     border-bottom-color: var(--accent-field);
     color: var(--ink);
   }
 
-  .a-writing-filter__value {
+  .a-writing-filter__value,
+  .aperture-calendar__value {
     color: var(--ink);
   }
 
@@ -876,6 +1017,7 @@
   }
 
   .a-writing-filter__caret,
+  .aperture-calendar__caret,
   .a-writing-search__toggle svg {
     width: 0.85rem;
     flex: none;
@@ -940,29 +1082,48 @@
     font-size: 0.82rem;
   }
 
-  .a-writing-filter__caret {
+  .a-writing-filter__caret,
+  .aperture-calendar__caret {
     width: 0.72rem;
     transition: transform var(--motion-fast) var(--motion-ease);
   }
 
-  .a-writing-filter[open] .a-writing-filter__caret {
+  .a-writing-filter[open] .a-writing-filter__caret,
+  .aperture-calendar__field[open] .aperture-calendar__caret {
     transform: rotate(180deg);
   }
 
-  .a-writing-filter__menu {
+  /* The panel itself, shared by the filter and the calendar pickers. */
+  .a-writing-filter__menu,
+  .aperture-calendar__picker-menu,
+  .site-search__panel {
     position: absolute;
     z-index: 15;
     top: calc(100% + 0.4rem);
     right: 0;
-    width: max(15rem, 100%);
-    max-height: min(26rem, 60vh);
-    overflow-y: auto;
-    scrollbar-width: thin;
     padding-block: 0.35rem;
     border: 1px solid var(--line);
     background: var(--surface-raised);
     box-shadow: 0 1rem 2.5rem rgb(4 9 22 / 14%);
     animation: a-writing-filter-open var(--motion-fast) var(--motion-ease) both;
+  }
+
+  /* One column per axis. Each scrolls on its own, so a long tag list cannot
+     push the categories out of reach, and the reset spans both because it
+     belongs to neither. */
+  .a-writing-filter__menu {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(9.5rem, 1fr));
+    width: max(26rem, 100%);
+  }
+
+  /* A single list of years or months: narrow, and scrolling once the years
+     outgrow the panel. */
+  .aperture-calendar__picker-menu {
+    overflow-y: auto;
+    max-height: min(18rem, 44vh);
+    width: max(7.5rem, 100%);
+    scrollbar-width: thin;
   }
 
   @keyframes a-writing-filter-open {
@@ -986,7 +1147,8 @@
     letter-spacing: 0.04em;
   }
 
-  .a-writing-filter__option {
+  .a-writing-filter__option,
+  .aperture-calendar__picker-option {
     display: flex;
     min-height: 2.75rem;
     align-items: center;
@@ -999,25 +1161,56 @@
     transition: background-color var(--motion-fast) ease, color var(--motion-fast) ease;
   }
 
-  .a-writing-filter__option small {
+  .a-writing-filter__option small,
+  .aperture-calendar__picker-option small {
     color: var(--ink-faint);
     font-family: var(--font-data);
     font-size: 0.58rem;
   }
 
-  .a-writing-filter__option[aria-current='true'] {
+  .a-writing-filter__option[aria-pressed='true'],
+  .aperture-calendar__picker-option[aria-pressed='true'] {
     box-shadow: inset 3px 0 0 var(--accent);
   }
 
+  .a-writing-filter__option--all {
+    grid-column: 1 / -1;
+    box-shadow: inset 0 -1px 0 var(--line);
+  }
+
+  .a-writing-filter__option--all[aria-pressed='true'] {
+    box-shadow: inset 3px 0 0 var(--accent), inset 0 -1px 0 var(--line);
+  }
+
+  .a-writing-filter__column {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+  }
+
+  .a-writing-filter__column + .a-writing-filter__column {
+    border-left: 1px solid var(--line);
+  }
+
+  .a-writing-filter__options {
+    overflow-y: auto;
+    max-height: min(22rem, 46vh);
+    scrollbar-width: thin;
+  }
+
   .a-writing-filter__option:hover,
-  .a-writing-filter__option:focus-visible {
+  .a-writing-filter__option:focus-visible,
+  .aperture-calendar__picker-option:hover,
+  .aperture-calendar__picker-option:focus-visible {
     background: var(--accent-field);
     color: var(--accent-field-ink);
     outline-offset: -4px;
   }
 
   .a-writing-filter__option:hover small,
-  .a-writing-filter__option:focus-visible small {
+  .a-writing-filter__option:focus-visible small,
+  .aperture-calendar__picker-option:hover small,
+  .aperture-calendar__picker-option:focus-visible small {
     color: color-mix(in srgb, var(--accent-field-ink) 70%, transparent);
   }
 
@@ -1965,13 +2158,56 @@
       text-align: left;
     }
 
-    .public-site .site-search__results a {
-      grid-template-columns: 1fr auto;
+    /* No room beside the icon at this width: the actions column is under 6rem.
+       So the field opens over the wordmark instead, growing out of the icon
+       towards the left -- the only direction there is -- and the results take
+       the header's full width beneath it. The header row is the anchor for
+       both. */
+    .public-site .site-header__inner {
+      position: relative;
     }
 
+    .public-site .site-actions {
+      position: static;
+      align-self: auto;
+    }
+
+    .public-site .site-search__input {
+      position: absolute;
+      /* The middle of the first row, where the icon is. Half the header would
+         be the navigation row beneath it at this width. */
+      top: calc(1rem + 2.75rem / 2);
+      right: calc(var(--gutter) + 2 * 2.75rem + 0.6rem);
+      left: var(--gutter);
+      grid-column: auto;
+      grid-row: auto;
+      background: var(--surface);
+      clip-path: inset(0 0 0 100%);
+      transform: translateY(-50%);
+      transition: clip-path var(--motion-medium) var(--motion-ease),
+        visibility 0s linear var(--motion-medium);
+    }
+
+    .public-site .site-search[data-search-state='open'] .site-search__input {
+      clip-path: inset(0);
+      transition: clip-path var(--motion-medium) var(--motion-ease),
+        visibility 0s;
+    }
+
+    .public-site .site-search__panel {
+      grid-column: auto;
+      grid-row: auto;
+      top: 100%;
+      right: var(--gutter);
+      left: var(--gutter);
+    }
+
+    /* The panel is the width of the screen here, so the date drops under the
+       title rather than competing with it for the row. */
     .public-site .site-search__results time {
-      grid-column: 1 / -1;
-      padding-top: 0.8rem;
+      grid-column: 1;
+      grid-row: auto;
+      padding-top: 0.35rem;
     }
 
     .a-directory__hero {
@@ -2145,10 +2381,21 @@
       flex-basis: min(13rem, 46vw);
     }
 
+    /* Too narrow for two columns; the axes stack and keep their own scroll. */
     .a-writing-filter__menu {
       right: auto;
       left: 0;
-      width: min(17rem, calc(100vw - 2.2rem));
+      grid-template-columns: minmax(0, 1fr);
+      width: min(20rem, calc(100vw - 2.2rem));
+    }
+
+    .a-writing-filter__column + .a-writing-filter__column {
+      border-top: 1px solid var(--line);
+      border-left: 0;
+    }
+
+    .a-writing-filter__options {
+      max-height: min(14rem, 32vh);
     }
   }
 }
@@ -2163,10 +2410,14 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  ::view-transition-group(root),
-  ::view-transition-old(root),
-  ::view-transition-new(root) {
-    animation-duration: 0.01ms !important;
+  /* The travel goes; the change of page stays legible. A short cross-fade says
+     the document was replaced, which an instant swap at 0.01ms did not --
+     DESIGN.md 10.4 asks for less movement, not for nothing. These are
+     unlayered, so they win over the tokens in @layer tokens. */
+  :root {
+    --motion-route-travel: 0px;
+    --motion-route-exit: 100ms;
+    --motion-route-enter: 160ms;
   }
 
   @layer components {

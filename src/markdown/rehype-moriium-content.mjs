@@ -2,9 +2,11 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { readerCopyForFile } from './reader-copy.mjs';
 
+// Neither may start on its own. YouTube's embed waits for a press by default;
+// Bilibili's player starts playing unless told otherwise, hence autoplay=0.
 const VIDEO_PROVIDERS = {
   youtube: (id) => `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}`,
-  bilibili: (id) => `https://player.bilibili.com/player.html?bvid=${encodeURIComponent(id)}`,
+  bilibili: (id) => `https://player.bilibili.com/player.html?bvid=${encodeURIComponent(id)}&autoplay=0`,
 };
 const ALLOWED_METING_ORIGIN = 'https://meting.spr-aachen.com';
 
@@ -96,32 +98,34 @@ function transformVideo(node, copy) {
   }
 
   const embed = VIDEO_PROVIDERS[provider]?.(id);
-  // The consent control is a link, not a button. Deferring the iframe until the
-  // reader asks is the point, but a button carrying the URL in a data attribute
-  // leaves a reader without JavaScript with no way to reach the video at all.
-  // As a link it degrades to what it is — a way to open the video at the
-  // provider — and ReaderEnhancements upgrades it to an inline frame in place.
-  // The href is the same allowlisted embed URL, so this adds no new origin.
+  // The player is in the page as built, rather than a consent link a script
+  // swaps for a frame. Morii chose to have videos load without a click, so:
+  //
+  //   * loading="lazy" -- the browser, not this code, decides how near is near.
+  //     Chrome starts fetching a lazy frame a screen or more before it arrives,
+  //     so on a short article every player loads with the page and the provider
+  //     is contacted on arrival; only a video far down a long article waits;
+  //   * no autoplay -- the allow list leaves autoplay out, and each provider
+  //     URL above is one that waits for a press;
+  //   * no script -- a frame needs none, so this also works for a reader
+  //     without JavaScript, which the consent link only approximated.
+  //
+  // The origin is still the allowlisted provider, so the CSP's frame-src is
+  // unchanged. The note says it is a third party, because the frame does not.
   node.children = embed
     ? [
-        element(
-          'a',
-          {
-            className: ['video-consent'],
-            href: embed,
-            rel: ['noopener', 'noreferrer'],
-            dataVideoSrc: embed,
-            dataVideoTitle: title,
-            ariaLabel: `${copy.video.load}${title}`,
-          },
-          [
-            element('span', { className: ['video-consent__title'] }, [text(title)]),
-            element('span', { className: ['video-consent__note'] }, [
-              text(copy.video.thirdParty),
-            ]),
-          ],
-        ),
-        element('figcaption', {}, [text(title)]),
+        element('iframe', {
+          src: embed,
+          title,
+          loading: 'lazy',
+          allow: 'accelerometer; encrypted-media; gyroscope; picture-in-picture; fullscreen',
+          allowFullScreen: true,
+          referrerPolicy: 'strict-origin-when-cross-origin',
+        }),
+        element('figcaption', {}, [
+          element('span', { className: ['video-card__title'] }, [text(title)]),
+          element('span', { className: ['video-card__note'] }, [text(copy.video.thirdParty)]),
+        ]),
       ]
     : [element('p', { className: ['embed-error'] }, [text(copy.video.blocked)])];
 }
@@ -145,42 +149,68 @@ function transformMusic(node, copy) {
     ...(meting ? { dataMeting: meting } : {}),
   };
   node.children = [
-    ...(isSafeCover
-      ? [element('img', { src: cover, alt: '', loading: 'lazy', decoding: 'async', className: ['music-card__cover'] })]
-      : []),
+    // The art square is always there, so a card without a cover keeps the same
+    // shape as one with, instead of collapsing into a column of text.
+    element('div', { className: ['music-card__art'], dataMusicArt: '' }, [
+      isSafeCover
+        ? element('img', { src: cover, alt: '', loading: 'lazy', decoding: 'async', className: ['music-card__cover'] })
+        : element('span', { className: ['music-card__mark'], ariaHidden: 'true' }, [text('♪')]),
+    ]),
     element('figcaption', { className: ['music-card__body'] }, [
-      element('strong', { className: ['music-card__title'] }, [text(title)]),
-      element('span', { className: ['music-card__artist'] }, [text(artist)]),
-      // This button does nothing without the script -- for a remote track it has
-      // no audio URL yet, and for a local one every listener lives in
-      // ReaderEnhancements. So it ships disabled in every case and is enabled on
-      // bind. Shipping it enabled for local audio only looked like a smaller
-      // claim, but it still put a dead control in front of a reader with no
-      // JavaScript, which is the thing this is supposed to prevent.
-      element(
-        'button',
-        { type: 'button', className: ['music-card__play'], dataMusicPlay: '', disabled: true },
-        [text(copy.music.play)],
-      ),
+      element('div', { className: ['music-card__head'] }, [
+        element('strong', { className: ['music-card__title'] }, [text(title)]),
+        element('span', { className: ['music-card__artist'] }, [text(artist)]),
+      ]),
+      // One line under the title. It says what the card is doing, and while a
+      // track with lyrics plays, the lyric sung at that moment takes its place.
+      // The status is the live region; the lyric is not, or a screen reader
+      // would recite the song over itself.
+      element('div', { className: ['music-card__line'] }, [
+        // The static status describes the page as it stands, with no script yet
+        // run. Telling a reader to press play while the button is disabled is
+        // the contradiction this replaces; ReaderEnhancements swaps in the
+        // working message once the control actually works.
+        element('p', { className: ['music-card__status'], ariaLive: 'polite', dataMusicStatus: '' }, [
+          text(isSafeLocalAudio ? copy.music.noScriptLocal : copy.music.noScriptRemote),
+        ]),
+        element('p', { className: ['music-card__lyric'], ariaHidden: 'true', dataMusicLyric: '', hidden: true }, []),
+      ]),
+      // These controls do nothing without the script -- for a remote track there
+      // is no audio URL yet, and for a local one every listener lives in
+      // ReaderEnhancements. So the button ships disabled, the whole row is kept
+      // out of sight by CSS until the script marks the card bound, and a reader
+      // without JavaScript is left the native player below rather than a dead
+      // control beside it.
+      element('div', { className: ['music-card__controls'] }, [
+        element(
+          'button',
+          { type: 'button', className: ['music-card__play'], dataMusicPlay: '', disabled: true, ariaLabel: copy.music.play },
+          [
+            element('span', { className: ['music-card__icon'], ariaHidden: 'true' }, []),
+            element('span', { className: ['visually-hidden'], dataMusicPlayLabel: '' }, [text(copy.music.play)]),
+          ],
+        ),
+        element('input', {
+          type: 'range',
+          className: ['music-card__seek'],
+          min: '0',
+          max: '0',
+          step: '0.1',
+          value: '0',
+          disabled: true,
+          ariaLabel: copy.music.seek,
+          dataMusicSeek: '',
+        }),
+        element('span', { className: ['music-card__time'], dataMusicTime: '' }, [text('0:00 / 0:00')]),
+      ]),
       ...(isSafeLyrics
-        ? [element('a', { href: lrc, className: ['music-card__lyrics'], rel: ['noopener', 'noreferrer'] }, [text(copy.music.lyrics)])]
+        ? [element('a', { href: lrc, className: ['music-card__lyrics'], rel: ['noopener', 'noreferrer'], dataMusicLrc: '' }, [text(copy.music.lyrics)])]
         : []),
       // Native controls are the fallback: with no script the element is still a
       // working player, and preload="none" keeps it from fetching anything.
       ...(isSafeLocalAudio
         ? [element('audio', { src: audio, controls: true, preload: 'none', dataMusicAudio: '' })]
         : []),
-      // The static status describes the page as it stands, with no script yet
-      // run. Telling a reader to press play while the button is disabled is the
-      // contradiction this replaces; ReaderEnhancements swaps in the working
-      // message once the control actually works.
-      element('p', { className: ['music-card__status'], ariaLive: 'polite', dataMusicStatus: '' }, [
-        text(
-          isSafeLocalAudio
-            ? copy.music.noScriptLocal
-            : copy.music.noScriptRemote,
-        ),
-      ]),
     ]),
   ];
 }
@@ -235,7 +265,10 @@ export function rehypeMoriiumContent() {
     walk(tree, (node, parent, index) => {
       if (node.type !== 'element') return;
 
-      if (node.tagName === 'img' && parent && parent.tagName !== 'a') {
+      // A music card's cover is the card's artwork, not a photograph in the
+      // article, so it does not become a lightbox link.
+      const isMusicCover = node.properties?.className?.includes?.('music-card__cover');
+      if (node.tagName === 'img' && parent && parent.tagName !== 'a' && !isMusicCover) {
         transformImage(node, parent, index, copy);
         return;
       }

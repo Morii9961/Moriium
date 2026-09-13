@@ -41,6 +41,7 @@ const version = {
   draft: false,
   unlisted: false,
   copyProtection: false,
+  author: 'Morii',
   markdown: '本文。',
   editorJson: null,
 };

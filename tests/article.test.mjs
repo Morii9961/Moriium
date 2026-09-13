@@ -75,14 +75,16 @@ test('the article page declares itself to aggregators without tracking a reader'
   assert.match(article, /replaceAll\('<', '\\\\u003c'\)/);
 });
 
-test('reading time counts prose rather than source', async () => {
+test('the article facts name the author where the reading time used to be', async () => {
   const article = await read('src/layouts/ArticleLayout.astro');
-  const body = article.slice(article.indexOf('const readingMinutes'), article.indexOf('const copy'));
+  const facts = article.slice(article.indexOf('<dl class="a-article__facts">'), article.indexOf('</dl>'));
 
-  // Each of these arrives on the page as something other than words.
-  for (const stripped of [/```/, /\\\$\\\$/, /\^:::/, /::\\w\+\\\{/, /https\?:/]) {
-    assert.match(body, stripped);
-  }
+  // The minute estimate is gone, not hidden: no row, no copy, no counter.
+  assert.doesNotMatch(article, /readingMinutes|c\.reading|c\.minutes|阅读时间|読了目安|Reading time/);
+  // Published, then updated, then the byline, then the category.
+  const order = ['c.published', 'c.updated', 'c.author', 'c.category'].map((key) => facts.indexOf(`{${key}}`));
+  assert.ok(order.every((index) => index >= 0), `a fact row is missing: ${order}`);
+  assert.deepEqual([...order].sort((a, b) => a - b), order);
 });
 
 test('the reading grid centres the prose and hangs the outline in the margin', async () => {
@@ -169,7 +171,7 @@ test('the article layout keeps responsive reading columns and keyboard states', 
   assert.match(styles, /@media print/);
   assert.match(styles, /break-inside: avoid/);
   assert.match(base, /@media \(prefers-reduced-motion: reduce\)/);
-  assert.match(base, /\.video-consent\s*{[^}]*width:\s*100%[^}]*min-height:\s*0[^}]*aspect-ratio:/s);
+  assert.match(base, /\.video-card iframe,\s*\.video-card video\s*{[^}]*width:\s*100%[^}]*aspect-ratio:\s*var\(--video-ratio/s);
 });
 
 test('one Expressive Code configuration drives every renderer', async () => {
@@ -187,4 +189,111 @@ test('one Expressive Code configuration drives every renderer', async () => {
   assert.match(shared, /borderColor: 'var\(--line\)'/);
   assert.match(shared, /frameBoxShadowCssValue: 'none'/);
   assert.match(shared, /editorActiveTabIndicatorTopColor: 'var\(--accent-field\)'/);
+});
+
+test('a concealed spoiler is one solid mask and fades rather than switches', async () => {
+  const styles = await read('src/styles/public-reading.css');
+
+  // Inline code paints its own background, which sat on the mask as a grey
+  // patch the shape of the hidden word. While concealed nothing inside paints.
+  assert.match(
+    styles,
+    /\.spoiler:not\(:hover, :focus, \[data-revealed='true'\]\) \*\s*{[^}]*background-color:\s*transparent;[^}]*color:\s*transparent;/s,
+  );
+  // The reveal is a colour change in fast time, on the spoiler and on what it
+  // holds, so inline code does not snap in while the words around it fade.
+  assert.match(
+    styles,
+    /\.article-body \.spoiler,\s*\.public-site \.article-body \.spoiler \*\s*{[^}]*transition:[^}]*background-color var\(--motion-fast\) ease[^}]*color var\(--motion-fast\) ease/s,
+  );
+});
+
+test('each admonition kind has its own quiet hue, in both themes', async () => {
+  const [tokens, reading] = await Promise.all([
+    read('src/styles/public.css'),
+    read('src/styles/public-reading.css'),
+  ]);
+
+  const kinds = ['note', 'tip', 'important', 'warning', 'caution'];
+  const light = tokens.slice(0, tokens.indexOf(":root[data-theme='dark']"));
+  const dark = tokens.slice(tokens.indexOf(":root[data-theme='dark']"));
+  for (const kind of kinds) {
+    // Declared for both themes, and low in chroma: none of them above 0.1.
+    for (const [name, block] of [['light', light], ['dark', dark]]) {
+      const match = new RegExp(String.raw`--admonition-${kind}:\s*oklch\(([\d.]+) ([\d.]+) ([\d.]+)\)`).exec(block);
+      assert.ok(match, `--admonition-${kind} is missing from the ${name} tokens`);
+      assert.ok(Number(match[2]) <= 0.1, `--admonition-${kind} is too saturated in ${name}`);
+    }
+    assert.match(
+      reading,
+      new RegExp(String.raw`\.admonition--${kind}\s*{\s*border-left-color:\s*var\(--admonition-${kind}\);`),
+    );
+  }
+  // Five kinds used to read as two: every warning and caution shared one red.
+  assert.doesNotMatch(reading, /admonition--warning, \.admonition--caution\) {\s*border-left-color:\s*var\(--danger\)/);
+});
+
+test('a sideways scroller in the prose draws a quiet bar in the chosen theme', async () => {
+  const [base, reading] = await Promise.all([
+    read('src/styles/base.css'),
+    read('src/styles/public-reading.css'),
+  ]);
+
+  // "light dark" alone let a dark system paint dark native scrollbars over
+  // the light theme's code blocks.
+  assert.match(base, /html\[data-theme='light'\] \{\s*color-scheme: light;/);
+  assert.match(base, /html\[data-theme='dark'\] \{\s*color-scheme: dark;/);
+  assert.match(reading, /\.public-site \.article-body \{\s*scrollbar-color: var\(--ink-faint\) transparent;/);
+  // Expressive Code resets its descendants from outside any layer.
+  assert.match(reading, /\.expressive-code pre \{\s*scrollbar-width: thin !important;/);
+});
+
+test('a Mermaid diagram is drawn in the site colours and can be panned and zoomed without trapping the page', async () => {
+  const [reader, base, copy] = await Promise.all([
+    read('src/components/ReaderEnhancements.astro'),
+    read('src/styles/base.css'),
+    read('src/markdown/reader-copy.mjs'),
+  ]);
+
+  // Mermaid's grey neutral and dark themes are gone; its base theme is fed the
+  // page's own tokens.
+  assert.match(reader, /theme: 'base',\s*themeVariables: themeVariables\(\)/);
+  assert.doesNotMatch(reader, /theme: dark \? 'dark' : 'neutral'/);
+  for (const name of ['--surface-raised', '--ink', '--line', '--accent']) {
+    assert.match(reader, new RegExp(String.raw`token\('${name}'\)`));
+  }
+  // The wheel stays the page's unless Ctrl or Cmd is held.
+  assert.match(reader, /if \(!event\.ctrlKey && !event\.metaKey\) return;\s*event\.preventDefault\(\);/);
+  assert.match(reader, /\{ passive: false \}/);
+  // Drag, pinch and keyboard all move the same view.
+  for (const marker of ["'pointerdown'", "'pointermove'", 'pointers.size === 2', "ArrowLeft", "'0': () => apply(fitted, true)"]) {
+    assert.ok(reader.includes(marker), `viewer lost ${marker}`);
+  }
+  // A touch swipe scrolls past the frame until the reader has moved it.
+  assert.match(base, /\.mermaid-shell__viewport \{[^}]*touch-action: pan-y;/s);
+  assert.match(base, /\.mermaid-shell\[data-mermaid-engaged\] \.mermaid-shell__viewport \{\s*touch-action: none;/);
+  // The old scrolling fallback is gone with the viewer that replaced it.
+  assert.doesNotMatch(reader + base, /data-mermaid-scroll|mermaidScroll/);
+  // Every control is labelled in all three languages.
+  for (const key of ['zoomIn', 'zoomOut', 'reset', 'hintPointer', 'hintTouch', 'keys']) {
+    assert.equal(copy.match(new RegExp(String.raw`\b${key}: '`, 'g'))?.length, 3, `${key} is not in every language`);
+  }
+});
+
+test('a music card starts a remote track on the press that fetches it, and never shows a browser error', async () => {
+  const reader = await read('src/components/ReaderEnhancements.astro');
+  const music = reader.slice(reader.indexOf('{features.music && ('), reader.indexOf('bindMusic();'));
+
+  // Nothing is fetched before the press...
+  assert.doesNotMatch(music.slice(0, music.indexOf("button.addEventListener('click'")), /fetchRemote\(endpoint\)|audio\.play\(\)/);
+  // ...and the press that fetches is the press that plays.
+  const click = music.slice(music.indexOf("button.addEventListener('click'"));
+  assert.ok(click.indexOf('fetchRemote(endpoint)') < click.indexOf('await audio.play()'), 'the fetching press must go on to play');
+  assert.doesNotMatch(music, /musicCopy\.loaded/);
+  // A browser's own reason is replaced with the site's message.
+  assert.match(music, /say\(own \? \(error as Error\)\.message : musicCopy\.unavailable\)/);
+  assert.match(music, /if \(!element\.error\) say\(musicCopy\.paused\)/);
+  // Lyrics are parsed and followed as the track plays.
+  assert.match(music, /const parseLyrics = /);
+  assert.match(music, /addEventListener\('timeupdate', paint\)/);
 });

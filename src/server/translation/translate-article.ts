@@ -105,6 +105,9 @@ function writeVariant(
     draft: latest.draft,
     unlisted: latest.unlisted,
     copyProtection: latest.copyProtection,
+    // The article is still its author's in another language; the notice, not
+    // the byline, is where the page says a machine produced the wording.
+    author: latest.author,
     editorJson: null,
   });
 

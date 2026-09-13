@@ -76,6 +76,7 @@ export function toMarkdownFile(article: Article, version: Version): string {
   if (article.machineTranslatedFrom !== null) {
     fields.push(line('machineTranslation', scalar(article.machineTranslatedFrom)));
   }
+  fields.push(line('author', scalar(version.author)));
   fields.push(line('category', scalar(version.category)));
   if (version.tags.length === 0) {
     fields.push(line('tags', '[]'));

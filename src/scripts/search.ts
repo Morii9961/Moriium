@@ -1,3 +1,11 @@
+// Site search, as a field that opens in place.
+//
+// It used to be a modal dialog. The surface is now the header itself: the icon
+// keeps its position, the field unfurls beside it, and results drop into a
+// panel under it. What has not changed is the part the reader pays for -- the
+// index is fetched the first time the field opens, never on page load, and the
+// module that does the fetching is imported at the same moment.
+
 type SearchRecord = {
   title: string;
   summary: string;
@@ -12,10 +20,11 @@ type SearchState = {
   trigger: HTMLElement | null;
   status: 'idle' | 'loading' | 'ready' | 'error';
   render: () => void;
+  close: (moveFocus: boolean) => void;
 };
 
 const indexCache = new Map<string, Promise<SearchRecord[]>>();
-const dialogStates = new WeakMap<HTMLDialogElement, SearchState>();
+const surfaceStates = new WeakMap<HTMLElement, SearchState>();
 
 function normalized(value: string, locale: string) {
   return value.normalize('NFKC').toLocaleLowerCase(locale);
@@ -62,48 +71,97 @@ function createResult(record: SearchRecord) {
   return item;
 }
 
-function bindDialog(dialog: HTMLDialogElement, state: SearchState) {
-  const input = dialog.querySelector<HTMLInputElement>('[data-search-input]');
-  const close = dialog.querySelector<HTMLButtonElement>('[data-search-close]');
-  const results = dialog.querySelector<HTMLOListElement>('[data-search-results]');
-  const summary = dialog.querySelector<HTMLElement>('[data-search-summary]');
-  const empty = dialog.querySelector<HTMLElement>('[data-search-empty]');
-  const locale = dialog.dataset.searchLocale ?? 'en-US';
+/** Whether the field is open, said in the three places that have to agree. */
+function setOpen(surface: HTMLElement, open: boolean) {
+  surface.dataset.searchState = open ? 'open' : 'closed';
+  surface.querySelector('[data-search-open]')?.setAttribute('aria-expanded', String(open));
+  // Closing hides the panel outright; opening leaves it to render(), which
+  // knows whether there is anything to show yet.
+  const panel = surface.querySelector<HTMLElement>('[data-search-panel]');
+  if (panel && !open) panel.hidden = true;
+}
 
-  if (!input || !close || !results || !summary || !empty) return () => {};
+function bindSurface(surface: HTMLElement, state: SearchState) {
+  const input = surface.querySelector<HTMLInputElement>('[data-search-input]');
+  const toggle = surface.querySelector<HTMLButtonElement>('[data-search-open]');
+  const results = surface.querySelector<HTMLOListElement>('[data-search-results]');
+  const summary = surface.querySelector<HTMLElement>('[data-search-summary]');
+  const empty = surface.querySelector<HTMLElement>('[data-search-empty]');
+  const locale = surface.dataset.searchLocale ?? 'en-US';
+
+  if (!input || !toggle || !results || !summary || !empty) {
+    return { render: () => {}, close: () => {} };
+  }
 
   const render = () => {
     results.replaceChildren();
+    // The panel only exists when it has something in it. The idle copy is empty
+    // in some languages, and an empty box under the header says nothing while
+    // still covering the page.
+    const panel = surface.querySelector<HTMLElement>('[data-search-panel]');
+    if (panel) {
+      const speaks = state.status === 'loading' || state.status === 'error' || input.value.trim().length > 0;
+      panel.hidden = surface.dataset.searchState !== 'open' || !speaks;
+    }
     if (state.status === 'loading' || state.status === 'error') {
       summary.textContent = state.status === 'loading'
-        ? dialog.dataset.searchLoading ?? ''
-        : dialog.dataset.searchError ?? '';
+        ? surface.dataset.searchLoading ?? ''
+        : surface.dataset.searchError ?? '';
       empty.hidden = true;
       return;
     }
 
     const query = input.value.trim();
     if (!query) {
-      summary.textContent = dialog.dataset.searchIdle ?? '';
+      summary.textContent = surface.dataset.searchIdle ?? '';
       empty.hidden = true;
       return;
     }
 
     const matches = filterRecords(state.records ?? [], query, locale);
     results.append(...matches.map(createResult));
-    summary.textContent = `${dialog.dataset.searchResultPrefix ?? ''}${matches.length}${dialog.dataset.searchResultSuffix ?? ''}`;
+    summary.textContent = `${surface.dataset.searchResultPrefix ?? ''}${matches.length}${surface.dataset.searchResultSuffix ?? ''}`;
     empty.hidden = matches.length > 0;
   };
 
+  const close = (moveFocus: boolean) => {
+    if (surface.dataset.searchState !== 'open') return;
+    input.value = '';
+    setOpen(surface, false);
+    render();
+    if (moveFocus) (state.trigger ?? toggle).focus();
+  };
+
   input.addEventListener('input', render);
+
   input.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      close(true);
+      return;
+    }
     if (event.key !== 'ArrowDown') return;
     const firstResult = results.querySelector<HTMLAnchorElement>('a');
     if (!firstResult) return;
     event.preventDefault();
     firstResult.focus();
   });
+
+  // An empty field left behind folds away, the way the writing index's does. A
+  // field with something in it stays, because its results are still on screen.
+  input.addEventListener('blur', (event) => {
+    if (input.value) return;
+    const next = event.relatedTarget;
+    if (next instanceof Node && surface.contains(next)) return;
+    close(false);
+  });
+
   results.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      close(true);
+      return;
+    }
     if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
     const links = [...results.querySelectorAll<HTMLAnchorElement>('a')];
     const current = links.indexOf(document.activeElement as HTMLAnchorElement);
@@ -112,38 +170,36 @@ function bindDialog(dialog: HTMLDialogElement, state: SearchState) {
     const next = event.key === 'ArrowDown' ? current + 1 : current - 1;
     (links[next] ?? (next < 0 ? input : links[0]))?.focus();
   });
-  close.addEventListener('click', () => dialog.close());
-  dialog.addEventListener('click', (event) => {
-    if (event.target === dialog) dialog.close();
-  });
-  dialog.addEventListener('close', () => {
-    input.value = '';
-    results.replaceChildren();
-    summary.textContent = dialog.dataset.searchIdle ?? '';
-    empty.hidden = true;
-    state.trigger?.focus();
+
+  document.addEventListener('click', (event) => {
+    const target = event.target;
+    if (target instanceof Node && surface.contains(target)) return;
+    close(false);
   });
 
-  return render;
+  return { render, close };
 }
 
-export async function openSearch(dialog: HTMLDialogElement, trigger: HTMLElement | null = null) {
-  let state = dialogStates.get(dialog);
+export async function openSearch(surface: HTMLElement, trigger: HTMLElement | null = null) {
+  let state = surfaceStates.get(surface);
   if (!state) {
-    state = { records: null, trigger, status: 'idle', render: () => {} };
-    dialogStates.set(dialog, state);
-    state.render = bindDialog(dialog, state);
+    state = { records: null, trigger, status: 'idle', render: () => {}, close: () => {} };
+    surfaceStates.set(surface, state);
+    const bound = bindSurface(surface, state);
+    state.render = bound.render;
+    state.close = bound.close;
   } else {
     state.trigger = trigger;
   }
 
-  if (!dialog.open) dialog.showModal();
-  const input = dialog.querySelector<HTMLInputElement>('[data-search-input]');
+  setOpen(surface, true);
+  state.render();
+  const input = surface.querySelector<HTMLInputElement>('[data-search-input]');
   requestAnimationFrame(() => input?.focus());
 
   if (state.records) return;
-  const indexPath = dialog.dataset.searchIndex;
-  if (!indexPath) throw new Error('Search dialog is missing its index path.');
+  const indexPath = surface.dataset.searchIndex;
+  if (!indexPath) throw new Error('Search surface is missing its index path.');
   state.status = 'loading';
   state.render();
 
@@ -156,4 +212,23 @@ export async function openSearch(dialog: HTMLDialogElement, trigger: HTMLElement
     state.status = 'error';
     state.render();
   }
+}
+
+export function closeSearch(surface: HTMLElement, moveFocus = true) {
+  surfaceStates.get(surface)?.close(moveFocus);
+}
+
+/**
+ * What the icon does.
+ *
+ * The icon is one control with two directions, and only one place may decide
+ * which: when the layout opened it and the module closed it, a single click ran
+ * both and the field opened and shut again in the same gesture.
+ */
+export async function toggleSearch(surface: HTMLElement, trigger: HTMLElement | null = null) {
+  if (surface.dataset.searchState === 'open') {
+    closeSearch(surface, true);
+    return;
+  }
+  await openSearch(surface, trigger);
 }

@@ -89,3 +89,45 @@ A footnote.[^1]
     for (const copy of expected) assert.match(html, new RegExp(copy));
   }
 });
+
+test('a colon that is not a directive stays in the text', async () => {
+  // remark-directive claims a colon followed by a word, so a time, a ratio or
+  // an English "word:word" was parsed as an inline directive and dropped. The
+  // loss was silent: the reader saw "08" where the source said "08:12".
+  const html = await renderPrivateMarkdown(`
+## YouTube 16:9
+
+Departs 08:12, arrives 10:47.
+
+Note:this is prose, not a directive.
+`);
+
+  assert.match(html, /16:9/);
+  assert.match(html, /08:12/);
+  assert.match(html, /10:47/);
+  assert.match(html, /Note:this is prose/);
+  assert.doesNotMatch(html, /<div><\/div>/);
+});
+
+test('an unknown directive prints itself rather than disappearing', async () => {
+  const html = await renderPrivateMarkdown(`
+Text with :unknownname[a label] inside.
+
+::alsounknown{repo="a/b"}
+`);
+
+  assert.match(html, /:unknownname\[a label\]/);
+  assert.match(html, /::alsounknown\{/);
+});
+
+test('the directives Moriium defines keep their meaning', async () => {
+  const html = await renderPrivateMarkdown(`
+A sentence with :spoiler[something hidden] in it.
+
+::github{repo="Morii9961/Moriium"}
+`);
+
+  assert.match(html, /data-spoiler/);
+  assert.match(html, /class="github-card"/);
+  assert.doesNotMatch(html, /:spoiler\[/);
+});

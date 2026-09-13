@@ -304,13 +304,13 @@ describe('an article loads only what its own body needs', () => {
   it('never fetches a remote provider eagerly, even where it embeds one', () => {
     for (const article of articles) {
       const { html } = eagerClosure(article.page);
-      // A provider may be named as a link or a consent target. It may not be a
-      // live iframe or preconnect, which the browser would fetch on load.
+      // A video's player is in the page, by Morii's choice, but only as a lazy
+      // frame, whose loading the browser schedules. An eager frame or a
+      // preconnect would fetch on load unconditionally, even far down a page.
       for (const origin of THIRD_PARTY_ORIGINS) {
-        assert.ok(
-          !new RegExp(`<iframe[^>]+src="${origin}`).test(html),
-          `${article.file} renders a live iframe for ${origin} before consent`,
-        );
+        for (const frame of html.match(new RegExp(`<iframe[^>]+src="${origin}[^>]*>`, 'g')) ?? []) {
+          assert.match(frame, /loading="lazy"/, `${article.file} loads a ${origin} frame eagerly`);
+        }
         assert.ok(
           !new RegExp(`rel="(?:preconnect|dns-prefetch|preload)"[^>]*${origin}`).test(html),
           `${article.file} preconnects to ${origin}`,

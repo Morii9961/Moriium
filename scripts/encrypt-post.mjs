@@ -34,6 +34,9 @@ function publicMetadata(frontmatter) {
   if (!String(frontmatter.slug).startsWith(`${frontmatter.lang}/`)) {
     throw new Error('slug must begin with the article language and a slash.');
   }
+  if ('author' in frontmatter && !['Morii', 'Enouia'].includes(frontmatter.author)) {
+    throw new Error('author must be Morii or Enouia.');
+  }
   return {
     title: String(frontmatter.title),
     slug: String(frontmatter.slug),
@@ -42,6 +45,9 @@ function publicMetadata(frontmatter) {
     ...(frontmatter.updatedAt ? { updatedAt: frontmatter.updatedAt } : {}),
     lang: String(frontmatter.lang),
     translationKey: String(frontmatter.translationKey),
+    // Public metadata, like the title: the reader sees whose article it is
+    // before unlocking it.
+    author: frontmatter.author === 'Enouia' ? 'Enouia' : 'Morii',
     category: String(frontmatter.category),
     tags: Array.isArray(frontmatter.tags) ? frontmatter.tags.map(String) : [],
     draft: Boolean(frontmatter.draft),

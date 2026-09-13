@@ -43,22 +43,21 @@ describe('fixture and test article migration', () => {
     assert.throws(() => parseFixtureImportCommand(['Morii', 'src/content/posts']), /Usage:/);
   });
 
-  it('imports only the five approved Markdown sources as unpublished database drafts', () => {
+  it('imports only the four approved Markdown sources as unpublished database drafts', () => {
     const result = importFixtureContent({ store, authorId: author.id });
     const articles = store.listArticles();
 
-    assert.equal(FIXTURE_CONTENT_SOURCES.length, 5);
+    assert.equal(FIXTURE_CONTENT_SOURCES.length, 4);
     assert.deepEqual(
       articles.map((article) => article.slug).sort(),
       [
         'ja/tide-notes',
         'zh/darkroom-log',
-        'zh/reader-capabilities',
         'zh/tide-notes',
         'zh/winter-drafts',
       ],
     );
-    assert.equal(result.imported.length, 5);
+    assert.equal(result.imported.length, 4);
     assert.deepEqual(result.skipped, []);
 
     for (const article of articles) {
@@ -70,14 +69,12 @@ describe('fixture and test article migration', () => {
     }
 
     const winter = articles.find((article) => article.slug === 'zh/winter-drafts');
-    const reader = articles.find((article) => article.slug === 'zh/reader-capabilities');
     assert.equal(store.getLatest(winter.id).draft, true);
-    assert.match(store.getLatest(reader.id).markdown, /```mermaid/);
 
     const repeated = importFixtureContent({ store, authorId: author.id });
     assert.deepEqual(repeated.imported, []);
     assert.deepEqual(repeated.skipped.sort(), articles.map((article) => article.slug).sort());
-    assert.equal(store.listArticles().length, 5);
+    assert.equal(store.listArticles().length, 4);
   });
 
   it('preflights identity conflicts before writing any fixture', () => {
@@ -97,6 +94,7 @@ describe('fixture and test article migration', () => {
       draft: true,
       unlisted: true,
       copyProtection: false,
+      author: 'Morii',
       markdown: 'Existing body.\n',
       editorJson: null,
     });
@@ -125,6 +123,7 @@ describe('fixture and test article migration', () => {
       draft: true,
       unlisted: true,
       copyProtection: false,
+      author: 'Morii',
       markdown: 'First body.\n',
       editorJson: null,
     };

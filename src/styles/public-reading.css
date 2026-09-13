@@ -295,13 +295,13 @@
     content: "";
   }
 
+  /* The way back is the site's back action -- the same one the category and tag
+     pages use, arrow leading the word and stepping the way it points on hover.
+     It used to be a bare link with the arrow glued into the string, which left
+     it the one action on the site that could not move. Only its place in the
+     rail is local. */
   .a-article__back {
-    display: inline-flex;
-    min-height: 2.75rem;
-    align-items: center;
     margin-top: 2rem;
-    color: var(--accent);
-    font-size: 0.68rem;
   }
 
   /* With no sections to list, the rail is just the way back. */
@@ -540,14 +540,25 @@
     list-style: none;
   }
 
+  /* The box hangs in the margin instead of occupying a grid column. As a grid
+     the item read correctly only while its content was one unbroken run of
+     text: every element child became a grid item of its own, so a bold word or
+     a link dropped onto the next row, and a nested list was placed in the
+     1.2em checkbox column and rendered one character per line. Taking the box
+     out of flow leaves the item as ordinary prose, which is what it is. */
   .public-site .article-body li.task-list-item {
-    display: grid;
-    grid-template-columns: 1.2em minmax(0, 1fr);
-    gap: 0.6em;
-    align-items: baseline;
+    position: relative;
+    padding-inline-start: 1.8em;
   }
 
   .public-site .article-body li.task-list-item input[type='checkbox'] {
+    position: absolute;
+    inset-inline-start: 0;
+    /* Centred on the first line: em approximates it from the current line
+       height, lh states it exactly where the unit is supported. */
+    top: 0.875em;
+    top: 0.5lh;
+    transform: translateY(-50%);
     width: 0.85em;
     height: 0.85em;
     margin: 0;
@@ -607,7 +618,14 @@
     margin-inline: auto;
   }
 
+  /* Shown at its own size, up to the measure. `width: 100%` in base.css
+     stretched a small image to fill the column, so a 320px thumbnail
+     was drawn at 442px and blurred -- while the same file inside a figure
+     stayed sharp, because there the link shrink-wraps around it. The two
+     positions now agree. */
   .public-site .article-body :is(img, video) {
+    width: auto;
+    max-width: 100%;
     height: auto;
   }
 
@@ -621,6 +639,21 @@
 
   .public-site .article-body .article-image-link {
     cursor: zoom-in;
+  }
+
+  /* A music card's caption is the card itself -- title, lyric and transport --
+     not a small note under a picture, so the caption type above does not
+     apply to it. Its parts set their own faces and sizes. */
+  .public-site .article-body .music-card__body {
+    margin-top: 0;
+    color: var(--ink);
+    font-family: var(--font-reading);
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+
+  .public-site .article-body .music-card {
+    margin-block: clamp(1.75rem, 3vw, 2.5rem);
   }
 
   /* Tables ---------------------------------------------------------------- */
@@ -730,8 +763,46 @@
     word-break: break-all;
   }
 
+  /* Spoiler ------------------------------------------------------------- */
+
+  /* The mask is the spoiler's own ink background. Anything inside that paints a
+     background of its own -- inline code does -- sat on top of it as a grey
+     patch, and gave away the shape of what was hidden. While concealed, nothing
+     inside paints; revealed, everything gets its own colours back. */
+  .public-site .article-body .spoiler:not(:hover, :focus, [data-revealed='true']) * {
+    border-color: transparent;
+    background-color: transparent;
+    color: transparent;
+  }
+
+  /* A colour change, so the site's plain ease rather than its travel curve, in
+     fast time: the text comes up out of the ink instead of switching on. The
+     children take the same transition, or inline code would snap into place
+     while the words around it were still fading. Reduced motion shortens this
+     to nothing through the global reset, and the change of state stays. */
+  .public-site .article-body .spoiler,
+  .public-site .article-body .spoiler * {
+    transition:
+      background-color var(--motion-fast) ease,
+      color var(--motion-fast) ease,
+      border-color var(--motion-fast) ease;
+  }
+
   .public-site .article-body .expressive-code {
     margin-block: clamp(1.75rem, 3vw, 2.5rem);
+  }
+
+  /* Everything in the prose that scrolls sideways — code, tables, formulas,
+     diagrams — gets one quiet bar in the site's line colour. The colour is
+     inherited, so it reaches inside Expressive Code; the width is not, and
+     Expressive Code resets every property on its descendants from outside any
+     layer, which only an important declaration in a layer outranks. */
+  .public-site .article-body {
+    scrollbar-color: var(--ink-faint) transparent;
+  }
+
+  .public-site .article-body .expressive-code pre {
+    scrollbar-width: thin !important;
   }
 
   .public-site .article-body :is(.katex-display, mjx-container) {
@@ -813,8 +884,27 @@
     margin-bottom: 0;
   }
 
-  .public-site .article-body :is(.admonition--warning, .admonition--caution) {
-    border-left-color: var(--danger);
+  /* The rule on the left names the kind before the title does. Warning and
+     caution used to share one red and the other three one blue, so five kinds
+     read as two. */
+  .public-site .article-body .admonition--note {
+    border-left-color: var(--admonition-note);
+  }
+
+  .public-site .article-body .admonition--tip {
+    border-left-color: var(--admonition-tip);
+  }
+
+  .public-site .article-body .admonition--important {
+    border-left-color: var(--admonition-important);
+  }
+
+  .public-site .article-body .admonition--warning {
+    border-left-color: var(--admonition-warning);
+  }
+
+  .public-site .article-body .admonition--caution {
+    border-left-color: var(--admonition-caution);
   }
 
   .public-site .protected-post__gate,
@@ -824,8 +914,7 @@
     background: var(--surface-raised);
   }
 
-  .public-site .protected-post button[type='submit'],
-  .public-site .music-card__play {
+  .public-site .protected-post button[type='submit'] {
     border-radius: 0;
     background: var(--accent-field);
     color: var(--accent-field-ink);
@@ -877,12 +966,25 @@
     text-decoration-color: currentColor;
   }
 
+  /* The divider belongs between the two links, not to the container behind
+     them. As a 1px grid gap over a lighter background it read as a hairline
+     while both neighbours existed -- and at either end of the archive, where
+     there is only one, the empty half showed that background as a large grey
+     block. */
   .a-article__end nav {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1px;
     margin-top: 2.5rem;
-    background: color-mix(in srgb, var(--accent-field-ink) 22%, transparent);
+  }
+
+  /* One neighbour, one panel: the lone link takes the whole width, so its
+     alignment still reads against the edge it points to. */
+  .a-article__end nav:has(a:only-child) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .a-article__end nav a + a {
+    border-left: 1px solid color-mix(in srgb, var(--accent-field-ink) 22%, transparent);
   }
 
   .a-article__end nav a {
@@ -1042,6 +1144,12 @@
 
     .a-article__end nav {
       grid-template-columns: 1fr;
+    }
+
+    /* Stacked, so the divider moves to the edge they actually share. */
+    .a-article__end nav a + a {
+      border-left: 0;
+      border-top: 1px solid color-mix(in srgb, var(--accent-field-ink) 22%, transparent);
     }
 
     .a-article__next {

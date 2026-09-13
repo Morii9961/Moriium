@@ -17,7 +17,6 @@ export const FIXTURE_CONTENT_SOURCES = [
   'prototypes/fixtures/posts/ja/ja-tide-notes.md',
   'prototypes/fixtures/posts/zh/zh-darkroom-log.md',
   'prototypes/fixtures/posts/zh/zh-winter-drafts.md',
-  'src/content/posts/zh/reader-capabilities.md',
 ] as const;
 
 export type FixtureImportResult = {
@@ -51,6 +50,7 @@ function readSource(root: string, source: (typeof FIXTURE_CONTENT_SOURCES)[numbe
     draft: data.draft,
     unlisted: data.unlisted,
     copyProtection: data.copyProtection,
+    author: data.author,
     markdown: parsed.content.replace(/^\r?\n/, ''),
     editorJson: null,
   };

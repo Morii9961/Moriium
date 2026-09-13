@@ -31,7 +31,7 @@ const envelope = JSON.stringify(post.data.encryption).replaceAll('<', '\\u003c')
   </Fragment>
   <article data-protected-article>
     <header class="article-header">
-      <p class="post-meta">{post.data.category} · {formatDate(post.data.publishedAt, ui.locale)} · {copy.badge}</p>
+      <p class="post-meta">{post.data.author} · {post.data.category} · {formatDate(post.data.publishedAt, ui.locale)} · {copy.badge}</p>
       <h1>{post.data.title}</h1>
       <p class="article-header__summary">{post.data.summary}</p>
     </header>

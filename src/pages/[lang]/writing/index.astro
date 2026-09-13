@@ -64,6 +64,8 @@ const tags = uniqueTaxonomy(posts, 'tags')
           data-searching="false"
           data-unit-one={c.unitOne}
           data-unit-many={c.unitMany}
+          data-label-categories={c.categories}
+          data-label-tags={c.tags}
         >
           <details class="a-writing-filter" data-writing-filter data-active="false">
             <summary title={c.filterHint}>
@@ -73,33 +75,44 @@ const tags = uniqueTaxonomy(posts, 'tags')
             </summary>
             <div class="a-writing-filter__menu" data-writing-menu>
               <a
-                class="a-writing-filter__option"
+                class="a-writing-filter__option a-writing-filter__option--all"
                 href={`/${lang}/writing/`}
-                aria-current="true"
                 data-filter-kind="all"
                 data-filter-value=""
                 data-filter-name={c.all}
               ><span>{c.all}</span><small>{number(posts.length)}</small></a>
-              {categories.length > 0 && <span class="a-writing-filter__group">{c.categories}</span>}
-              {categories.map(({ name, count }) => (
-                <a
-                  class="a-writing-filter__option"
-                  href={`/${lang}/categories/${encodeURIComponent(name)}/`}
-                  data-filter-kind="category"
-                  data-filter-value={name}
-                  data-filter-name={name}
-                ><span>{name}</span><small>{number(count)}</small></a>
-              ))}
-              {tags.length > 0 && <span class="a-writing-filter__group">{c.tags}</span>}
-              {tags.map(({ name, count }) => (
-                <a
-                  class="a-writing-filter__option"
-                  href={`/${lang}/tags/${encodeURIComponent(name)}/`}
-                  data-filter-kind="tag"
-                  data-filter-value={name}
-                  data-filter-name={`# ${name}`}
-                ><span># {name}</span><small>{number(count)}</small></a>
-              ))}
+              {categories.length > 0 && (
+                <div class="a-writing-filter__column">
+                  <span class="a-writing-filter__group" id="writing-filter-categories">{c.categories}</span>
+                  <div class="a-writing-filter__options" role="group" aria-labelledby="writing-filter-categories">
+                    {categories.map(({ name, count }) => (
+                      <a
+                        class="a-writing-filter__option"
+                        href={`/${lang}/categories/${encodeURIComponent(name)}/`}
+                        data-filter-kind="category"
+                        data-filter-value={name}
+                        data-filter-name={name}
+                      ><span>{name}</span><small>{number(count)}</small></a>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {tags.length > 0 && (
+                <div class="a-writing-filter__column">
+                  <span class="a-writing-filter__group" id="writing-filter-tags">{c.tags}</span>
+                  <div class="a-writing-filter__options" role="group" aria-labelledby="writing-filter-tags">
+                    {tags.map(({ name, count }) => (
+                      <a
+                        class="a-writing-filter__option"
+                        href={`/${lang}/tags/${encodeURIComponent(name)}/`}
+                        data-filter-kind="tag"
+                        data-filter-value={name}
+                        data-filter-name={`# ${name}`}
+                      ><span># {name}</span><small>{number(count)}</small></a>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </details>
           <div class="a-writing-search">
@@ -180,22 +193,57 @@ const tags = uniqueTaxonomy(posts, 'tags')
         };
       });
 
-      let chosen = options[0];
+      type Axis = 'category' | 'tag';
+
+      // Two axes, each multi-select. Within an axis the choices are
+      // alternatives -- two categories mean either of them -- and across axes
+      // they narrow each other, so a category and a tag mean both. "All" is the
+      // reset rather than a third kind of choice.
+      const selected: Record<Axis, Set<string>> = { category: new Set(), tag: new Set() };
+      const axisLabels: Record<Axis, string> = {
+        category: controls.dataset.labelCategories ?? '',
+        tag: controls.dataset.labelTags ?? '',
+      };
+      const allOption = options.find((option) => option.dataset.filterKind === 'all');
+      const axisOf = (option: HTMLAnchorElement): Axis | null => {
+        const kind = option.dataset.filterKind;
+        return kind === 'category' || kind === 'tag' ? kind : null;
+      };
+      const chosenCount = () => selected.category.size + selected.tag.size;
       let query = '';
 
-      // One pass for both narrowings: the dropdown decides which rows belong,
-      // the field decides which of those still match, and the ledger renumbers
-      // so a narrowed list still reads 01, 02, 03.
+      // The summary is one line. A single choice prints itself; more print how
+      // many of each, because three names do not fit on that line and a
+      // truncated name says less than a number does.
+      const describe = () => {
+        if (chosenCount() === 0) return allOption?.dataset.filterName ?? '';
+        if (chosenCount() === 1) {
+          const only = options.find((option) => {
+            const axis = axisOf(option);
+            return axis !== null && selected[axis].has(option.dataset.filterValue ?? '');
+          });
+          return only?.dataset.filterName ?? '';
+        }
+        const parts: string[] = [];
+        for (const axis of ['category', 'tag'] as const) {
+          if (selected[axis].size > 0) {
+            parts.push(`${axisLabels[axis]} ${String(selected[axis].size).padStart(2, '0')}`);
+          }
+        }
+        return parts.join(' · ');
+      };
+
+      // One pass for both narrowings: the panel decides which rows belong, the
+      // field decides which of those still match, and the ledger renumbers so a
+      // narrowed list still reads 01, 02, 03.
       const render = (remember: boolean) => {
         const needle = fold(query.trim());
-        const kind = chosen?.dataset.filterKind ?? 'all';
-        const wanted = chosen?.dataset.filterValue ?? '';
         let shown = 0;
 
         for (const entry of entries) {
-          const inFilter = kind === 'all'
-            || (kind === 'category' && entry.category === wanted)
-            || (kind === 'tag' && entry.tags.includes(wanted));
+          const inFilter =
+            (selected.category.size === 0 || selected.category.has(entry.category)) &&
+            (selected.tag.size === 0 || entry.tags.some((tag) => selected.tag.has(tag)));
           const matches = inFilter && (!needle || entry.haystack.includes(needle));
           entry.item.hidden = !matches;
           if (!matches) continue;
@@ -207,25 +255,54 @@ const tags = uniqueTaxonomy(posts, 'tags')
         // The count the head used to print is gone, so the result stays
         // announced even though nothing draws it any more.
         live.textContent = `${String(shown).padStart(2, '0')}${shown === 1 ? unitOne : unitMany}`;
+        label.textContent = describe();
+        filter.dataset.active = String(chosenCount() > 0);
+
+        for (const option of options) {
+          const axis = axisOf(option);
+          const pressed = axis === null
+            ? chosenCount() === 0
+            : selected[axis].has(option.dataset.filterValue ?? '');
+          option.setAttribute('aria-pressed', String(pressed));
+        }
 
         if (!remember) return;
         const url = new URL(window.location.href);
         url.searchParams.delete('category');
         url.searchParams.delete('tag');
         url.searchParams.delete('q');
-        if (kind !== 'all') url.searchParams.set(kind, wanted);
+        for (const axis of ['category', 'tag'] as const) {
+          if (selected[axis].size > 0) url.searchParams.set(axis, [...selected[axis]].join(','));
+        }
         if (query.trim()) url.searchParams.set('q', query.trim());
         history.replaceState(null, '', url);
       };
 
-      const choose = (option: HTMLAnchorElement, remember: boolean) => {
-        chosen = option;
-        for (const other of options) other.removeAttribute('aria-current');
-        option.setAttribute('aria-current', 'true');
-        label.textContent = option.dataset.filterName ?? '';
-        filter.dataset.active = String((option.dataset.filterKind ?? 'all') !== 'all');
+      const clear = () => {
+        selected.category.clear();
+        selected.tag.clear();
+      };
+
+      const toggleOption = (option: HTMLAnchorElement, remember: boolean) => {
+        const axis = axisOf(option);
+        if (axis === null) {
+          clear();
+        } else {
+          const value = option.dataset.filterValue ?? '';
+          const set = selected[axis];
+          if (set.has(value)) set.delete(value);
+          else set.add(value);
+        }
         render(remember);
       };
+
+      // Enhanced, each option is a toggle rather than a link to one page, and it
+      // has to say so: a reader on a screen reader is told "pressed" instead of
+      // being told this leads somewhere. The href stays, so a modified click
+      // still opens the real category or tag page.
+      for (const option of options) {
+        option.setAttribute('role', 'button');
+      }
 
       const close = (restore: boolean) => {
         if (!filter.open) return;
@@ -241,7 +318,10 @@ const tags = uniqueTaxonomy(posts, 'tags')
         toggle.setAttribute('aria-expanded', String(open));
         if (open) {
           close(false);
-          if ((chosen?.dataset.filterKind ?? 'all') !== 'all' && options[0]) choose(options[0], true);
+          if (chosenCount() > 0) {
+            clear();
+            render(true);
+          }
           field.focus();
           return;
         }
@@ -270,6 +350,8 @@ const tags = uniqueTaxonomy(posts, 'tags')
         setSearch(false, false);
       });
 
+      // The panel stays open on a choice, because choosing more than one is the
+      // point of it; Escape, the summary, or a click outside closes it.
       menu.addEventListener('click', (event) => {
         // A modified click still belongs to the browser: it opens the real
         // category or tag page instead of filtering in place.
@@ -277,8 +359,16 @@ const tags = uniqueTaxonomy(posts, 'tags')
         const option = (event.target as HTMLElement).closest<HTMLAnchorElement>('[data-filter-kind]');
         if (!option) return;
         event.preventDefault();
-        choose(option, true);
-        close(true);
+        toggleOption(option, true);
+      });
+
+      // role="button" promises the space bar, which an anchor does not give.
+      menu.addEventListener('keydown', (event) => {
+        if (event.key !== ' ' && event.key !== 'Spacebar') return;
+        const option = (event.target as HTMLElement).closest<HTMLAnchorElement>('[data-filter-kind]');
+        if (!option) return;
+        event.preventDefault();
+        toggleOption(option, true);
       });
 
       filter.addEventListener('keydown', (event) => {
@@ -300,24 +390,28 @@ const tags = uniqueTaxonomy(posts, 'tags')
         close(false);
       });
 
-      // A shared link carries whichever narrowing produced it. `q` wins outright
-      // rather than stacking, so a restored view is always one the controls on
-      // screen can still express.
+      // A shared link carries whichever narrowing produced it, and a narrowing
+      // can now be several choices at once. Values that no longer exist are
+      // dropped rather than filtering the list away to nothing.
       const params = new URLSearchParams(window.location.search);
+      for (const axis of ['category', 'tag'] as const) {
+        const raw = params.get(axis);
+        if (!raw) continue;
+        for (const value of raw.split(',')) {
+          const known = options.some(
+            (option) => axisOf(option) === axis && option.dataset.filterValue === value,
+          );
+          if (known) selected[axis].add(value);
+        }
+      }
       const restoredQuery = params.get('q') ?? '';
       if (restoredQuery) {
         field.value = restoredQuery;
         query = restoredQuery;
         controls.dataset.searching = 'true';
         toggle.setAttribute('aria-expanded', 'true');
-        render(false);
-      } else {
-        const restored = options.find((option) => {
-          const kind = option.dataset.filterKind ?? 'all';
-          return kind !== 'all' && params.get(kind) === option.dataset.filterValue;
-        });
-        if (restored) choose(restored, false);
       }
+      render(false);
     }
   </script>
 </BaseLayout>

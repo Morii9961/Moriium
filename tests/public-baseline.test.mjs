@@ -25,7 +25,7 @@ after(() => {
  * Every sample page is created, because a missing sample is itself a failure
  * and would make a budget test pass for the wrong reason.
  */
-function buildTree({ ordinaryJsBytes, capabilityJsBytes = 1024, study = null, orphanBytes = 0 }) {
+function buildTree({ ordinaryJsBytes, capabilityJsBytes = 1024, plainArticleScript = 'ordinary.js', study = null, orphanBytes = 0 }) {
   const root = mkdtempSync(join(tmpdir(), 'moriium-baseline-'));
   temporary.push(root);
 
@@ -45,7 +45,7 @@ function buildTree({ ordinaryJsBytes, capabilityJsBytes = 1024, study = null, or
   write('search/zh.json', '[]');
 
   for (const [index, sample] of SAMPLES.entries()) {
-    const script = sample.kind === 'ordinary' ? 'ordinary.js' : 'capability.js';
+    const script = 'ordinary.js';
     // When the study asset is shared, exactly one production page pulls it in.
     // One is enough, and using one proves attribution follows a reference
     // rather than a majority.
@@ -71,6 +71,19 @@ function buildTree({ ordinaryJsBytes, capabilityJsBytes = 1024, study = null, or
         '</head><body></body></html>',
     );
   }
+
+  // Two articles found by route rather than listed: one carries a scripted
+  // reading block and loads the capability script, one carries nothing.
+  write(
+    'zh/posts/capability-fixture/index.html',
+    '<!doctype html><html><head><script type="module" src="/_astro/capability.js"></script></head>' +
+      '<body><figure class="music-card" data-music-card></figure></body></html>',
+  );
+  write(
+    'zh/posts/plain-fixture/index.html',
+    `<!doctype html><html><head><script type="module" src="/_astro/${plainArticleScript}"></script></head>` +
+      '<body><p>Prose.</p></body></html>',
+  );
 
   if (orphanBytes > 0) write('_astro/orphan.js', filler(orphanBytes));
 
@@ -109,10 +122,10 @@ describe('the public build baseline', () => {
     assert.match(result.stdout, /Over budget \(not failing, --report\)/);
   });
 
-  it('separates the ordinary budget from the capability article', () => {
-    // The acceptance article carries every advanced block, so it is allowed
-    // more. Giving it the ordinary budget would make the strict number
-    // meaningless; sharing one budget would make it unenforceable.
+  it('separates the ordinary budget from an article with a scripted reading block', () => {
+    // Such an article loads the reader enhancements, so it is allowed more.
+    // Giving it the ordinary budget would make the strict number meaningless;
+    // sharing one budget would make it unenforceable.
     assert.ok(BUDGETS.capabilityEagerJs > BUDGETS.ordinaryEagerJs);
 
     const root = buildTree({
@@ -124,6 +137,21 @@ describe('the public build baseline', () => {
     assert.equal(result.status, 1);
     assert.match(result.stderr, /capability page eager JavaScript is/);
     assert.doesNotMatch(result.stderr, /ordinary page eager JavaScript is/);
+  });
+
+  it('holds an article with no scripted block to the ordinary budget', () => {
+    // Found by route, classified by content: a plain article that somehow
+    // pulls in the capability-sized script is an ordinary page over budget.
+    const root = buildTree({
+      ordinaryJsBytes: 1024,
+      capabilityJsBytes: BUDGETS.ordinaryEagerJs + 1,
+      plainArticleScript: 'capability.js',
+    });
+    const result = run(root);
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /ordinary page eager JavaScript is/);
+    assert.match(result.stdout, /zh\/posts\/plain-fixture/);
   });
 
   it('treats a missing sample page as a failure rather than a clean run', () => {

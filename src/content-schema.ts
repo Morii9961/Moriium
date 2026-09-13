@@ -2,6 +2,13 @@ import { z } from 'astro/zod';
 
 const language = z.enum(['zh', 'ja', 'en']);
 
+/**
+ * Who an article is by. The two author accounts, and nobody else: the byline
+ * names a person the site already knows, never free text.
+ */
+export const AUTHOR_NAMES = ['Morii', 'Enouia'] as const;
+export type AuthorName = (typeof AUTHOR_NAMES)[number];
+
 export const sharedMetadata = z.object({
   title: z.string().min(1),
   // Astro reserves `slug` as a collection-wide ID. Prefix it with the language
@@ -16,6 +23,11 @@ export const sharedMetadata = z.object({
   // person wrote it. `AGENTS.md` permits machine translation only when the
   // page says so, and this field is what every surface reads to say it.
   machineTranslation: language.optional(),
+  // The byline, which is not the same thing as the account that saved a
+  // version: either author may publish, correct or translate the other's
+  // article without taking the credit for it. Morii by default, because every
+  // article written before the field existed is Morii's.
+  author: z.enum(AUTHOR_NAMES).default('Morii'),
   category: z.string().min(1),
   tags: z.array(z.string().min(1)).default([]),
   cover: z.string().optional(),

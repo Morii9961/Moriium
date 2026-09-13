@@ -49,7 +49,7 @@ Before freezing typography, color, grid, spacing, rules, or dark mode:
 - The Node adapter is admitted by ADR 0002 for one purpose: rendering `/admin` and `/api` on demand. No public route may become on-demand without a second ADR.
 - Do not add a UI framework or Tailwind to the public site in `src/`. The author admin uses Vue 3 and Tiptap, and its code must never reach a public route.
 - Prefer native HTML, CSS, and small feature-scoped browser modules.
-- Ordinary pages must not download Mermaid, PhotoSwipe, music, video, or decryption code. Load an advanced module only when its content marker exists, and defer network media until user interaction.
+- Ordinary pages must not download Mermaid, PhotoSwipe, music, video, or decryption code. Load an advanced module only when its content marker exists, and defer network media until user interaction. The one exception, chosen by Morii on 2026-09-13: an allowlisted YouTube or Bilibili player is rendered in the page with `loading="lazy"`, so it loads without a click within the browser's lazy-load distance (in Chrome, a screen or more ahead; on a short article, on arrival), and it must never autoplay.
 - Search UI may be present globally, but its generated index and search module must load only after the reader opens search.
 - Preserve no-JavaScript fallbacks for links, images, GitHub repositories, and protected-post metadata.
 - Keep external iframe providers on an explicit allowlist and update the CSP when adding one.
