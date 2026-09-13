@@ -24,21 +24,41 @@ import { renderPrivateMarkdown } from '../scripts/lib/render-markdown.mjs';
 import { publicOutputRoot } from '../scripts/lib/public-output.mjs';
 
 const out = publicOutputRoot();
-const CAPABILITY_PAGE = 'zh/posts/reader-capabilities/index.html';
 
 /** The only origins a video player may come from. */
 const PROVIDER_ORIGINS = ['https://www.youtube-nocookie.com', 'https://player.bilibili.com'];
 
+// One Chinese document carrying every capability at once, rendered through the
+// pipeline the build uses. This used to be a published acceptance article; it
+// lives here now, so the checks do not depend on any article staying online.
+const CAPABILITY_MARKDOWN = `
+![A descriptive fixture](/fixtures/reader-image.svg)
+
+\`\`\`ts
+const fixture = true;
+\`\`\`
+
+This is :spoiler[hidden text].
+
+::github{repo="Morii9961/Moriium"}
+
+::video{provider="youtube" id="aqz-KE-bpKQ" title="Video fixture"}
+
+::music{title="Final Resonance" artist="ARForest" meting="https://meting.spr-aachen.com/api?server=netease&type=song&id=1"}
+
+A footnote.[^1]
+
+[^1]: Footnote body.
+`;
+
 let capability;
 
-before(() => {
-  const path = join(out, CAPABILITY_PAGE);
-  assert.ok(existsSync(path), 'run `pnpm build` before these fallback assertions');
-  capability = readFileSync(path, 'utf8');
+before(async () => {
+  capability = await renderPrivateMarkdown(CAPABILITY_MARKDOWN, 'zh');
 });
 
 describe('reader language', () => {
-  it('uses Chinese controls throughout the built Chinese capability article', () => {
+  it('uses Chinese controls throughout a Chinese document', () => {
     assert.match(capability, /title="复制代码"/);
     assert.match(capability, /data-copied="已复制"/);
     assert.match(capability, /aria-label="显示隐藏内容"/);
@@ -60,7 +80,7 @@ describe('images', () => {
     assert.match(html, /<img[^>]+alt="A descriptive fixture"/);
   });
 
-  it('are a plain anchor in the built article too', () => {
+  it('are a plain anchor inside a full document too', () => {
     assert.match(capability, /<a[^>]*href="\/fixtures\/reader-image\.svg"[^>]*data-lightbox/);
   });
 });
@@ -100,7 +120,7 @@ describe('spoilers', () => {
   // quietly counted as a pass.
   it('keep the hidden text in the document with an accessible control', () => {
     const spoiler = /<span[^>]*data-spoiler[^>]*>([\s\S]*?)<\/span>/.exec(capability);
-    assert.ok(spoiler, 'the capability article is expected to contain a spoiler');
+    assert.ok(spoiler, 'the capability document is expected to contain a spoiler');
     assert.ok(spoiler[1].trim().length > 0, 'spoiler text must stay in the document');
     assert.match(spoiler[0], /role="button"/);
     assert.match(spoiler[0], /aria-label="[^"]+"/);
@@ -213,9 +233,9 @@ describe('remote music', () => {
     );
   });
 
-  it('says the same thing in the built article', () => {
+  it('says the same thing in Chinese', () => {
     const status = /<p[^>]*data-music-status[^>]*>([\s\S]*?)<\/p>/.exec(capability);
-    assert.ok(status, 'the built article is expected to carry a music status line');
+    assert.ok(status, 'the capability document is expected to carry a music status line');
     assert.match(status[1], /JavaScript/);
     assert.doesNotMatch(status[1], /press play/i);
   });
@@ -282,9 +302,18 @@ describe('local music', () => {
 describe('copy protection', () => {
   it('is applied by script only, so copying still works without JavaScript', () => {
     // The restriction lives in a copy listener. Nothing in the markup may block
-    // selection, or a reader without scripts would lose ordinary copying.
-    assert.ok(!/user-select:\s*none/i.test(capability), 'copy protection must not be baked into the markup');
-    assert.match(capability, /data-copy-protection="true"/);
+    // selection, or a reader without scripts would lose ordinary copying. The
+    // article only declares the setting; the listener reads it.
+    const layout = readFileSync('src/layouts/ArticleLayout.astro', 'utf8');
+    const reader = readFileSync('src/components/ReaderEnhancements.astro', 'utf8');
+    // Expressive Code's own stylesheet turns selection off for its line
+    // numbers and copy button, which is about code chrome, not the prose; only
+    // the markup outside a style block is in question here.
+    const markup = capability.replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '');
+    assert.ok(!/user-select:\s*none/i.test(markup), 'copy protection must not be baked into the markup');
+    assert.match(layout, /data-copy-protection=\{String\(features\.copyProtection\)\}/);
+    assert.match(reader, /querySelector<HTMLElement>\('\[data-copy-protection="true"\]'\)/);
+    assert.match(reader, /addEventListener\('copy'/);
   });
 });
 
