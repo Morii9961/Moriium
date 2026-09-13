@@ -279,3 +279,21 @@ test('a Mermaid diagram is drawn in the site colours and can be panned and zoome
     assert.equal(copy.match(new RegExp(String.raw`\b${key}: '`, 'g'))?.length, 3, `${key} is not in every language`);
   }
 });
+
+test('a music card starts a remote track on the press that fetches it, and never shows a browser error', async () => {
+  const reader = await read('src/components/ReaderEnhancements.astro');
+  const music = reader.slice(reader.indexOf('{features.music && ('), reader.indexOf('bindMusic();'));
+
+  // Nothing is fetched before the press...
+  assert.doesNotMatch(music.slice(0, music.indexOf("button.addEventListener('click'")), /fetchRemote\(endpoint\)|audio\.play\(\)/);
+  // ...and the press that fetches is the press that plays.
+  const click = music.slice(music.indexOf("button.addEventListener('click'"));
+  assert.ok(click.indexOf('fetchRemote(endpoint)') < click.indexOf('await audio.play()'), 'the fetching press must go on to play');
+  assert.doesNotMatch(music, /musicCopy\.loaded/);
+  // A browser's own reason is replaced with the site's message.
+  assert.match(music, /say\(own \? \(error as Error\)\.message : musicCopy\.unavailable\)/);
+  assert.match(music, /if \(!element\.error\) say\(musicCopy\.paused\)/);
+  // Lyrics are parsed and followed as the track plays.
+  assert.match(music, /const parseLyrics = /);
+  assert.match(music, /addEventListener\('timeupdate', paint\)/);
+});

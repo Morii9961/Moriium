@@ -641,6 +641,21 @@
     cursor: zoom-in;
   }
 
+  /* A music card's caption is the card itself -- title, lyric and transport --
+     not a small note under a picture, so the caption type above does not
+     apply to it. Its parts set their own faces and sizes. */
+  .public-site .article-body .music-card__body {
+    margin-top: 0;
+    color: var(--ink);
+    font-family: var(--font-reading);
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+
+  .public-site .article-body .music-card {
+    margin-block: clamp(1.75rem, 3vw, 2.5rem);
+  }
+
   /* Tables ---------------------------------------------------------------- */
 
   /* Wrapped rather than allowed to stretch the column: the wrapper scrolls and
@@ -899,8 +914,7 @@
     background: var(--surface-raised);
   }
 
-  .public-site .protected-post button[type='submit'],
-  .public-site .music-card__play {
+  .public-site .protected-post button[type='submit'] {
     border-radius: 0;
     background: var(--accent-field);
     color: var(--accent-field-ink);

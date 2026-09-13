@@ -149,42 +149,68 @@ function transformMusic(node, copy) {
     ...(meting ? { dataMeting: meting } : {}),
   };
   node.children = [
-    ...(isSafeCover
-      ? [element('img', { src: cover, alt: '', loading: 'lazy', decoding: 'async', className: ['music-card__cover'] })]
-      : []),
+    // The art square is always there, so a card without a cover keeps the same
+    // shape as one with, instead of collapsing into a column of text.
+    element('div', { className: ['music-card__art'], dataMusicArt: '' }, [
+      isSafeCover
+        ? element('img', { src: cover, alt: '', loading: 'lazy', decoding: 'async', className: ['music-card__cover'] })
+        : element('span', { className: ['music-card__mark'], ariaHidden: 'true' }, [text('♪')]),
+    ]),
     element('figcaption', { className: ['music-card__body'] }, [
-      element('strong', { className: ['music-card__title'] }, [text(title)]),
-      element('span', { className: ['music-card__artist'] }, [text(artist)]),
-      // This button does nothing without the script -- for a remote track it has
-      // no audio URL yet, and for a local one every listener lives in
-      // ReaderEnhancements. So it ships disabled in every case and is enabled on
-      // bind. Shipping it enabled for local audio only looked like a smaller
-      // claim, but it still put a dead control in front of a reader with no
-      // JavaScript, which is the thing this is supposed to prevent.
-      element(
-        'button',
-        { type: 'button', className: ['music-card__play'], dataMusicPlay: '', disabled: true },
-        [text(copy.music.play)],
-      ),
+      element('div', { className: ['music-card__head'] }, [
+        element('strong', { className: ['music-card__title'] }, [text(title)]),
+        element('span', { className: ['music-card__artist'] }, [text(artist)]),
+      ]),
+      // One line under the title. It says what the card is doing, and while a
+      // track with lyrics plays, the lyric sung at that moment takes its place.
+      // The status is the live region; the lyric is not, or a screen reader
+      // would recite the song over itself.
+      element('div', { className: ['music-card__line'] }, [
+        // The static status describes the page as it stands, with no script yet
+        // run. Telling a reader to press play while the button is disabled is
+        // the contradiction this replaces; ReaderEnhancements swaps in the
+        // working message once the control actually works.
+        element('p', { className: ['music-card__status'], ariaLive: 'polite', dataMusicStatus: '' }, [
+          text(isSafeLocalAudio ? copy.music.noScriptLocal : copy.music.noScriptRemote),
+        ]),
+        element('p', { className: ['music-card__lyric'], ariaHidden: 'true', dataMusicLyric: '', hidden: true }, []),
+      ]),
+      // These controls do nothing without the script -- for a remote track there
+      // is no audio URL yet, and for a local one every listener lives in
+      // ReaderEnhancements. So the button ships disabled, the whole row is kept
+      // out of sight by CSS until the script marks the card bound, and a reader
+      // without JavaScript is left the native player below rather than a dead
+      // control beside it.
+      element('div', { className: ['music-card__controls'] }, [
+        element(
+          'button',
+          { type: 'button', className: ['music-card__play'], dataMusicPlay: '', disabled: true, ariaLabel: copy.music.play },
+          [
+            element('span', { className: ['music-card__icon'], ariaHidden: 'true' }, []),
+            element('span', { className: ['visually-hidden'], dataMusicPlayLabel: '' }, [text(copy.music.play)]),
+          ],
+        ),
+        element('input', {
+          type: 'range',
+          className: ['music-card__seek'],
+          min: '0',
+          max: '0',
+          step: '0.1',
+          value: '0',
+          disabled: true,
+          ariaLabel: copy.music.seek,
+          dataMusicSeek: '',
+        }),
+        element('span', { className: ['music-card__time'], dataMusicTime: '' }, [text('0:00 / 0:00')]),
+      ]),
       ...(isSafeLyrics
-        ? [element('a', { href: lrc, className: ['music-card__lyrics'], rel: ['noopener', 'noreferrer'] }, [text(copy.music.lyrics)])]
+        ? [element('a', { href: lrc, className: ['music-card__lyrics'], rel: ['noopener', 'noreferrer'], dataMusicLrc: '' }, [text(copy.music.lyrics)])]
         : []),
       // Native controls are the fallback: with no script the element is still a
       // working player, and preload="none" keeps it from fetching anything.
       ...(isSafeLocalAudio
         ? [element('audio', { src: audio, controls: true, preload: 'none', dataMusicAudio: '' })]
         : []),
-      // The static status describes the page as it stands, with no script yet
-      // run. Telling a reader to press play while the button is disabled is the
-      // contradiction this replaces; ReaderEnhancements swaps in the working
-      // message once the control actually works.
-      element('p', { className: ['music-card__status'], ariaLive: 'polite', dataMusicStatus: '' }, [
-        text(
-          isSafeLocalAudio
-            ? copy.music.noScriptLocal
-            : copy.music.noScriptRemote,
-        ),
-      ]),
     ]),
   ];
 }
@@ -239,7 +265,10 @@ export function rehypeMoriiumContent() {
     walk(tree, (node, parent, index) => {
       if (node.type !== 'element') return;
 
-      if (node.tagName === 'img' && parent && parent.tagName !== 'a') {
+      // A music card's cover is the card's artwork, not a photograph in the
+      // article, so it does not become a lightbox link.
+      const isMusicCover = node.properties?.className?.includes?.('music-card__cover');
+      if (node.tagName === 'img' && parent && parent.tagName !== 'a' && !isMusicCover) {
         transformImage(node, parent, index, copy);
         return;
       }

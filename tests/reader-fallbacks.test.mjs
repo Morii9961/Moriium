@@ -247,6 +247,29 @@ describe('local music', () => {
     assert.match(play[0], /disabled/, 'a scripted control must not ship enabled');
   });
 
+  it('keeps its scripted transport out of sight until the script binds it', async () => {
+    const html = await renderPrivateMarkdown(
+      '::music{title="Fixture" artist="Morii" cover="/media/cover.webp" audio="/media/fixture.mp3" lrc="/media/fixture.lrc"}',
+    );
+    const styles = readFileSync('src/styles/base.css', 'utf8');
+    // The row with the play button, the seek bar and the time is in the
+    // markup, but a stylesheet rule hides it on any card the script has not
+    // marked bound, and hides the native player and lyrics link once it has.
+    assert.match(html, /class="music-card__controls"/);
+    assert.match(
+      styles,
+      /\.music-card:not\(\[data-music-bound\]\) \.music-card__controls,\s*\.music-card\[data-music-bound\] audio,\s*\.music-card\[data-music-bound\] \.music-card__lyrics\s*\{\s*display: none;/,
+    );
+    // The seek bar ships disabled too, and the lyric line is not a live region,
+    // or a screen reader would recite the song over itself.
+    assert.match(/<input[^>]*data-music-seek[^>]*>/.exec(html)?.[0] ?? '', /disabled/);
+    assert.match(/<p[^>]*data-music-lyric[^>]*>/.exec(html)?.[0] ?? '', /aria-hidden="true"/);
+    assert.doesNotMatch(/<p[^>]*data-music-lyric[^>]*>/.exec(html)?.[0] ?? '', /aria-live/);
+    // The cover is the card's artwork, not a photograph to open in the lightbox.
+    assert.match(html, /<div class="music-card__art" data-music-art=""><img[^>]*class="music-card__cover"/);
+    assert.doesNotMatch(html, /<a[^>]*data-lightbox[^>]*><img[^>]*music-card__cover/);
+  });
+
   it('points the reader at the control that does work', async () => {
     const html = await renderPrivateMarkdown(LOCAL);
     const status = /<p[^>]*data-music-status[^>]*>([\s\S]*?)<\/p>/.exec(html);

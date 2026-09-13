@@ -518,72 +518,223 @@ const copy = READER_COPY[lang];
       document.querySelector<HTMLTemplateElement>('[data-reader-copy]')?.dataset.readerCopy ?? '{}',
     ).music as {
       ready: string; remoteReady: string; blocked: string; response: string; source: string;
-      loading: string; loaded: string; play: string; pause: string; playing: string;
+      loading: string; play: string; pause: string; playing: string;
       paused: string; unavailable: string;
     };
+    const METING_ORIGIN = 'https://meting.spr-aachen.com';
+    const calm = matchMedia('(prefers-reduced-motion: reduce)');
     let activeAudio: HTMLAudioElement | null = null;
 
-    async function loadRemote(card: HTMLElement) {
-      const endpoint = card.dataset.meting;
-      if (!endpoint || new URL(endpoint).origin !== 'https://meting.spr-aachen.com') {
-        throw new Error(musicCopy.blocked);
+    type Lyric = { time: number; text: string };
+
+    // [mm:ss], [mm:ss.xx] and [mm:ss:xx], several stamps to a line allowed.
+    // Tag lines such as [ti:...] carry no time and fall out, and so does a
+    // stamp with no words after it, which is how LRC marks an instrumental gap.
+    const parseLyrics = (source: string): Lyric[] => {
+      const lines: Lyric[] = [];
+      for (const raw of source.split(/\r?\n/)) {
+        const stamps = [...raw.matchAll(/\[(\d{1,3}):(\d{1,2})(?:[.:](\d{1,3}))?\]/g)];
+        const words = raw.replace(/\[[^\]]*\]/g, '').trim();
+        if (!stamps.length || !words) continue;
+        for (const [, minutes = '0', seconds = '0', fraction = '0'] of stamps) {
+          lines.push({
+            time: Number(minutes) * 60 + Number(seconds) + Number(fraction) / 10 ** fraction.length,
+            text: words,
+          });
+        }
       }
+      return lines.sort((a, b) => a.time - b.time);
+    };
+
+    const clock = (seconds: number) => {
+      if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
+      const whole = Math.floor(seconds);
+      return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`;
+    };
+
+    async function fetchRemote(endpoint: string) {
+      if (new URL(endpoint).origin !== METING_ORIGIN) throw new Error(musicCopy.blocked);
       const response = await fetch(endpoint, { credentials: 'omit', referrerPolicy: 'no-referrer' });
       if (!response.ok) throw new Error(`${musicCopy.response} ${response.status}`);
       const raw = await response.json();
       const track = Array.isArray(raw) ? raw[0] : raw;
       const source = String(track?.url ?? track?.audio ?? '');
       if (!source.startsWith('https://')) throw new Error(musicCopy.source);
-      const audio = document.createElement('audio');
-      audio.preload = 'none';
-      audio.src = source;
-      audio.dataset.musicAudio = '';
-      card.append(audio);
-      delete card.dataset.meting;
-      return audio;
+      return {
+        source,
+        cover: String(track?.pic ?? track?.cover ?? ''),
+        lyrics: String(track?.lrc ?? ''),
+      };
     }
 
     function bindMusic() {
       for (const card of document.querySelectorAll<HTMLElement>('[data-music-card]')) {
         if (card.dataset.musicBound) continue;
-        card.dataset.musicBound = 'true';
         const button = card.querySelector<HTMLButtonElement>('[data-music-play]');
+        const label = card.querySelector<HTMLElement>('[data-music-play-label]');
         const status = card.querySelector<HTMLElement>('[data-music-status]');
-        // The card ships inert: the button is disabled and the status says the
-        // controls need JavaScript. Both statements are true of the page until
-        // this line runs, and both stop being true here, so both are replaced
-        // together rather than leaving the reader a working button under a
-        // message telling them it will not work.
-        if (button) button.disabled = false;
-        if (status) status.textContent = card.dataset.meting ? musicCopy.remoteReady : musicCopy.ready;
-        button?.addEventListener('click', async () => {
-        button.disabled = true;
-        try {
-          let audio = card.querySelector<HTMLAudioElement>('[data-music-audio]');
-          if (!audio) {
-            if (status) status.textContent = musicCopy.loading;
-            audio = await loadRemote(card);
-            if (status) status.textContent = musicCopy.loaded;
-            button.textContent = musicCopy.play;
+        const lyricLine = card.querySelector<HTMLElement>('[data-music-lyric]');
+        const seek = card.querySelector<HTMLInputElement>('[data-music-seek]');
+        const time = card.querySelector<HTMLElement>('[data-music-time]');
+        const lyricsLink = card.querySelector<HTMLAnchorElement>('[data-music-lrc]');
+        if (!button || !status || !seek || !time) continue;
+
+        // From here the card's own controls work, so they replace the native
+        // player and the lyrics link that stood in for them.
+        card.dataset.musicBound = 'true';
+        button.disabled = false;
+        status.textContent = card.dataset.meting ? musicCopy.remoteReady : musicCopy.ready;
+
+        let audio = card.querySelector<HTMLAudioElement>('[data-music-audio]');
+        let lyrics: Lyric[] = [];
+        let lyricsSource = lyricsLink?.href ?? '';
+        let lyricsRequested = false;
+        let shownLyric = -1;
+
+        const say = (message: string) => {
+          status.textContent = message;
+          status.hidden = false;
+          if (lyricLine) lyricLine.hidden = true;
+          shownLyric = -1;
+        };
+
+        const showLyric = (index: number) => {
+          if (!lyricLine || index === shownLyric) return;
+          shownLyric = index;
+          const line = lyrics[index];
+          if (!line) {
+            lyricLine.hidden = true;
+            status.hidden = false;
             return;
           }
-
-          if (audio.paused) {
-            if (activeAudio && activeAudio !== audio) activeAudio.pause();
-            await audio.play();
-            activeAudio = audio;
-            button.textContent = musicCopy.pause;
-            if (status) status.textContent = musicCopy.playing;
-          } else {
-            audio.pause();
-            button.textContent = musicCopy.play;
-            if (status) status.textContent = musicCopy.paused;
+          lyricLine.textContent = line.text;
+          lyricLine.hidden = false;
+          status.hidden = true;
+          if (!calm.matches && typeof lyricLine.animate === 'function') {
+            lyricLine.animate(
+              [
+                { opacity: 0, transform: 'translateY(0.4rem)' },
+                { opacity: 1, transform: 'translateY(0)' },
+              ],
+              { duration: 280, easing: 'cubic-bezier(0.16, 1, 0.3, 1)' },
+            );
           }
-        } catch (error) {
-          if (status) status.textContent = error instanceof Error ? error.message : musicCopy.unavailable;
-        } finally {
-          button.disabled = false;
-        }
+        };
+
+        const loadLyrics = async () => {
+          if (lyricsRequested || !lyricsSource) return;
+          lyricsRequested = true;
+          try {
+            const response = await fetch(lyricsSource, { credentials: 'omit', referrerPolicy: 'no-referrer' });
+            if (response.ok) lyrics = parseLyrics(await response.text());
+          } catch {
+            // Lyrics are a garnish. The track plays the same without them.
+          }
+        };
+
+        const paint = () => {
+          if (!audio) return;
+          const duration = Number.isFinite(audio.duration) ? audio.duration : 0;
+          seek.max = String(duration);
+          seek.value = String(audio.currentTime);
+          seek.disabled = duration === 0;
+          seek.style.setProperty('--music-progress', duration ? `${(audio.currentTime / duration) * 100}%` : '0%');
+          time.textContent = `${clock(audio.currentTime)} / ${clock(duration)}`;
+          if (!audio.paused && lyrics.length) {
+            let index = -1;
+            for (let i = 0; i < lyrics.length && (lyrics[i]?.time ?? Infinity) <= audio.currentTime + 0.15; i += 1) index = i;
+            showLyric(index);
+          }
+        };
+
+        const setPlaying = (playing: boolean) => {
+          card.toggleAttribute('data-music-playing', playing);
+          const word = playing ? musicCopy.pause : musicCopy.play;
+          button.setAttribute('aria-label', word);
+          if (label) label.textContent = word;
+        };
+
+        const wire = (element: HTMLAudioElement) => {
+          element.controls = false;
+          element.addEventListener('loadedmetadata', paint);
+          element.addEventListener('durationchange', paint);
+          element.addEventListener('timeupdate', paint);
+          element.addEventListener('play', () => {
+            setPlaying(true);
+            if (!lyrics.length) say(musicCopy.playing);
+          });
+          element.addEventListener('pause', () => {
+            setPlaying(false);
+            // A source that cannot play also fires pause, after its error; the
+            // error is the thing worth saying.
+            if (!element.error) say(musicCopy.paused);
+          });
+          element.addEventListener('ended', () => {
+            element.currentTime = 0;
+            paint();
+          });
+          element.addEventListener('error', () => {
+            setPlaying(false);
+            say(musicCopy.unavailable);
+          });
+        };
+        if (audio) wire(audio);
+
+        seek.addEventListener('input', () => {
+          if (!audio || !Number.isFinite(audio.duration)) return;
+          audio.currentTime = Number(seek.value);
+          paint();
+        });
+
+        button.addEventListener('click', async () => {
+          button.disabled = true;
+          try {
+            if (!audio) {
+              // Nothing about a remote track is fetched until this press, and
+              // this press is also the one that starts it.
+              say(musicCopy.loading);
+              const endpoint = card.dataset.meting ?? '';
+              const remote = await fetchRemote(endpoint);
+              delete card.dataset.meting;
+              const art = card.querySelector<HTMLElement>('[data-music-art]');
+              if (art && card.classList.contains('music-card--no-cover') && remote.cover.startsWith('https://')) {
+                const image = document.createElement('img');
+                image.className = 'music-card__cover';
+                image.alt = '';
+                image.decoding = 'async';
+                image.referrerPolicy = 'no-referrer';
+                image.src = remote.cover;
+                image.addEventListener('load', () => {
+                  art.replaceChildren(image);
+                  card.classList.remove('music-card--no-cover');
+                }, { once: true });
+              }
+              if (!lyricsSource && remote.lyrics.startsWith(`${METING_ORIGIN}/`)) lyricsSource = remote.lyrics;
+              audio = document.createElement('audio');
+              audio.preload = 'none';
+              audio.src = remote.source;
+              audio.dataset.musicAudio = '';
+              card.append(audio);
+              wire(audio);
+            }
+
+            void loadLyrics();
+            if (audio.paused) {
+              if (activeAudio && activeAudio !== audio) activeAudio.pause();
+              activeAudio = audio;
+              await audio.play();
+            } else {
+              audio.pause();
+            }
+          } catch (error) {
+            setPlaying(false);
+            // A browser's own reason ("no supported sources") is not something
+            // to show a reader; the site's own messages are.
+            const own = error instanceof Error && Object.values(musicCopy).some((message) => error.message.startsWith(message));
+            say(own ? (error as Error).message : musicCopy.unavailable);
+          } finally {
+            button.disabled = false;
+          }
         });
       }
     }

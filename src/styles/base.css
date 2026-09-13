@@ -443,7 +443,6 @@
   }
 
   .github-card,
-  .music-card,
   .video-card {
     display: grid;
     gap: var(--space-2);
@@ -458,8 +457,6 @@
 
   .github-card__eyebrow,
   .github-card__meta,
-  .music-card__artist,
-  .music-card__status,
   .video-card__note {
     color: var(--ink-muted);
     font-size: 0.82rem;
@@ -481,33 +478,243 @@
     display: block;
   }
 
+  /* A record sleeve and its label: the art square on the left, and to its
+     right the title, one line of status or lyric, and the transport. Square and
+     hairlined like the other cards on the page; the one filled shape is the
+     play button, in the site's own blue. */
   .music-card {
-    grid-template-columns: 5rem 1fr;
-    align-items: center;
+    display: grid;
+    grid-template-columns: 7rem minmax(0, 1fr);
+    gap: 1.25rem;
+    padding: 1rem;
+    border: 1px solid var(--line);
+    background: var(--surface-raised);
   }
 
-  .music-card--no-cover {
-    grid-template-columns: 1fr;
+  .music-card__art {
+    display: grid;
+    width: 7rem;
+    aspect-ratio: 1;
+    place-items: center;
+    overflow: hidden;
+    background: var(--accent-field);
+    color: var(--accent-field-ink);
   }
 
   .music-card__cover {
-    width: 5rem;
-    aspect-ratio: 1;
+    width: 100%;
+    height: 100%;
     object-fit: cover;
   }
 
-  .music-card__body > * {
-    display: block;
+  .music-card__mark {
+    font-family: var(--font-data);
+    font-size: 1.6rem;
+    line-height: 1;
+    opacity: 0.8;
+  }
+
+  .music-card__body {
+    display: grid;
+    min-width: 0;
+    grid-template-rows: auto 1fr auto;
+    align-content: space-between;
+    gap: 0.35rem;
+  }
+
+  .music-card__head {
+    display: flex;
+    min-width: 0;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.15rem 1rem;
+  }
+
+  .music-card__title {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--ink);
+    font-size: 1.05rem;
+    font-weight: 600;
+    line-height: 1.4;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .music-card__artist {
+    color: var(--ink-faint);
+    font-family: var(--font-data);
+    font-size: 0.66rem;
+    white-space: nowrap;
+  }
+
+  /* Status and lyric share one cell; whichever is showing takes it. */
+  .music-card__line {
+    display: grid;
+    align-items: center;
+    min-height: 1.7em;
+  }
+
+  .music-card__status,
+  .music-card__lyric {
+    grid-area: 1 / 1;
+    margin: 0;
+    overflow: hidden;
+    color: var(--ink-muted);
+    font-size: 0.86rem;
+    line-height: 1.6;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .music-card__lyric {
+    color: var(--ink);
+  }
+
+  .music-card__controls {
+    display: grid;
+    grid-template-columns: 2.5rem minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.9rem;
+  }
+
+  /* Until the script has bound the card these controls cannot do anything, so
+     they are not shown; the native player and the lyrics link stand in. Once
+     bound, it is the other way round. */
+  .music-card:not([data-music-bound]) .music-card__controls,
+  .music-card[data-music-bound] audio,
+  .music-card[data-music-bound] .music-card__lyrics {
+    display: none;
+  }
+
+  .music-card audio {
+    width: 100%;
+    margin-top: 0.35rem;
+  }
+
+  .music-card__lyrics {
+    font-size: 0.8rem;
   }
 
   .music-card__play {
-    min-width: 4rem;
-    min-height: 2.75rem;
-    margin-block: 0.5rem;
-    border: 1px solid var(--line);
-    background: transparent;
-    color: var(--ink);
+    display: grid;
+    width: 2.5rem;
+    height: 2.5rem;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    background: var(--accent-field);
+    color: var(--accent-field-ink);
     cursor: pointer;
+    transition: background-color var(--motion-fast) ease;
+  }
+
+  .music-card__play:hover:not(:disabled) {
+    background: var(--moriium-blue-highlight, var(--accent));
+  }
+
+  .music-card__play:disabled {
+    cursor: progress;
+    opacity: 0.7;
+  }
+
+  .music-card__play:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  /* One shape that folds between a triangle and two bars. Both outlines have
+     the same ten points, so the change is a morph rather than a swap. */
+  .music-card__icon {
+    width: 0.8rem;
+    height: 0.8rem;
+    background: currentColor;
+    clip-path: polygon(8% 0, 54% 25%, 54% 75%, 54% 75%, 54% 25%, 100% 50%, 100% 50%, 54% 75%, 54% 75%, 8% 100%);
+    transition: clip-path var(--motion-fast) var(--motion-ease);
+  }
+
+  .music-card[data-music-playing] .music-card__icon {
+    clip-path: polygon(10% 0, 38% 0, 38% 100%, 62% 100%, 62% 0, 90% 0, 90% 100%, 62% 100%, 38% 100%, 10% 100%);
+  }
+
+  .music-card__seek {
+    --music-progress: 0%;
+    width: 100%;
+    height: 1.25rem;
+    margin: 0;
+    background: transparent;
+    cursor: pointer;
+    appearance: none;
+  }
+
+  .music-card__seek:disabled {
+    cursor: default;
+  }
+
+  .music-card__seek::-webkit-slider-runnable-track {
+    height: 2px;
+    background: linear-gradient(to right, var(--accent-field) var(--music-progress), var(--line) var(--music-progress));
+  }
+
+  .music-card__seek::-moz-range-track {
+    height: 2px;
+    background: var(--line);
+  }
+
+  .music-card__seek::-moz-range-progress {
+    height: 2px;
+    background: var(--accent-field);
+  }
+
+  .music-card__seek::-webkit-slider-thumb {
+    width: 0.6rem;
+    height: 0.6rem;
+    margin-top: calc(-0.3rem + 1px);
+    border: 0;
+    background: var(--accent-field);
+    appearance: none;
+  }
+
+  .music-card__seek::-moz-range-thumb {
+    width: 0.6rem;
+    height: 0.6rem;
+    border: 0;
+    border-radius: 0;
+    background: var(--accent-field);
+  }
+
+  .music-card__seek:disabled::-webkit-slider-thumb {
+    background: var(--line);
+  }
+
+  .music-card__seek:disabled::-moz-range-thumb {
+    background: var(--line);
+  }
+
+  .music-card__seek:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+
+  .music-card__time {
+    color: var(--ink-faint);
+    font-family: var(--font-data);
+    font-size: 0.66rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 34rem) {
+    .music-card {
+      grid-template-columns: 4.5rem minmax(0, 1fr);
+      gap: 0.9rem;
+      padding: 0.75rem;
+    }
+
+    .music-card__art {
+      width: 4.5rem;
+    }
   }
 
   /* A diagram is a frame the reader moves around in: drag to pan, Ctrl or Cmd

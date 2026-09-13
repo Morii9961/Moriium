@@ -10,7 +10,7 @@ export const READER_COPY = {
       blocked: '此视频来源未获允许。', unsupported: '浏览器不支持 HTML 视频。',
     },
     music: {
-      untitled: '未命名曲目', unknownArtist: '未知艺人', play: '播放', pause: '暂停', lyrics: '歌词',
+      untitled: '未命名曲目', unknownArtist: '未知艺人', play: '播放', pause: '暂停', lyrics: '歌词', seek: '播放进度',
       noScriptLocal: '这些控件需要 JavaScript；上方音频播放器仍可使用。',
       noScriptRemote: '歌曲来自外部服务，需要 JavaScript 才能载入。',
       ready: '可以播放。', remoteReady: '播放时才连接音乐服务。',
@@ -39,7 +39,7 @@ export const READER_COPY = {
       blocked: 'この動画ソースは許可されていません。', unsupported: 'このブラウザーは HTML 動画に対応していません。',
     },
     music: {
-      untitled: '無題の曲', unknownArtist: '不明なアーティスト', play: '再生', pause: '一時停止', lyrics: '歌詞',
+      untitled: '無題の曲', unknownArtist: '不明なアーティスト', play: '再生', pause: '一時停止', lyrics: '歌詞', seek: '再生位置',
       noScriptLocal: 'この操作には JavaScript が必要です。上の音声プレーヤーはそのまま使えます。',
       noScriptRemote: '外部サービスの曲を読み込むには JavaScript が必要です。',
       ready: '再生できます。', remoteReady: '再生時にだけ音楽サービスへ接続します。',
@@ -68,7 +68,7 @@ export const READER_COPY = {
       blocked: 'This video source is not allowed.', unsupported: 'Your browser does not support HTML video.',
     },
     music: {
-      untitled: 'Untitled track', unknownArtist: 'Unknown artist', play: 'Play', pause: 'Pause', lyrics: 'Lyrics',
+      untitled: 'Untitled track', unknownArtist: 'Unknown artist', play: 'Play', pause: 'Pause', lyrics: 'Lyrics', seek: 'Playback position',
       noScriptLocal: 'These controls need JavaScript. The audio player above works without it.',
       noScriptRemote: 'This track loads from a remote service and needs JavaScript.',
       ready: 'Ready to play.', remoteReady: 'The music service is contacted only when playback starts.',

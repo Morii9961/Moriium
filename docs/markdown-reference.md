@@ -69,7 +69,7 @@ Actions fetches repository metadata with `GITHUB_TOKEN` at build time using at m
 ::music{title="Track" artist="Artist" meting="https://approved.example/api?..."}
 ```
 
-Audio never autoplays and uses `preload="none"`. Remote details are requested only after the first press; playback requires another press. Starting one card pauses the previous card.
+Audio never autoplays and uses `preload="none"`. Nothing about a remote track is requested until the reader presses play; that press fetches the track, its cover and lyrics, and starts it. Starting one card pauses the previous card. With the script bound, a card shows its cover (or a blue square), the title and artist, one line that carries the status or the lyric being sung, and a play button, a seek bar and the time; without it, a local track keeps the native audio player and the lyrics link. A track the service cannot play says so instead of showing the browser's error.
 
 ## Admonitions
 

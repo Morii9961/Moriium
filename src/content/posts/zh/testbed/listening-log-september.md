@@ -19,9 +19,9 @@ copyProtection: false
 
 ## 远程曲目
 
-第一张卡片的曲目信息来自第三方接口。页面打开时不会发出任何请求，第一次按播放才去取曲目地址，再按一次才真正开始播放。
+第一张卡片的曲目信息来自第三方接口。页面打开时不会发出任何请求；按下播放时才去取曲目地址、封面和歌词，取到后直接开始播放。
 
-::music{title="Final Resonance" artist="ARForest" meting="https://meting.spr-aachen.com/api?server=netease&type=song&id=1363298691"}
+::music{title="生命流 (TSAR / 兔子ST remix)" artist="TSAR / 兔子ST" meting="https://meting.spr-aachen.com/api?server=netease&type=song&id=1390882521"}
 
 ## 本地音频
 
