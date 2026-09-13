@@ -4,28 +4,41 @@ import type { Language } from '../data/site';
 
 const { lang } = Astro.props as { lang: Language };
 const copy = {
-  zh: { title: '友链', empty: '暂无友链。' },
-  ja: { title: '友人のサイト', empty: 'リンクはまだありません。' },
-  en: { title: 'Friends', empty: 'No links yet.' },
+  zh: { title: '友链', note: 'Friends', empty: '暂无友链。' },
+  ja: { title: '友人のサイト', note: 'Friends', empty: 'リンクはまだありません。' },
+  en: { title: 'Friends', note: 'Kindred sites', empty: 'No links yet.' },
 };
 const c = copy[lang];
+
+// A friend's mark is their own picture when one is given, and otherwise the
+// first letter of the name, set in the display face.
+const initial = (name: string) => Array.from(name.trim())[0]?.toUpperCase() ?? '·';
 ---
 
 <section id="friends" class="a-about-page__band" aria-labelledby="about-friends">
   <header class="a-about-page__head">
     <h2 id="about-friends">{c.title}</h2>
-    {lang !== 'en' && <p>Friends</p>}
+    <p>{c.note}</p>
   </header>
   {FRIENDS.length ? (
+    /* The same directory strip as the channels above it, so the page keeps one
+       grammar for "somewhere else": whole cells as links, hairlines between,
+       the blue field on hover. A row that is not full simply ends with a rule
+       after its last cell, rather than with empty boxes waiting to be filled. */
     <ul class="about-friends" role="list">
       {FRIENDS.map((friend) => (
         <li>
           <a href={friend.url} rel="friend external">
-            <span class="about-friends__name">{friend.name}</span>
-            <span class="about-friends__domain">{new URL(friend.url).hostname}</span>
+            <span class="about-friends__mark" aria-hidden="true">
+              {friend.avatar ? <img src={friend.avatar} alt="" loading="lazy" decoding="async" /> : initial(friend.name)}
+            </span>
             <span class="about-friends__arrow" aria-hidden="true">↗</span>
+            <span class="about-friends__copy">
+              <strong>{friend.name}</strong>
+              {friend.description?.[lang] && <span class="about-friends__note">{friend.description[lang]}</span>}
+              <span class="about-friends__domain">{new URL(friend.url).hostname}</span>
+            </span>
           </a>
-          {friend.description?.[lang] && <p>{friend.description[lang]}</p>}
         </li>
       ))}
     </ul>
@@ -34,57 +47,157 @@ const c = copy[lang];
 
 <style>
   .about-friends {
-    margin: 1.4rem 0 0 var(--about-indent, calc(var(--about-label, 7rem) + 2rem));
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin: clamp(2rem, 4vw, 3.5rem) 0 0;
     padding: 0;
+    border-top: 1px solid var(--line-soft);
     list-style: none;
   }
 
   .about-friends li {
-    padding-block: 0.75rem;
+    border-right: 1px solid var(--line-soft);
     border-bottom: 1px solid var(--line-soft);
-    overflow-wrap: anywhere;
   }
 
-  .about-friends li:last-child { border-bottom: 0; }
+  .about-friends li:nth-child(3n) {
+    border-right: 0;
+  }
 
   .about-friends a {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 0.5rem 1.5rem;
-    min-height: 44px;
-    color: var(--accent);
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto minmax(0, 1fr);
+    min-height: clamp(13rem, 18vw, 16rem);
+    gap: 2.2rem 1rem;
+    padding: clamp(1.5rem, 3vw, 2.4rem);
+    color: var(--ink);
+    text-decoration: none;
+    transition:
+      background-color var(--motion-fast) ease,
+      color var(--motion-fast) ease;
   }
 
-  .about-friends a:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 4px;
-  }
-
-  .about-friends__name {
+  .about-friends__mark {
+    display: grid;
+    width: 2.75rem;
+    height: 2.75rem;
+    place-items: center;
+    overflow: hidden;
+    background: var(--accent-field);
+    color: var(--accent-field-ink);
     font-family: var(--font-display);
-    text-decoration: underline;
-    text-underline-offset: 0.25em;
-    text-decoration-thickness: 1px;
+    font-size: 1.3rem;
+    font-weight: 650;
+    line-height: 1;
+    transition:
+      background-color var(--motion-fast) ease,
+      color var(--motion-fast) ease;
+  }
+
+  .about-friends__mark img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .about-friends__arrow {
+    color: var(--accent);
+    font-family: var(--font-data);
+    font-size: 0.8rem;
+    font-weight: 500;
+    transition: transform var(--motion-fast) ease;
+  }
+
+  .about-friends__copy {
+    display: flex;
+    grid-column: 1 / -1;
+    min-width: 0;
+    flex-direction: column;
+    align-self: end;
+  }
+
+  .about-friends strong {
+    font-family: var(--font-display);
+    font-size: clamp(1.15rem, 1.8vw, 1.45rem);
+    font-weight: 650;
+    letter-spacing: -0.025em;
+  }
+
+  .about-friends__note {
+    margin-top: 0.45rem;
+    color: var(--ink-muted);
+    font-family: var(--font-reading);
+    font-size: 0.84rem;
+    line-height: 1.6;
   }
 
   .about-friends__domain {
-    color: var(--ink-muted);
-    font-family: var(--font-interface);
-    font-size: 0.8rem;
+    margin-top: 1rem;
+    overflow: hidden;
+    color: var(--ink-faint);
+    font-family: var(--font-data);
+    font-size: 0.6rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
-  .about-friends p {
-    margin: 0.25rem 0 0;
-    color: var(--ink-muted);
-    font-family: var(--font-reading);
-    font-size: 0.95rem;
-    line-height: 1.8;
+  .about-friends a:hover,
+  .about-friends a:focus-visible {
+    background: var(--accent-field);
+    color: var(--accent-field-ink);
+  }
+
+  .about-friends a:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: -2px;
+  }
+
+  /* On the blue field the mark turns over, so it stays a mark rather than
+     dissolving into the ground it shares a colour with. */
+  .about-friends a:hover .about-friends__mark,
+  .about-friends a:focus-visible .about-friends__mark {
+    background: var(--accent-field-ink);
+    color: var(--accent-field);
+  }
+
+  .about-friends a:hover :is(.about-friends__note, .about-friends__domain, .about-friends__arrow),
+  .about-friends a:focus-visible :is(.about-friends__note, .about-friends__domain, .about-friends__arrow) {
+    color: color-mix(in srgb, var(--accent-field-ink) 78%, transparent);
+  }
+
+  .about-friends a:hover .about-friends__arrow,
+  .about-friends a:focus-visible .about-friends__arrow {
+    transform: translate(0.2rem, -0.2rem);
+  }
+
+  @media (max-width: 70rem) {
+    .about-friends {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .about-friends li:nth-child(3n) {
+      border-right: 1px solid var(--line-soft);
+    }
+
+    .about-friends li:nth-child(2n) {
+      border-right: 0;
+    }
   }
 
   @media (max-width: 48rem) {
-    .about-friends a { grid-template-columns: minmax(0, 1fr) auto; }
-    .about-friends__domain { grid-column: 1; grid-row: 2; }
-    .about-friends__arrow { grid-column: 2; grid-row: 1 / 3; }
+    .about-friends {
+      grid-template-columns: 1fr;
+    }
+
+    .about-friends li,
+    .about-friends li:nth-child(3n) {
+      border-right: 0;
+    }
+
+    .about-friends a {
+      min-height: 0;
+      gap: 1.6rem 1rem;
+    }
   }
 </style>

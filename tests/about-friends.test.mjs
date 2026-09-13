@@ -13,3 +13,15 @@ test("the about page's friends list carries Enouia's site, described in all thre
     assert.match(entry, new RegExp(`${lang}: '[^']+'`), `no ${lang} description`);
   }
 });
+
+test('friends are cells in the same directory strip as the channels, not a list of underlined names', async () => {
+  const component = await read('src/components/AboutFriends.astro');
+
+  // Whole cells as links, three to a row, each with a mark, name, note and host.
+  assert.match(component, /\.about-friends \{[^}]*display: grid;[^}]*grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/s);
+  assert.match(component, /<span class="about-friends__mark" aria-hidden="true">/);
+  assert.match(component, /friend\.avatar \? <img/);
+  assert.doesNotMatch(component, /text-decoration: underline/);
+  // The blue field on hover, with the mark turned over so it stays visible.
+  assert.match(component, /\.about-friends a:hover \.about-friends__mark,[^{]*\{[^}]*background: var\(--accent-field-ink\);/s);
+});

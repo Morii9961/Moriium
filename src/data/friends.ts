@@ -3,6 +3,8 @@ import type { Language } from './site';
 export interface FriendLink {
   name: string;
   url: `https://${string}` | `http://${string}`;
+  /** A square picture for the mark. Without one, the name's first letter is used. */
+  avatar?: `https://${string}` | `/${string}`;
   description?: Partial<Record<Language, string>>;
 }
 
