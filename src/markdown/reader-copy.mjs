@@ -21,7 +21,12 @@ export const READER_COPY = {
     code: { copy: '复制代码', copied: '已复制', failed: '复制失败。可手动选择代码。' },
     copyProtection: '正文已限制复制；代码块不受影响。',
     footnotes: '脚注', footnoteBack: '返回注记 ',
-    mermaid: { diagram: '图表', error: '图表未能生成。原始内容如下。' },
+    mermaid: {
+      diagram: '图表', error: '图表未能生成。原始内容如下。',
+      zoomIn: '放大', zoomOut: '缩小', reset: '复位',
+      hintPointer: '拖动平移 · Ctrl + 滚轮缩放', hintTouch: '拖动平移 · 双指缩放',
+      keys: '可拖动平移；按加号、减号缩放，按 0 复位，方向键移动。',
+    },
   },
   ja: {
     admonitions: { note: '注記', tip: 'ヒント', important: '重要', warning: '警告', caution: '注意' },
@@ -45,7 +50,12 @@ export const READER_COPY = {
     code: { copy: 'コードをコピー', copied: 'コピーしました', failed: 'コピーできませんでした。コードを手動で選択できます。' },
     copyProtection: '本文のコピーは制限されています。コードブロックには影響しません。',
     footnotes: '脚注', footnoteBack: '注記に戻る ',
-    mermaid: { diagram: '図', error: '図を生成できませんでした。元の内容を示します。' },
+    mermaid: {
+      diagram: '図', error: '図を生成できませんでした。元の内容を示します。',
+      zoomIn: '拡大', zoomOut: '縮小', reset: 'リセット',
+      hintPointer: 'ドラッグで移動 · Ctrl + ホイールで拡大縮小', hintTouch: 'ドラッグで移動 · ピンチで拡大縮小',
+      keys: 'ドラッグで移動できます。プラスとマイナスで拡大縮小、0 でリセット、矢印キーで移動します。',
+    },
   },
   en: {
     admonitions: { note: 'Note', tip: 'Tip', important: 'Important', warning: 'Warning', caution: 'Caution' },
@@ -69,7 +79,12 @@ export const READER_COPY = {
     code: { copy: 'Copy code', copied: 'Copied', failed: 'Copy failed. Select the code manually.' },
     copyProtection: 'Prose copying is restricted; code blocks are unaffected.',
     footnotes: 'Footnotes', footnoteBack: 'Back to reference ',
-    mermaid: { diagram: 'Diagram', error: 'The diagram could not be rendered. Source follows.' },
+    mermaid: {
+      diagram: 'Diagram', error: 'The diagram could not be rendered. Source follows.',
+      zoomIn: 'Zoom in', zoomOut: 'Zoom out', reset: 'Reset view',
+      hintPointer: 'Drag to pan · Ctrl + wheel to zoom', hintTouch: 'Drag to pan · pinch to zoom',
+      keys: 'Drag to pan. Plus and minus zoom, 0 resets, arrow keys move.',
+    },
   },
 };
 

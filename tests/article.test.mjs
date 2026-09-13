@@ -247,3 +247,35 @@ test('a sideways scroller in the prose draws a quiet bar in the chosen theme', a
   // Expressive Code resets its descendants from outside any layer.
   assert.match(reading, /\.expressive-code pre \{\s*scrollbar-width: thin !important;/);
 });
+
+test('a Mermaid diagram is drawn in the site colours and can be panned and zoomed without trapping the page', async () => {
+  const [reader, base, copy] = await Promise.all([
+    read('src/components/ReaderEnhancements.astro'),
+    read('src/styles/base.css'),
+    read('src/markdown/reader-copy.mjs'),
+  ]);
+
+  // Mermaid's grey neutral and dark themes are gone; its base theme is fed the
+  // page's own tokens.
+  assert.match(reader, /theme: 'base',\s*themeVariables: themeVariables\(\)/);
+  assert.doesNotMatch(reader, /theme: dark \? 'dark' : 'neutral'/);
+  for (const name of ['--surface-raised', '--ink', '--line', '--accent']) {
+    assert.match(reader, new RegExp(String.raw`token\('${name}'\)`));
+  }
+  // The wheel stays the page's unless Ctrl or Cmd is held.
+  assert.match(reader, /if \(!event\.ctrlKey && !event\.metaKey\) return;\s*event\.preventDefault\(\);/);
+  assert.match(reader, /\{ passive: false \}/);
+  // Drag, pinch and keyboard all move the same view.
+  for (const marker of ["'pointerdown'", "'pointermove'", 'pointers.size === 2', "ArrowLeft", "'0': () => apply(fitted, true)"]) {
+    assert.ok(reader.includes(marker), `viewer lost ${marker}`);
+  }
+  // A touch swipe scrolls past the frame until the reader has moved it.
+  assert.match(base, /\.mermaid-shell__viewport \{[^}]*touch-action: pan-y;/s);
+  assert.match(base, /\.mermaid-shell\[data-mermaid-engaged\] \.mermaid-shell__viewport \{\s*touch-action: none;/);
+  // The old scrolling fallback is gone with the viewer that replaced it.
+  assert.doesNotMatch(reader + base, /data-mermaid-scroll|mermaidScroll/);
+  // Every control is labelled in all three languages.
+  for (const key of ['zoomIn', 'zoomOut', 'reset', 'hintPointer', 'hintTouch', 'keys']) {
+    assert.equal(copy.match(new RegExp(String.raw`\b${key}: '`, 'g'))?.length, 3, `${key} is not in every language`);
+  }
+});

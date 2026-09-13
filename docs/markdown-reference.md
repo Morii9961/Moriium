@@ -42,7 +42,7 @@ flowchart LR
 ```
 ````
 
-Mermaid loads only on marked articles, uses strict security mode, follows the current color theme, and exposes source text when rendering fails.
+Mermaid loads only on marked articles, uses strict security mode, and exposes source text when rendering fails. Diagrams are drawn in the site's own colours, resolved from the page's tokens at render time and redrawn when the theme changes. Each diagram sits in a frame that opens fitted to the column width (never below 55%): drag to pan, Ctrl or Cmd with the wheel or a trackpad pinch to zoom, two-finger pinch on touch screens, `+` `-` `0` and the arrow keys once the frame has focus, and a bar under the frame with the scale and zoom and reset buttons. A plain wheel always scrolls the page, and on touch screens a vertical swipe scrolls past a diagram until the reader has moved it.
 
 ## Video
 
