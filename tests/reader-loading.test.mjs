@@ -61,7 +61,7 @@ const THIRD_PARTY_ORIGINS = [
   'https://meting.spr-aachen.com',
 ];
 
-/** Web Crypto identifiers that only a protected article has any use for. */
+/** Decryption stays feature-scoped; About may only digest its status payload. */
 const DECRYPTION_MARKERS = ['crypto.subtle', 'PBKDF2', 'deriveKey', 'AES-GCM'];
 
 function filesUnder(directory, extension) {
@@ -193,9 +193,22 @@ describe('ordinary pages before any interaction', () => {
     for (const page of ORDINARY_PAGES) {
       const { assets, inline, html } = eagerClosure(page);
       const sources = [inline, html, ...assets.map((asset) => readFileSync(join(out, asset), 'utf8'))];
+      // ADR 0003 checks immutable activity files with SHA-256. Permit only that
+      // exact operation on About, retaining all other decryption markers.
+      const checkedSources = page.endsWith('/about/index.html')
+        ? sources.map(source => source.replaceAll('crypto.subtle.digest', 'statusPayloadDigest'))
+        : sources;
       for (const marker of DECRYPTION_MARKERS) {
-        assert.ok(!sources.some((source) => source.includes(marker)), `${page} ships ${marker}`);
+        assert.ok(!checkedSources.some((source) => source.includes(marker)), `${page} ships ${marker}`);
       }
+    }
+  });
+
+  it('keeps status fetching on About pages only', () => {
+    for (const page of ORDINARY_PAGES.filter(page => !page.endsWith('/about/index.html'))) {
+      const { assets, inline } = eagerClosure(page);
+      const source = [inline, ...assets.map(asset => readFileSync(join(out, asset), 'utf8'))].join('\n');
+      assert.ok(!source.includes('/status-data/current.json'), `${page} loads About status fetching`);
     }
   });
 

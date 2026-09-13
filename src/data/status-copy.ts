@@ -1,0 +1,32 @@
+export const statusCopy = {
+  zh: {
+    title: '运行状态', subtitle: 'Sites / services', intro: '这些站点与服务的近期运行记录。',
+    names: { moriium: 'Moriium', gallery: 'Moriium Gallery', activity: '活动数据更新', runtime: 'Enouia Runtime' },
+    states: { operational: '正常', checking: '正在复核', down: '检测到中断', unknown: '状态未知', unconfigured: '尚未接入监测', stale: '数据已过期', degraded: '部分异常', waiting: '待机', running: '运行中', paused: '已暂停' },
+    days: { normal: '观测正常', incident: '存在异常', incomplete: '观测不完整', empty: '无数据' },
+    healthy: '已接入项目的最近观测正常。', attention: '部分项目异常，或尚无有效的近期观测。', none: '尚无有效的近期观测。',
+    snapshot: '构建时快照；启用 JavaScript 后获取近期状态。', unavailable: '暂时无法取得新状态，保留上次记录。', updated: '检测 / 更新', history: '近 90 天', details: '查看记录', noEvents: '暂无已记录的中断或恢复。',
+    detected: '检测到中断', recovered: '检测到恢复', collected: '采集于', published: '公开于', failed: '最近采集失败', success: '最近采集成功', unknown: '尚无采集结果', changed: '运行状态已更新。', activityChanged: '活动记录已更新。',
+    scope: '站点状态仅表示入口可访问性。监测与主站位于同一台 VPS。', runtime: '自动唤醒与自主运行系统，待部署后接入。',
+  },
+  ja: {
+    title: '稼働状況', subtitle: 'Sites / services', intro: 'サイトとサービスの最近の稼働記録。',
+    names: { moriium: 'Moriium', gallery: 'Moriium Gallery', activity: '活動データの更新', runtime: 'Enouia Runtime' },
+    states: { operational: '正常', checking: '再確認中', down: '停止を検出', unknown: '状態不明', unconfigured: '監視未接続', stale: 'データが古くなっています', degraded: '一部に問題', waiting: '待機中', running: '実行中', paused: '一時停止中' },
+    days: { normal: '観測は正常', incident: '問題あり', incomplete: '観測が不完全', empty: 'データなし' },
+    healthy: '接続済み項目の直近の観測は正常です。', attention: '問題があるか、有効な直近の観測がない項目があります。', none: '有効な直近の観測はまだありません。',
+    snapshot: 'ビルド時の記録です。JavaScript を有効にすると最近の状態を取得します。', unavailable: '新しい状態を取得できないため、前回の記録を表示しています。', updated: '確認 / 更新', history: '直近90日', details: '記録を見る', noEvents: '停止・復旧の記録はまだありません。',
+    detected: '停止を検出', recovered: '復旧を検出', collected: '収集日', published: '公開日', failed: '直近の収集に失敗', success: '直近の収集に成功', unknown: '収集結果なし', changed: '稼働状況を更新しました。', activityChanged: '活動記録を更新しました。',
+    scope: 'サイトの状態は入口へのアクセス可否を示します。監視はメインサイトと同じ VPS 上で動作します。', runtime: '自動起動・自律実行システム。配備後に接続します。',
+  },
+  en: {
+    title: 'Operating status', subtitle: 'Sites / services', intro: 'Recent operating records for these sites and services.',
+    names: { moriium: 'Moriium', gallery: 'Moriium Gallery', activity: 'Activity updates', runtime: 'Enouia Runtime' },
+    states: { operational: 'Operational', checking: 'Checking again', down: 'Interruption detected', unknown: 'Unknown', unconfigured: 'Monitoring not connected', stale: 'Data is stale', degraded: 'Partly affected', waiting: 'Waiting', running: 'Running', paused: 'Paused' },
+    days: { normal: 'Normal observations', incident: 'Issue observed', incomplete: 'Incomplete observations', empty: 'No data' },
+    healthy: 'Recent observations of connected components are normal.', attention: 'Some components are affected or lack a valid recent observation.', none: 'No valid recent observations yet.',
+    snapshot: 'Build-time snapshot. Enable JavaScript to fetch recent status.', unavailable: 'New status could not be fetched. Keeping the previous record.', updated: 'Checked / updated', history: 'Past 90 days', details: 'View records', noEvents: 'No interruptions or recoveries recorded yet.',
+    detected: 'Interruption detected', recovered: 'Recovery detected', collected: 'Collected', published: 'Published', failed: 'Latest collection failed', success: 'Latest collection succeeded', unknown: 'No collection result', changed: 'Operating status updated.', activityChanged: 'Activity records updated.',
+    scope: 'Site checks cover entry-page availability. Monitoring shares the main site’s VPS.', runtime: 'Automatic wake-up and autonomous execution system; awaiting deployment.',
+  },
+} as const;

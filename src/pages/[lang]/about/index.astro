@@ -2,6 +2,7 @@
 import type { GetStaticPaths } from 'astro';
 import BaseLayout from '../../../layouts/BaseLayout.astro';
 import AboutActivity from '../../../components/AboutActivity.astro';
+import AboutStatus from '../../../components/AboutStatus.astro';
 import AboutChannelIcon from '../../../components/AboutChannelIcon.astro';
 import AboutFriends from '../../../components/AboutFriends.astro';
 import { CHANNELS, SITE, type Language } from '../../../data/site';
@@ -96,6 +97,7 @@ const c = copy[lang];
       </ul>
     </section>
 
+    <AboutStatus lang={lang} />
     <AboutActivity lang={lang} />
 
     <AboutFriends lang={lang} />

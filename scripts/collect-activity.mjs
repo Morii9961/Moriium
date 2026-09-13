@@ -3,13 +3,13 @@ import { promisify } from 'node:util';
 import { readFile, readdir, writeFile, rename } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
 import { SOURCES, validateActivity, dateInShanghai, shiftDate } from '../src/lib/activity.ts';
-import { importUsage, importGitHub } from './lib/activity-import.ts';
+import { importUsage, importGitHub, mergeActivityDays } from './lib/activity-import.ts';
 import { coworkConfigDirs } from './lib/cowork.ts';
 import { importCodexUsage, readCodexUsage } from './lib/codex-usage.ts';
 
 const exec = promisify(execFile);
 const root = resolve(import.meta.dirname, '..');
-const output = resolve(root, 'src/data/activity.json');
+const output = process.env.MORIIUM_ACTIVITY_OUTPUT ? resolve(process.env.MORIIUM_ACTIVITY_OUTPUT) : resolve(root, 'src/data/activity.json');
 const selected = process.argv[2] ?? 'all';
 if (!['all', ...SOURCES].includes(selected) || process.argv.length > 3) {
   console.error('Usage: pnpm activity:collect [all|github|codex|claude]');
@@ -17,6 +17,7 @@ if (!['all', ...SOURCES].includes(selected) || process.argv.length > 3) {
 }
 const data = validateActivity(JSON.parse(await readFile(output, 'utf8')));
 const updatedAt = new Date().toISOString();
+const outcomes = {};
 const end = dateInShanghai(new Date(updatedAt));
 // GitHub's contribution calendar accepts at most one year per query.
 const start = shiftDate(end, -364);
@@ -84,14 +85,14 @@ for (const source of selected === 'all' ? SOURCES : [selected]) {
     snapshot.days = snapshot.days.filter((day) => day.date >= RETAIN_FROM && day.date <= end);
     if (!snapshot.days.length) throw new Error('No daily data found.');
     // Retain previously collected days when the source later cleans up its logs.
-    const merged = new Map(data.sources[source]?.days.map((day) => [day.date, day]));
-    for (const day of snapshot.days) merged.set(day.date, day);
-    snapshot.days = [...merged.values()].filter((day) => day.date >= RETAIN_FROM && day.date <= end);
+    snapshot.days = mergeActivityDays(data.sources[source]?.days ?? [], snapshot.days, end);
     const candidate = validateActivity({ version: 1, sources: { ...data.sources, [source]: snapshot } });
     data.sources[source] = candidate.sources[source];
+    outcomes[source] = { attemptedAt: updatedAt, result: 'success' };
     changed = true;
     console.log(`${source}: saved ${snapshot.days.length} daily aggregates.`);
   } catch {
+    outcomes[source] = { attemptedAt: updatedAt, result: 'failed' };
     // CLI errors can contain local paths, report snippets or credentials.
     console.error(`${source}: collection failed; previous snapshot retained. See docs/activity.md.`);
     process.exitCode = 1;
@@ -100,4 +101,9 @@ for (const source of selected === 'all' ? SOURCES : [selected]) {
 if (changed) {
   await writeFile(`${output}.tmp`, `${JSON.stringify(validateActivity(data), null, 2)}\n`, 'utf8');
   await rename(`${output}.tmp`, output);
+}
+if (process.env.MORIIUM_ACTIVITY_REPORT) {
+  const report = resolve(process.env.MORIIUM_ACTIVITY_REPORT);
+  await writeFile(`${report}.tmp`, `${JSON.stringify(outcomes)}\n`, 'utf8');
+  await rename(`${report}.tmp`, report);
 }

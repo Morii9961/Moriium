@@ -219,3 +219,17 @@ Rebuild after editing the list.
 ## Implementation rule
 
 When the implementation and `DESIGN.md` disagree, follow `DESIGN.md` and update this status record. Do not silently promote a prototype, generic skill recommendation, or reference-site pattern into Moriium's site-wide language.
+## About status implementation — 2026-09-13
+
+The About page now places operating status before its activity calendars. Four
+native disclosure rows reuse the existing About indent, rules, interface fonts,
+focus tokens. Each row has a full-width 90-day timeline of slender vertical bars, date endpoints,
+a shared legend and readable history. Enouia is consolidated into Enouia Runtime;
+its separate website probe is removed. History uses a thin, theme-aware scrollbar
+with a transparent track. At Morii's request, status colors use the
+supplied light/dark OKLCH pairs: muted green for normal, brick red for incidents,
+solid ochre for incomplete observations, mist blue for checking and gray-purple for
+intentional pauses. These colors are scoped to this section; status text retains
+the existing ink colors. Narrow layouts keep all 90 segments. The feature has no ambient
+motion, added font, framework or site-wide palette. Implementation and local
+validation do not imply that production monitoring is active; see ADR 0003.

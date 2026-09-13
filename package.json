@@ -11,6 +11,9 @@
   "scripts": {
     "activity:collect": "node scripts/collect-activity.mjs",
     "activity:refresh": "node scripts/refresh-activity.mjs",
+    "activity:sync": "node scripts/activity-sync.mjs",
+    "status:publish": "node scripts/status-publish.mjs",
+    "status:receive": "node scripts/status-receive.mjs",
     "dev": "astro dev",
     "start": "astro dev",
     "sync": "astro sync",

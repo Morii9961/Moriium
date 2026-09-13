@@ -1,5 +1,12 @@
 import { validDate, type ActivityDay, type ActivitySnapshot } from '../../src/lib/activity.ts';
 
+/** Upstream lookback windows move; the local archive never ages out a known day. */
+export function mergeActivityDays(previous: ActivityDay[], incoming: ActivityDay[], end: string): ActivityDay[] {
+  const merged = new Map(previous.map(day => [day.date, day]));
+  for (const day of incoming) merged.set(day.date, day);
+  return [...merged.values()].filter(day => day.date <= end).sort((a, b) => a.date.localeCompare(b.date));
+}
+
 /**
  * ccusage 20.0.20 focused daily JSON. Fail closed on incompatible report shapes.
  * Claude only: Codex now comes from its own server-side account activity, whose day

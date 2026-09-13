@@ -1,6 +1,8 @@
 // Astro bundles this module only on pages that render ActivityHeatmap.
 // https://docs.astro.build/en/guides/client-side-scripts/
 const enhanceCalendar = (calendar: HTMLElement) => {
+  if (calendar.dataset.enhanced) return;
+  calendar.dataset.enhanced = 'true';
   const panel = calendar.closest<HTMLElement>('[data-activity-year]');
   const input = panel?.querySelector<HTMLInputElement>('[data-date-input]');
   const output = panel?.querySelector<HTMLOutputElement>('[data-output]');
@@ -35,9 +37,10 @@ const enhanceCalendar = (calendar: HTMLElement) => {
     const index = cells.findIndex((cell) => cell.dataset.date === input.value);
     if (index >= 0) show(index);
   });
+  show(selected, false);
 };
 
-for (const root of document.querySelectorAll<HTMLElement>('[data-activity-root]')) {
+export function enhanceActivity(root: HTMLElement) {
   const yearControl = root.querySelector<HTMLElement>('[data-activity-year-control]');
   const yearSelect = root.querySelector<HTMLSelectElement>('[data-activity-year-select]');
   const yearPanels = Array.from(root.querySelectorAll<HTMLElement>('[data-activity-year]'));
@@ -46,8 +49,9 @@ for (const root of document.querySelectorAll<HTMLElement>('[data-activity-root]'
       for (const panel of yearPanels) panel.hidden = panel.dataset.activityYear !== yearSelect.value;
     };
     yearControl.hidden = false;
-    yearSelect.addEventListener('change', showYear);
+    yearSelect.onchange = showYear;
     showYear();
   }
   root.querySelectorAll<HTMLElement>('[data-activity-calendar]').forEach(enhanceCalendar);
 }
+for (const root of document.querySelectorAll<HTMLElement>('[data-activity-root]')) enhanceActivity(root);
