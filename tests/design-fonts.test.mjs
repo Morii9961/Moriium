@@ -301,7 +301,7 @@ test('production copy removes prototype fillers and keeps the Moriium voice', as
   // The header mark is the wordmark alone; the tagline lives in the footer only.
   assert.match(layout, /<a class="site-mark" href=\{`\/\$\{lang\}\/`\}><strong>\{SITE\.name\}<\/strong><\/a>/);
 
-  assert.match(todo, /一次只拿一个待办/);
+  assert.match(todo, /一次完成一个逻辑单元，按影响面自行验证/);
   assert.match(todo, /01　生产搜索/);
   assert.match(todo, /14　发布前总验收/);
   assert.match(todo, /## 明确不做/);

@@ -13,8 +13,9 @@ When visual instructions conflict, use this order:
 1. Morii's current explicit instruction.
 2. A page-specific design decision explicitly approved by Morii.
 3. This `DESIGN.md`.
-4. Repository `AGENTS.md` product/engineering constraints.
-5. Generic design skills, design-system databases, reference websites, and third-party component libraries.
+4. Generic design skills, design-system databases, reference websites, and third-party component libraries.
+
+This order resolves visual choices only. Repository `AGENTS.md` product, privacy, and engineering constraints remain binding; a visual decision does not waive them.
 
 **Generic skills never override Moriium's locked identity.** A design skill is a consultant, not the brand owner.
 
@@ -650,29 +651,9 @@ Screenshot / responsive / accessibility review
 
 # 15. Skill routing for design work
 
-`DESIGN.md` is loaded before generic design skills.
+Use the single Skill routing table in [`AGENTS.md`](./AGENTS.md). This file defines visual constraints, not a second set of triggers. Read it for meaningful public visual decisions and reuse it while unchanged.
 
-## Default roles
-
-| Skill | Role | Invoke when |
-| --- | --- | --- |
-| `frontend-design` | art director | new interface or meaningful visual direction/composition decision |
-| `ui-ux-pro-max` | design-system / UX researcher | system, responsive, accessibility, typography/color/navigation questions |
-| `animate` | motion designer | motion is actually requested/needed |
-| GSAP official skills | motion implementation specialist | GSAP is justified by the interaction |
-| `web-design-guidelines` | auditor | formal UI/UX/a11y review after implementation |
-| `verification-before-completion` | verifier | before claiming a substantial visual implementation is complete |
-
-## Explicit specialists
-
-- Hallmark → explicit study / audit / major redesign only.
-- `review-animations` → explicit animation review.
-- `find-animation-opportunities` → explicit motion-opportunity pass.
-- `improve-animations` → explicit motion-quality pass.
-- Cinematic UI → explicit cinematic/directorial project treatment.
-- Mono Color → editorial/poster/zine/photography asset work.
-
-Do not invoke multiple broad art-direction skills for the same ordinary page merely because they are installed.
+Generic Skills advise on open design questions. They must reuse the approved identity and existing tokens, and must not generate a competing design constitution. Routine implementation within the approved system does not require a new art-direction pass.
 
 ---
 

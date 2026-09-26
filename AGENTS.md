@@ -28,12 +28,14 @@ Build the design through editorial hierarchy, readable rhythm, whitespace, and r
 
 `DESIGN.md` is Moriium's canonical public visual/design constitution and design-Skills specification. Read it before any meaningful public visual change. `docs/design-system.md` is a derived implementation/status record and must not redefine or conflict with `DESIGN.md`.
 
-Before freezing typography, color, grid, spacing, rules, or dark mode:
+For the initial site-wide visual selection, or when Morii explicitly reopens that selection:
 
 1. Show Morii three comparable concepts using identical real content.
 2. Include both home and article pages at desktop and mobile widths.
 3. Record each visited reference, extracted principle, and resulting decision in `docs/design-research.md`.
 4. Implement the selected direction against `DESIGN.md` and record the current implementation/status snapshot in `docs/design-system.md`; the status document must not become a competing source of truth.
+
+Local changes within an approved direction do not reopen this selection. Read `DESIGN.md` once when the task makes a meaningful public visual decision; reuse it while unchanged. Update design records only when the task changes a recorded decision or adds research evidence.
 
 ## Content and privacy
 
@@ -63,16 +65,31 @@ Before freezing typography, color, grid, spacing, rules, or dark mode:
 2. Classify the task, then load the smallest skill set that fully covers it. See Skill routing.
 3. Preserve unrelated changes from Morii or another contributor.
 4. Implement the smallest complete change inside the approved scope.
-5. Run fresh, relevant checks and inspect the final diff.
-6. Do not claim a check passed unless its current output proves it.
+5. Choose checks for the affected behavior, reuse still-valid evidence, and inspect the final diff. See Quality gates.
+6. Report only what the recorded output proves, including the scope and any unverified parts.
 
-Do not commit, push, publish, deploy, create a repository, or change remote state unless Morii explicitly requests it. Morii has authorized creating and publishing `Morii9961/Moriium` in the approved launch phase, after visual selection and release verification.
+Do not commit, push, publish, deploy, create a repository, or change remote state unless Morii explicitly requests it. Explicit authorization for an operation remains valid within the same task and scope; do not ask for it again. Historical launch approvals and execution records do not authorize a new release or deployment.
+
+Proceed with authorized, reversible local edits and checks. This includes removing code made unused by the current change after checking its references. Ask only when a material decision cannot be inferred, scope must expand, ownership is unclear, or an unapproved destructive, sensitive, or external operation is needed. Preserve privacy rules, credentials, original media, other contributors' work, and tool-enforced permissions. Complete independent work while awaiting necessary input.
+
+### Read only task-relevant context
+
+Read applicable `AGENTS.md` files and the files needed for the task. Follow documentation links only when they resolve a relevant question; a reference list is not a mandatory reading sequence. Reuse unchanged material already read in this session.
+
+- Public visual decisions: `DESIGN.md`; implementation/research records only for the affected decision.
+- Rendering, Public/Admin isolation, persistence, or deployment changes: the relevant sections of ADR 0002 and current architecture/deployment documentation.
+- Authoring, Markdown, or encryption changes: the matching reference and implementation.
+- Phase continuation: the current task entry and relevant handoff section. Closed ADRs and old handoffs are historical evidence, not standing work orders.
+
+Editing a file under `src/` alone does not trigger architecture or design reading. A language/style list below identifies document conventions; it is not a reading list.
 
 ## Skill routing
 
 Skills are installed at `~/.claude/skills/` for Claude and `~/.codex/skills/` for Codex. Both agents route from this section; do not keep a second routing list in an agent-specific file.
 
 Load the smallest skill set that fully covers the task. Do not invoke a skill merely because it is available, and do not preload speculative skills. Combine skills only when their responsibilities genuinely overlap.
+
+This section is the sole project Skill trigger table. Generic Skill descriptions and workflows do not widen these triggers or add approval gates for already-authorized low-risk work. Read only the supporting references needed for the selected mode. A missing optional Skill/reference does not block work or authorize installation; use the existing implementation and available documentation, and report a missing essential capability if it prevents progress.
 
 A skill's output is advice, never authority. Morii's direct instructions, `DESIGN.md` for public visual identity, and this file's product/engineering constraints override any skill recommendation. `docs/design-system.md` records implementation status, while `docs/design-research.md` records evidence and rejected recommendations; neither can override `DESIGN.md`.
 
@@ -81,7 +98,7 @@ A skill's output is advice, never authority. Morii's direct instructions, `DESIG
 | Skill | Invoke when | Do not invoke when |
 | --- | --- | --- |
 | `frontend-design` | Making a genuinely new visual decision: art direction, typography, hierarchy, or composition that `DESIGN.md` has not already settled. | Implementing an approved direction, fixing a local style bug, or changing non-visual code. |
-| `ui-ux-pro-max` | Deciding interaction, responsive behavior, accessibility, color, typography, or navigation. Detect the stack first; `data/stacks/astro.csv` covers the current public site. | A trivial CSS correction, or a task with no UX decision. |
+| `ui-ux-pro-max` | Resolving an open interaction, responsive, accessibility, color, typography, or navigation question. Detect the affected stack; `data/stacks/astro.csv` covers the public site. Reuse `DESIGN.md`, not a generated parallel design system. | A trivial CSS correction, applying an established pattern, or a task with no UX decision. |
 | `animate` | Designing motion when motion is actually requested or needed, within `DESIGN.md`'s restraint and reduced-motion rules. | Static work, routine scroll reveals, or motion that has no clear purpose. |
 | `gsap-core`, `gsap-timeline`, `gsap-scrolltrigger`, `gsap-performance`, `gsap-frameworks` | Implementing a justified GSAP interaction; choose only the specialist that matches the actual mechanism and framework. | Simple CSS transitions, no-motion work, or React-only guidance for this Astro/Vue repository. |
 | `web-design-guidelines` | Morii asks for a UI, UX, or accessibility audit, or an interface is formally reviewed before release. | Initial design or routine implementation. It is an audit skill, not a default coding skill. |
@@ -94,14 +111,14 @@ A skill's output is advice, never authority. Morii's direct instructions, `DESIG
 | `mono-color` | Morii explicitly asks for mono-color, duotone, risograph, or related editorial asset work. | General site styling or ordinary photography handling. |
 | `vercel-react-best-practices` | Writing, reviewing, or refactoring React or Next.js code in the vNext full-stack work. | The file under change is Astro, plain TypeScript, or a static asset. |
 | `vercel-composition-patterns` | Designing reusable React component APIs, compound components, or context boundaries. | A one-off section, or any non-React task. |
-| `source-driven-development` | Behavior depends on the current Astro, Tiptap, browser, or third-party API surface; a dependency is added or upgraded; a vNext claim needs a first-party citation. | A self-contained local change that follows an already verified project pattern. |
+| `source-driven-development` | An unfamiliar or version-sensitive API needs verification; a dependency is added/upgraded; a technical claim needs a first-party citation. | Reusing a verified pattern at the same version, pure local logic, or incidental framework usage. |
 
 ### Engineering quality
 
 | Skill | Invoke when | Do not invoke when |
 | --- | --- | --- |
 | `systematic-debugging` | A bug, failed test, failed build, or unexplained behavior exists. Reproduce and find the root cause before editing. | Building a requested feature normally, or speculating about failures that have not occurred. |
-| `verification-before-completion` | Before claiming substantial work is complete, fixed, or passing. Run `pnpm verify`, or the narrower relevant commands, and report their real output. | Pure discussion with no completion claim. |
+| `verification-before-completion` | Before claiming substantial work is complete, fixed, or passing. Apply Quality gates and report evidence for the affected scope. | Pure discussion, or repeating a status already supported by still-valid evidence. |
 | `code-review-and-quality` | Morii requests review, a commit or merge is being prepared, or a risky diff needs multi-axis review. | Ordinary implementation before a review phase. |
 
 ### Writing
@@ -113,19 +130,22 @@ Code, comments, commit messages, and files under `prototypes/` are English, matc
 | Skill | Invoke when | Do not invoke when |
 | --- | --- | --- |
 | `humanizer-zh` | Naturalizing or polishing substantial Chinese prose: interface copy, articles, or the Chinese planning documents. | English instructions, code, exact technical reference text, or a short Chinese reply. |
-| `writing-clearly-and-concisely` | Writing or materially revising English documentation, explanations, commit messages, error messages, or substantial UI copy. | Code-only changes, or small labels whose wording is already supplied. |
+| `writing-clearly-and-concisely` | Drafting or materially revising substantial English prose, or explicitly reviewing its clarity. | Routine status replies, short commit subjects, supplied wording, small labels, or code-only changes. |
 | `documentation-writer` | Creating or restructuring a technical tutorial, how-to guide, reference, explanation, or a substantive README. | A short status update, ordinary code comments, or a tiny correction in an established document. |
-| `doc-coauthoring` | A substantial proposal, ADR, or specification set needs iterative context transfer, outline agreement, and reader verification, such as the Phase 5 architecture ADR. | A focused single-file edit with clear requirements. |
+| `doc-coauthoring` | Morii requests iterative co-authoring, or a substantial proposal/specification needs joint decisions about purpose or structure. | Research alone, an ADR label alone, or drafting/editing with clear requirements. |
+| `sepia` and its wrappers | Morii requests de-AI editing, a named Sepia operation, or a specific humanizing pass. | Routine PR descriptions, review comments, reports, or factual updates. |
 | `beautiful-prose` | Morii explicitly names it. | Any implicit or routine task. |
 
 ### Common combinations
+
+Each Skill in a combination must independently meet its trigger above; these are examples, not extra mandatory stages. Share evidence between Skills instead of rerunning the same checks.
 
 - New or redesigned public-site UI: read `DESIGN.md`, then use `frontend-design` + `ui-ux-pro-max` only for decisions the constitution leaves open; check the result against the clean-room visual contract.
 - Motion work: read `DESIGN.md`, then use `animate` and only the necessary GSAP specialist when the interaction justifies it; invoke the explicit motion-review skills only when Morii asks for those reviews.
 - Bug or failed build: `systematic-debugging` first, then the relevant implementation skill, then `verification-before-completion`.
 - Pre-commit readiness: `code-review-and-quality` + `verification-before-completion`.
-- vNext research or an ADR: `source-driven-development` + `doc-coauthoring`, with every external claim carrying a first-party link.
-- Revising a Chinese planning document: `humanizer-zh`; add `documentation-writer` only when its structure is being rebuilt.
+- Version-sensitive research: `source-driven-development`; add `doc-coauthoring` only when joint document decisions are needed.
+- Polishing substantial Chinese planning prose: `humanizer-zh`; add `documentation-writer` only when its structure is being rebuilt. Factual status, number, and checklist updates do not trigger prose polishing.
 
 Do not default to `emil-design-eng`, `gsap-react`, Taste/`gpt-taste`, Open Design full, Claude Design Skill, PencilPlaybook, or Landing Page Generator. Skills not listed here are not part of the default workflow. Invoke one only when Morii names it, or the task unambiguously matches its description.
 
@@ -151,11 +171,13 @@ Codex uses the same script under `~/.codex/skills/`. Resolve the path from the h
 
 ## Quality gates
 
-- `pnpm check`, `pnpm test`, `pnpm build`, and `pnpm links` pass.
-- Content schema and custom Markdown directives validate.
-- Keyboard navigation, visible focus, semantic headings, alt text, contrast, and reduced motion work.
-- Layout is checked at 375, 390, 768, 1024, and 1440 CSS pixels.
-- Ordinary pages contain no unused advanced-reader bundles.
-- Generated output and Git history contain no protected plaintext, passwords, exact GPS, secrets, or unrelated generated files.
-- Public output is static and stays fully reachable with the Node process stopped. Prove it by stopping the process, not by asserting it.
-- No public page bundles admin code such as Vue or Tiptap.
+Select verification by the changed surface:
+
+- Documentation/instruction-only changes: inspect the diff, references, syntax where applicable, and rule consistency. Do not build the site unless executable examples or site behavior changed.
+- Local code/content changes: run the relevant checks and behavior tests; validate changed content/directives. Add regression coverage where a behavior bug warrants it. A reversible typo or style correction does not require a new test suite.
+- UI changes: check affected routes, interactions, themes, and relevant breakpoints, including narrow mobile and wide desktop. Use all five widths (375, 390, 768, 1024, 1440) for shared layout changes or release acceptance. Preserve keyboard access, focus, semantics, alt text, contrast, and reduced motion.
+- Dependencies, shared rendering, authentication, persistence, or release acceptance: run `pnpm verify` and the relevant boundary/integration checks. `verify` includes check, content/media validation, build, tests, links, public-tree audit, render split, and baseline checks; do not also rerun its components without a reason.
+- Public rendering/bundle changes: verify static output, feature-scoped advanced bundles, and exclusion of Vue/Tiptap/admin code. For changes to static serving or deployment, and release acceptance, prove public routes remain reachable after stopping the Node process in an isolated acceptance instance. Do not stop a shared or production process without authorization.
+- Privacy-sensitive changes or releases: inspect affected content, generated output, and relevant history for protected plaintext, passwords, GPS, secrets, and unrelated generated files. Full history audits are for release acceptance or a suspected historical leak, not every local edit.
+
+Evidence remains valid while the relevant source, dependencies, configuration, and environment are unchanged. Record what was run and its result; rerun affected checks after changes, failures, or new uncertainty. A summary, commit, or message boundary alone does not invalidate evidence. Targeted checks support targeted claims; they never prove an unrun full suite or an unverified deployment.
