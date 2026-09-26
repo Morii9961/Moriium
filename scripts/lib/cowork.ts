@@ -14,13 +14,23 @@ import { join } from 'node:path';
 const STORES = ['local-agent-mode-sessions', 'claude-code-sessions'] as const;
 const MAX_DEPTH = 6;
 
-function coworkRoots(): string[] {
+async function coworkRoots(): Promise<string[]> {
   const base = process.platform === 'win32'
     ? join(process.env.APPDATA ?? join(homedir(), 'AppData/Roaming'), 'Claude')
     : process.platform === 'darwin'
       ? join(homedir(), 'Library/Application Support/Claude')
       : join(process.env.XDG_CONFIG_HOME ?? join(homedir(), '.config'), 'Claude');
-  return STORES.map((store) => join(base, store));
+  const bases = [base];
+  if (process.platform === 'win32') {
+    // The Microsoft Store build redirects roaming data into its package cache.
+    const packages = join(process.env.LOCALAPPDATA ?? join(homedir(), 'AppData/Local'), 'Packages');
+    for (const entry of await readdir(packages, { withFileTypes: true }).catch(() => [])) {
+      if (entry.isDirectory() && /^Claude_[A-Za-z0-9]+$/.test(entry.name)) {
+        bases.push(join(packages, entry.name, 'LocalCache/Roaming/Claude'));
+      }
+    }
+  }
+  return bases.flatMap((dir) => STORES.map((store) => join(dir, store)));
 }
 
 async function hasTranscript(projects: string): Promise<boolean> {
@@ -48,6 +58,6 @@ export async function coworkConfigDirs(): Promise<string[]> {
       await visit(path, depth + 1);
     }
   };
-  for (const root of coworkRoots()) await visit(root, 0);
+  for (const root of await coworkRoots()) await visit(root, 0);
   return found.sort();
 }

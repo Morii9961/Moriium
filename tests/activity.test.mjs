@@ -140,9 +140,17 @@ test('advancing the GitHub query window preserves its oldest archived day', () =
   assert.deepEqual(mergeActivityDays(previous, incoming, '2026-09-13'), [previous[0], ...incoming]);
 });
 
+test('a pruned Claude transcript cannot lower an archived day', () => {
+  const previous = [{ date: '2026-07-25', value: 2_712_502 }, { date: '2026-09-25', value: 10 }];
+  const incoming = [{ date: '2026-07-25', value: 2_234_877 }, { date: '2026-09-25', value: 20 }];
+  assert.deepEqual(mergeActivityDays(previous, incoming, '2026-09-25', true), [previous[0], incoming[1]]);
+  assert.deepEqual(mergeActivityDays(previous, incoming, '2026-09-25'), incoming);
+});
+
 test('Cowork discovery claims both store names and only tasks that recorded usage', { skip: process.platform === 'darwin' && 'the macOS path derives from the home directory' }, async () => {
   const base = await mkdtemp(join(tmpdir(), 'moriium-cowork-'));
   const task = (store, name) => join(base, 'Claude', store, 'workspace', 'profile', name);
+  const packagedTask = (store, name) => join(base, 'Packages', 'Claude_test', 'LocalCache', 'Roaming', 'Claude', store, 'workspace', 'profile', name);
   // The desktop app renamed the store once without migrating, so both must be read.
   await mkdir(join(task('local-agent-mode-sessions', 'local_a'), '.claude/projects/encoded-cwd'), { recursive: true });
   await writeFile(join(task('local-agent-mode-sessions', 'local_a'), '.claude/projects/encoded-cwd/session.jsonl'), '');
@@ -151,15 +159,24 @@ test('Cowork discovery claims both store names and only tasks that recorded usag
   // A task whose transcripts live in the shared store would make ccusage count it twice.
   await mkdir(join(task('local-agent-mode-sessions', 'local_c'), '.claude/projects/encoded-cwd'), { recursive: true });
   await mkdir(join(task('local-agent-mode-sessions', 'local_d'), '.claude'), { recursive: true });
+  if (process.platform === 'win32') {
+    await mkdir(join(packagedTask('local-agent-mode-sessions', 'packaged_a'), '.claude/projects/encoded-cwd'), { recursive: true });
+    await writeFile(join(packagedTask('local-agent-mode-sessions', 'packaged_a'), '.claude/projects/encoded-cwd/session.jsonl'), '');
+  }
 
   const key = process.platform === 'win32' ? 'APPDATA' : 'XDG_CONFIG_HOME';
   const previous = process.env[key];
+  const previousLocal = process.env.LOCALAPPDATA;
   process.env[key] = base;
+  if (process.platform === 'win32') process.env.LOCALAPPDATA = base;
   try {
     const found = await coworkConfigDirs();
-    assert.deepEqual(found, [join(task('claude-code-sessions', 'local_b'), '.claude'), join(task('local-agent-mode-sessions', 'local_a'), '.claude')]);
+    const expected = [join(task('claude-code-sessions', 'local_b'), '.claude'), join(task('local-agent-mode-sessions', 'local_a'), '.claude')];
+    if (process.platform === 'win32') expected.push(join(packagedTask('local-agent-mode-sessions', 'packaged_a'), '.claude'));
+    assert.deepEqual(found, expected);
   } finally {
     if (previous === undefined) delete process.env[key]; else process.env[key] = previous;
+    if (previousLocal === undefined) delete process.env.LOCALAPPDATA; else process.env.LOCALAPPDATA = previousLocal;
     await rm(base, { recursive: true, force: true });
   }
 });

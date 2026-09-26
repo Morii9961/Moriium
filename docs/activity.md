@@ -109,6 +109,15 @@ code, and the automated uploader does not deploy the site.
   hold disjoint conversations, so ccusage's per-run deduplication is enough; it matters,
   because the raw rows trebled the total in a hand check. Remote Cowork sessions run in
   Anthropic's cloud, leave nothing on this computer and are therefore never counted.
+  On Windows, the Microsoft Store build may keep these stores under
+  `%LOCALAPPDATA%\Packages\Claude_<package-id>\LocalCache\Roaming\Claude` instead of
+  `%APPDATA%\Claude`; the collector searches both. If older transcripts are pruned,
+  the highest previously archived Claude daily total is retained.
+- [Claude Design](https://support.claude.com/en/articles/14604416-get-started-with-claude-design)
+  shares Claude's usage limit. Work done through Claude Code's `/design`
+  can contribute to the Claude Code calendar, but this local transcript total cannot
+  identify Design as a separate product. The standalone `claude.ai/design` browser or
+  desktop cache is not a verified source of daily token totals for this calendar.
 - Elapsed dates without source records display and count as zero. Cross-year
   padding follows its adjacent region: zero fill at the start, and faint outlines
   at the end while the year is still in progress. Future dates retain faint solid

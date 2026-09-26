@@ -12,15 +12,15 @@
 
 ## 2026-09-26 已核对的基线
 
-本次在 Morii 的 Windows 本机运行 `pnpm activity:refresh`，快照采集时间为 `2026-09-26T07:56:33.574Z`（移交前应重新读取）。三项均成功，档案副本在仓库外的 `../Moriium_ActivityArchive/activity-2026-09-26.json`，与仓库快照的 SHA-256 一致。
+本次在 Morii 的 Windows 本机先运行 `pnpm activity:refresh`，三项均成功；发现 Microsoft Store 版 Claude 的本地目录后，又单独刷新 Claude。Claude 最新采集时间为 `2026-09-26T12:54:00.478Z`（移交前应重新读取），GitHub 与 Codex 保留本日首次成功采集的时间。档案副本在仓库外的 `../Moriium_ActivityArchive/activity-2026-09-26.json`，与仓库快照的 SHA-256 一致。
 
 | 来源 | 已保存日期数 | 日期范围 | 汇总 | 相比 9 月 13 日 |
 | --- | ---: | --- | ---: | --- |
 | GitHub | 379 | 2025-09-13 至 2026-09-26 | 473 次贡献 | +13 天，+50 次 |
 | Codex | 78 | 2026-05-12 至 2026-09-25 | 1,529,108,480 tokens | +13 天，+115,802,884 tokens |
-| Claude Code（含本机 Cowork） | 24 | 2026-07-02 至 2026-09-26 | 2,180,742,521 tokens | +1 天，+16,844,586 tokens |
+| Claude Code（含本机 Cowork） | 24 | 2026-07-02 至 2026-09-26 | 2,258,914,129 tokens | +1 天，+95,016,194 tokens |
 
-三项均未丢失旧日期。GitHub 有一个已有日期的贡献数发生修正，因此增量并不只来自新增日期。日期数指快照中实际有记录的天数，不等于范围内的自然日数；当天数据也可能尚未完整。该快照更新的是本地构建输入，不能据此声称线上页面已更新。
+三项均未丢失旧日期。GitHub 有一个已有日期的贡献数发生修正，因此增量并不只来自新增日期。Claude 的 7 月 25 日本地日志现只重算出 2,234,877 tokens，低于此前归档的 2,712,502；采集器保留较高的已归档值，避免日志清理导致历史倒退。日期数指快照中实际有记录的天数，不等于范围内的自然日数；当天数据也可能尚未完整。该快照更新的是本地构建输入，不能据此声称线上页面已更新。
 
 ## 当前代码与数据流
 
@@ -30,7 +30,7 @@
 | 手动刷新、增量报告与仓库外归档 | [`scripts/refresh-activity.mjs`](../scripts/refresh-activity.mjs) |
 | Codex app-server 读取和总量校验 | [`scripts/lib/codex-usage.ts`](../scripts/lib/codex-usage.ts) |
 | Claude Code 日报转换、GitHub 贡献转换和旧日合并 | [`scripts/lib/activity-import.ts`](../scripts/lib/activity-import.ts) |
-| 本机 Cowork task store 查找 | [`scripts/lib/cowork.ts`](../scripts/lib/cowork.ts) |
+| 本机 Cowork task store 查找，包括 Windows Microsoft Store 重定向目录 | [`scripts/lib/cowork.ts`](../scripts/lib/cowork.ts) |
 | 自动链路的本机锁、归档、序号、待发批次与 SSH 上传 | [`scripts/activity-sync.mjs`](../scripts/activity-sync.mjs) |
 | 批次白名单、接收及静态发布 | [`scripts/lib/status-batch.mjs`](../scripts/lib/status-batch.mjs)、[`scripts/status-receive.mjs`](../scripts/status-receive.mjs)、[`scripts/status-publish.mjs`](../scripts/status-publish.mjs) |
 | 公开数据结构和页面 | [`src/lib/activity.ts`](../src/lib/activity.ts)、[`src/components/AboutActivity.astro`](../src/components/AboutActivity.astro)、[`src/scripts/about-live.ts`](../src/scripts/about-live.ts) |
@@ -48,6 +48,10 @@
 | Claude Code | 含缓存的 `tokens`，`Asia/Shanghai` 自然日 | 固定的 `ccusage@20.0.20` 离线日报；额外逐个读取本机 Cowork 私有 store |
 
 Claude 的总量为非缓存输入、缓存读取、缓存写入和输出之和；reasoning 已包含在输出中，不能再加一次。Codex 与 Claude 的日界不同，不能合并日桶或把 Codex 日期重标为北京时间。远程 Cowork 不在本机日志里。不要用限额百分比、费用或非缓存 token 数替换这些热力图的单位。
+
+Windows Microsoft Store 版 Claude 在本机使用 `%LOCALAPPDATA%\Packages\Claude_<package-id>\LocalCache\Roaming\Claude`，其中的 `local-agent-mode-sessions` 和 `claude-code-sessions` 与传统 `%APPDATA%\Claude` 下的同名 store 都需要查找。本机传统目录不存在，而重定向目录中发现 10 个有用量会话的 Cowork task store。迁移时同时检查两处，不能把其中任一处写死为唯一位置；当旧日志缩短时，Claude 已归档的单日值应保留较高者。
+
+[Claude Design 官方说明](https://support.claude.com/en/articles/14604416-get-started-with-claude-design)指出 Design 与 Claude 其他界面共用用量限额。通过 Claude Code `/design` 产生的本地 token 可以进入 Claude Code 日汇总，但现有日志没有经过核实的产品标签，不能把它可靠地拆成独立的 Design 日历。独立 `claude.ai/design` 的浏览器和桌面站点缓存虽在本机，尚未确认其中有可复核的逐日 token 汇总；Runtime 不应据此伪造 Design 数据。若将来需要按产品统计，应另行核定账号权限和官方数据源，不要把共享限额百分比当作 token 数。
 
 本次采集发现 PATH 上的 `codex-cli 0.130.0` 对 `account/usage/read` 返回 JSON-RPC `-32600 unknown variant`；桌面应用自带的 `0.158.0-alpha.2` 可返回 `summary` 与 `dailyUsageBuckets`，并通过现有导入校验。本机通过 `MORIIUM_CODEX_CLI` 指向后者完成采集。Runtime 应在启动前检查它实际选用的 CLI 是否支持该方法；不要把当前带版本号的安装绝对路径固化进项目。凭据始终留给 CLI 自行管理，不从 `auth.json` 取 bearer token。
 

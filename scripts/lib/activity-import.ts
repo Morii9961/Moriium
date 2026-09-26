@@ -1,9 +1,12 @@
 import { validDate, type ActivityDay, type ActivitySnapshot } from '../../src/lib/activity.ts';
 
 /** Upstream lookback windows move; the local archive never ages out a known day. */
-export function mergeActivityDays(previous: ActivityDay[], incoming: ActivityDay[], end: string): ActivityDay[] {
+export function mergeActivityDays(previous: ActivityDay[], incoming: ActivityDay[], end: string, retainHigher = false): ActivityDay[] {
   const merged = new Map(previous.map(day => [day.date, day]));
-  for (const day of incoming) merged.set(day.date, day);
+  for (const day of incoming) {
+    const old = merged.get(day.date);
+    merged.set(day.date, retainHigher && old && old.value > day.value ? old : day);
+  }
   return [...merged.values()].filter(day => day.date <= end).sort((a, b) => a.date.localeCompare(b.date));
 }
 

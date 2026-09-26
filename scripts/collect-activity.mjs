@@ -85,7 +85,8 @@ for (const source of selected === 'all' ? SOURCES : [selected]) {
     snapshot.days = snapshot.days.filter((day) => day.date >= RETAIN_FROM && day.date <= end);
     if (!snapshot.days.length) throw new Error('No daily data found.');
     // Retain previously collected days when the source later cleans up its logs.
-    snapshot.days = mergeActivityDays(data.sources[source]?.days ?? [], snapshot.days, end);
+    // Claude's local transcripts can be pruned; a partial re-read must not lower a saved day.
+    snapshot.days = mergeActivityDays(data.sources[source]?.days ?? [], snapshot.days, end, source === 'claude');
     const candidate = validateActivity({ version: 1, sources: { ...data.sources, [source]: snapshot } });
     data.sources[source] = candidate.sources[source];
     outcomes[source] = { attemptedAt: updatedAt, result: 'success' };
