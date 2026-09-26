@@ -51,7 +51,7 @@ Claude 的总量为非缓存输入、缓存读取、缓存写入和输出之和�
 
 Windows Microsoft Store 版 Claude 在本机使用 `%LOCALAPPDATA%\Packages\Claude_<package-id>\LocalCache\Roaming\Claude`，其中的 `local-agent-mode-sessions` 和 `claude-code-sessions` 与传统 `%APPDATA%\Claude` 下的同名 store 都需要查找。本机传统目录不存在，而重定向目录中发现 10 个有用量会话的 Cowork task store。迁移时同时检查两处，不能把其中任一处写死为唯一位置；当旧日志缩短时，Claude 已归档的单日值应保留较高者。
 
-[Claude Design 官方说明](https://support.claude.com/en/articles/14604416-get-started-with-claude-design)指出 Design 与 Claude 其他界面共用用量限额。通过 Claude Code `/design` 产生的本地 token 可以进入 Claude Code 日汇总，但现有日志没有经过核实的产品标签，不能把它可靠地拆成独立的 Design 日历。独立 `claude.ai/design` 的浏览器和桌面站点缓存虽在本机，尚未确认其中有可复核的逐日 token 汇总；Runtime 不应据此伪造 Design 数据。若将来需要按产品统计，应另行核定账号权限和官方数据源，不要把共享限额百分比当作 token 数。
+[Claude Design 官方说明](https://support.claude.com/en/articles/14604416-get-started-with-claude-design)指出 Design 与 Claude 其他界面共用用量限额。通过 Claude Code `/design` 产生的本地 token 可以进入 Claude Code 日汇总，但现有日志没有经过核实的产品标签，不能把它可靠地拆成独立的 Design 日历。独立 `claude.ai/design` 的浏览器和桌面站点缓存虽在本机，尚未确认其中有可复核的逐日 token 汇总；Runtime 不应据此伪造 Design 数据。官方接口的获取条件、产品筛选、日界及验收步骤见[Claude Design 专项交接](handoff-2026-09-26-claude-design-usage-to-enouia-runtime.md)。
 
 本次采集发现 PATH 上的 `codex-cli 0.130.0` 对 `account/usage/read` 返回 JSON-RPC `-32600 unknown variant`；桌面应用自带的 `0.158.0-alpha.2` 可返回 `summary` 与 `dailyUsageBuckets`，并通过现有导入校验。本机通过 `MORIIUM_CODEX_CLI` 指向后者完成采集。Runtime 应在启动前检查它实际选用的 CLI 是否支持该方法；不要把当前带版本号的安装绝对路径固化进项目。凭据始终留给 CLI 自行管理，不从 `auth.json` 取 bearer token。
 
