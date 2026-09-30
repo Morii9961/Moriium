@@ -2,7 +2,7 @@
   "version": 1,
   "sources": {
     "github": {
-      "updatedAt": "2026-09-28T05:31:02.363Z",
+      "updatedAt": "2026-09-30T13:07:29.339Z",
       "timezone": "GitHub",
       "metric": "contributions",
       "days": [
@@ -1520,7 +1520,7 @@
         },
         {
           "date": "2026-09-26",
-          "value": 14
+          "value": 16
         },
         {
           "date": "2026-09-27",
@@ -1528,12 +1528,20 @@
         },
         {
           "date": "2026-09-28",
-          "value": 50
+          "value": 73
+        },
+        {
+          "date": "2026-09-29",
+          "value": 29
+        },
+        {
+          "date": "2026-09-30",
+          "value": 3
         }
       ]
     },
     "codex": {
-      "updatedAt": "2026-09-28T05:31:02.363Z",
+      "updatedAt": "2026-09-30T13:07:29.339Z",
       "timezone": "Codex",
       "metric": "tokens",
       "days": [
@@ -1855,12 +1863,20 @@
         },
         {
           "date": "2026-09-27",
-          "value": 83169063
+          "value": 95791835
+        },
+        {
+          "date": "2026-09-28",
+          "value": 71594114
+        },
+        {
+          "date": "2026-09-29",
+          "value": 4837491
         }
       ]
     },
     "claude": {
-      "updatedAt": "2026-09-28T05:31:02.363Z",
+      "updatedAt": "2026-09-30T13:07:29.339Z",
       "timezone": "Asia/Shanghai",
       "metric": "tokens",
       "days": [
@@ -1966,7 +1982,15 @@
         },
         {
           "date": "2026-09-28",
-          "value": 204740529
+          "value": 475229673
+        },
+        {
+          "date": "2026-09-29",
+          "value": 326133920
+        },
+        {
+          "date": "2026-09-30",
+          "value": 198767640
         }
       ]
     }
