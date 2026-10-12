@@ -25,7 +25,8 @@ ProtectKernelTunables=true
 ProtectSystem=strict
 ReadOnlyPaths=/var/www/moriium
 ReadWritePaths=/var/lib/moriium
-RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+# Node's os.networkInterfaces() queries Linux interfaces through netlink.
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
 
 [Install]
 WantedBy=multi-user.target

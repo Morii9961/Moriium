@@ -14,6 +14,7 @@ describe('the production deployment contract', () => {
     assert.equal((nginx.match(/proxy_pass http:\/\/moriium_admin;/g) ?? []).length, 2);
     assert.match(nginx, /server 127\.0\.0\.1:4321;/);
     assert.match(nginx, /access_log \/var\/log\/nginx\/morii9961\.top\.access\.log combined;/);
+    assert.match(nginx, /location \^~ \/\.well-known\/acme-challenge\/ \{\s+root \/var\/www\/letsencrypt;\s+try_files \$uri =404;/);
     assert.match(nginx, /location \/ \{\s+try_files \$uri \$uri\/ \$uri\/index\.html =404;/);
   });
 
@@ -28,6 +29,7 @@ describe('the production deployment contract', () => {
     assert.match(service, /^ProtectSystem=strict$/m);
     assert.match(service, /^ReadOnlyPaths=\/var\/www\/moriium$/m);
     assert.match(service, /^ReadWritePaths=\/var\/lib\/moriium$/m);
+    assert.match(service, /^RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK$/m);
   });
 
   it('matches only failed login POSTs for fail2ban', () => {
@@ -59,7 +61,7 @@ describe('the production deployment contract', () => {
     assert.match(driver, /systemctl stop "\$service"/);
     assert.match(driver, /pnpm --dir "\$workspace" site:release/);
     assert.match(driver, /systemctl start "\$service"/);
-    assert.match(driver, /curl --fail --silent --show-error --max-time 12 "\$admin_probe"/);
+    assert.match(driver, /curl --fail --silent --show-error --retry 8 --retry-delay 1 --retry-connrefused --retry-max-time 30 --max-time 12 "\$admin_probe"/);
     assert.match(driver, /\/var\/www\/\*/);
   });
 

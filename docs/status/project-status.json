@@ -1,0 +1,166 @@
+{
+  "schema_version": "1.0",
+  "project_id": "moriium.main",
+  "project_name": "Moriium 主站",
+  "snapshot_at": "2026-10-11T22:45:20+08:00",
+  "source": {
+    "branch": "main",
+    "commit_sha": "fd48f88c8b480480fd48a8efe36ef400b3be99b8",
+    "basis": [
+      "README.md",
+      "AGENTS.md",
+      "docs/enouia-todo.md",
+      "docs/vnext-architecture-plan.md",
+      "docs/design-system.md",
+      "docs/adr-0002-phase5-production.md",
+      "docs/vps-acceptance-checklist.md",
+      "docs/deployment.md",
+      "docs/handoff-2026-10-05-vps-deployment.md（本次读取的未跟踪工作树文档；不属于 commit_sha）",
+      "docs/adr-0003-about-status.md",
+      "docs/status-operations.md",
+      "docs/handoff-2026-09-26-activity-to-enouia-runtime.md",
+      "deploy/status/sites.json",
+      "本地 git log -12；HEAD fd48f88c8b480480fd48a8efe36ef400b3be99b8；近期提交 05c6214、7c338ed",
+      "本地 git status --porcelain=v1（生成前已有部署配置、测试及 Enouia 相关改动；本轮保留）",
+      "https://cloud.tencent.com/document/product/1207/45756（2026-10-11 查阅；仅核对适用条件，不证明本项目备案状态）",
+      "https://cloud.tencent.com/document/product/243/18909（2026-10-11 查阅；未确定本项目适用备案类型）",
+      "本次 Agent 路线估算，非实测工时或 Morii 验收率：public_core 权重45、public_design 15、public_deployment_record 20、production_acceptance 12、icp_preparation 5、vps_activity_activation 3，合计100。只对已有历史完成记录的 done 里程碑计入全部权重，未闭环项暂不计入；45+15+20=80。可选心跳、Gallery 和普通微调不纳入，必要修补归入生产验收；活动启用预留3点，若 Morii 明确后置则重算首发口径，不将后置冒充完成。"
+    ],
+    "tests_rerun": false
+  },
+  "stage": "launch_preparation",
+  "summary": "按现有路线权重估算，Moriium 主站整体约完成 80%。核心功能与既定设计已落地，10 月 5 日已有公网部署记录；余项集中在备案、生产验收与实时联动收尾。本轮未重新核验线上状态。",
+  "overall_progress": 80,
+  "milestones": [
+    {
+      "id": "public_core",
+      "title": "公开站核心能力已实现：三语、文章与索引页、静态搜索、主题及内容扩展",
+      "status": "done",
+      "evidence_level": "existing_test",
+      "evidence_refs": [
+        "README.md",
+        "docs/enouia-todo.md",
+        "docs/handoff-2026-10-05-vps-deployment.md#已记录的验证"
+      ],
+      "human_acceptance": "pending"
+    },
+    {
+      "id": "public_design",
+      "title": "既定公开设计已落地；只记录成熟成果，不重开设计选择",
+      "status": "done",
+      "evidence_level": "repository",
+      "evidence_refs": [
+        "docs/design-system.md",
+        "git:05c6214"
+      ],
+      "human_acceptance": "pending"
+    },
+    {
+      "id": "public_deployment_record",
+      "title": "2026-10-05 部署、域名 HTTPS 与静态访问：历史验证已记录，当前在线状态未复核",
+      "status": "done",
+      "evidence_level": "existing_test",
+      "evidence_refs": [
+        "docs/handoff-2026-10-05-vps-deployment.md",
+        "git:fd48f88c8b480480fd48a8efe36ef400b3be99b8"
+      ],
+      "human_acceptance": "pending"
+    },
+    {
+      "id": "production_acceptance",
+      "title": "正式上线验收收尾：正式作者未建、异地备份未配，真实封禁和完整回滚恢复缺证据；部署修复尚未入提交",
+      "status": "in_progress",
+      "evidence_level": "repository",
+      "evidence_refs": [
+        "docs/handoff-2026-10-05-vps-deployment.md#未完成及后续边界",
+        "docs/vps-acceptance-checklist.md",
+        "docs/deployment.md"
+      ],
+      "human_acceptance": "pending"
+    },
+    {
+      "id": "icp_preparation",
+      "title": "ICP备案准备：10 月 5 日记录搁置；现用地域、实例资格、主体与域名条件、材料及适用类型未确认",
+      "status": "blocked",
+      "evidence_level": "repository",
+      "evidence_refs": [
+        "docs/handoff-2026-10-05-vps-deployment.md#未完成及后续边界",
+        "https://cloud.tencent.com/document/product/1207/45756",
+        "https://cloud.tencent.com/document/product/243/18909"
+      ],
+      "human_acceptance": "pending"
+    },
+    {
+      "id": "vps_activity_activation",
+      "title": "VPS 活动更新链路已有实现及本地验证；受限 SSH、接收发布调度、静态权限与 Runtime 生产对接无完成记录",
+      "status": "in_progress",
+      "evidence_level": "existing_test",
+      "evidence_refs": [
+        "git:7c338ed",
+        "docs/adr-0003-about-status.md",
+        "docs/status-operations.md",
+        "docs/handoff-2026-09-26-activity-to-enouia-runtime.md"
+      ],
+      "human_acceptance": "pending"
+    },
+    {
+      "id": "optional_runtime_gallery",
+      "title": "可选扩展：Runtime 心跳与 Gallery 探测；仓库默认关闭或未配置，生产状态未知",
+      "status": "unknown",
+      "evidence_level": "repository",
+      "evidence_refs": [
+        "deploy/status/sites.json",
+        "docs/status-operations.md#future-runtime-adapter"
+      ],
+      "human_acceptance": "unknown"
+    },
+    {
+      "id": "stabilization_tail",
+      "title": "旧清单无脚本回退、语言关联等尾项待复核分级；排版与研究页整理可后置，不自动重开旧任务",
+      "status": "unknown",
+      "evidence_level": "repository",
+      "evidence_refs": [
+        "docs/enouia-todo.md#保留的公开站稳定化清单"
+      ],
+      "human_acceptance": "unknown"
+    }
+  ],
+  "blockers": [
+    {
+      "title": "ICP 接入条件与办理决定未落实",
+      "impact": "已有广州部署记录但未核实现用接入条件，备案历史记录为搁置。若继续使用中国内地节点，需要先解决适用备案要求；不能凭历史可访问记录认定合规上线，也不能预设首次或接入备案。"
+    },
+    {
+      "title": "生产验收与版本记录未闭环",
+      "impact": "正式作者、异地备份、真实封禁及完整回滚恢复仍缺完成证据，部署修复留在未提交工作树；旧清单与新部署记录存在时间差，尚不能宣称全量生产验收完成。后台使用与正式内容迁移范围需 Morii 确认。"
+    }
+  ],
+  "next_actions": [
+    {
+      "title": "核实 ICP 接入条件并由 Morii 决定办理路径",
+      "priority": "P0",
+      "result": "确认现用地域、实例资格、主体省份、域名实名及已有备案情况，得到适用流程、材料清单与办理状态；证件和授权只在服务商办理，不写入仓库。"
+    },
+    {
+      "title": "补齐正式上线验收与版本记录",
+      "priority": "P0",
+      "result": "按既有 VPS 清单核销历史证据与剩余必需项，记录正式作者启用、安全、异地备份、回滚恢复的验收结果及实际部署版本；区分首发必需项、后台迁移条件和需后续观测项，取得 Morii 正式验收记录。"
+    },
+    {
+      "title": "确认并验收 VPS 活动更新的首发范围",
+      "priority": "P1",
+      "result": "首发需要实时更新时，补齐受限上传、接收发布调度、静态权限和 Runtime 首批及定时运行证据；否则保留静态快照并明确后置。Runtime 心跳与 Gallery 探测继续作为可选扩展。"
+    }
+  ],
+  "needs_morii": [
+    {
+      "decision": "确认现用服务器地域与备案资格、主体省份、域名实名和已有备案情况；决定恢复备案还是调整接入方案，材料与授权由 Morii 在服务商办理。"
+    },
+    {
+      "decision": "确认正式作者启用与内容迁移时机、异地备份目的地及正式上线验收结论；未取得新的明确记录前不标记人工验收通过。"
+    },
+    {
+      "decision": "确认首发是否必须包含 VPS 活动自动更新；可选择先用静态快照上线，实时更新和可选心跳、Gallery 探测后置。"
+    }
+  ]
+}

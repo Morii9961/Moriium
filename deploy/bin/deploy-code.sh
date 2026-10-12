@@ -123,7 +123,8 @@ sudo -n systemctl start "$service"
 service_stopped=0
 
 failure_context='the static release is live, but the admin probe failed; inspect the service before changing current'
-curl --fail --silent --show-error --max-time 12 "$admin_probe" >/dev/null
+# systemctl start reports process creation before the HTTP listener is ready.
+curl --fail --silent --show-error --retry 8 --retry-delay 1 --retry-connrefused --retry-max-time 30 --max-time 12 "$admin_probe" >/dev/null
 
 failure_context='the release passed, but post-release cleanup failed'
 rm -rf -- "$previous" "$failed"

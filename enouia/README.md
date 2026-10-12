@@ -42,11 +42,11 @@ repository/
 
 Build Moriium with its existing release procedure. Separately run `pnpm --dir enouia install --frozen-lockfile` and `pnpm --dir enouia build`. Copy only `enouia/dist/` into a new Enouia release directory. Point the separate Enouia virtual host at that directory through its own `current` symlink. Keep the preceding Enouia release for rollback; switching it must not switch Moriium's release.
 
-`deploy/nginx.conf.example` supplies the static routing configuration. Replace its example host with the selected domain, configure DNS and TLS through the server's established process, check `nginx -t`, and then activate it. The final domain and server configuration still need deployment acceptance. Do not serve the Git checkout, source files, dependency directories, or environment files.
+`deploy/nginx.conf.example` supplies a starting point for another host. `deploy/nginx.conf` records the active Enouia domain and HTTPS routing. Configure DNS and TLS through the server's established process, check `nginx -t`, and verify the selected host before activation. Do not serve the Git checkout, source files, dependency directories, or environment files.
 
 Production requires a static HTTP server only. Node is used to build and for the optional local preview. Enouia does not depend on the resident Moriium Admin process. CI installs and verifies both sites separately. The existing Moriium deployment workflow does not activate Enouia's virtual host or copy its output into an Enouia release.
 
-Source selection and local verification do not mean the site has been deployed. DNS, TLS, and server deployment remain pending.
+Enouia was deployed to `https://enouia.morii9961.top/` on 2026-10-05. `deploy/nginx.conf` records the active static HTTPS virtual host; certificate renewal uses the server's HTTP webroot workflow. See [the deployment record](../docs/handoff-2026-10-05-enouia-deployment.md) for verification and remaining limits.
 
 ## Sources and validation
 
