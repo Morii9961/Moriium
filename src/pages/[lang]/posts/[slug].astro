@@ -4,12 +4,23 @@ import { render, type CollectionEntry } from 'astro:content';
 import ArticleLayout from '../../../layouts/ArticleLayout.astro';
 import { getListedPosts, getPublishedPosts, getTranslations, postPath, routeSlug } from '../../../utils/content';
 import { detectReaderFeatures } from '../../../utils/features';
+import { articleCacheKey, articleContextKey } from '../../../utils/article-cache';
+import { existsSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { getCollection } from 'astro:content';
 
 export const getStaticPaths: GetStaticPaths = async () => {
   const posts = await getPublishedPosts();
+  const protectedPosts = await getCollection('protected', ({ data }) => !data.draft);
+  // These are read dynamically by render helpers, outside Astro's module graph.
+  const external = ['.cache/github.json', 'src/generated/media-manifest.json'].map((file) =>
+    existsSync(resolve(file)) ? readFileSync(resolve(file), 'utf8') : '');
+  external.push(String(new Date().getFullYear())); // BaseLayout's copyright year.
+  const context = articleContextKey([...posts, ...protectedPosts], external);
   return posts.map((post) => ({
     params: { lang: post.data.lang, slug: routeSlug(post) },
     props: { post },
+    cacheKey: articleCacheKey(post, context),
   }));
 };
 

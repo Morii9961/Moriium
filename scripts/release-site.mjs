@@ -16,6 +16,8 @@
 import { pathToFileURL } from 'node:url';
 import process from 'node:process';
 import { join } from 'node:path';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { ArticleStore } from '../src/server/articles.ts';
 import { openDatabase } from '../src/server/db/open.ts';
 import { DEFAULT_DATABASE_PATH } from '../src/server/db/runtime.ts';
@@ -26,7 +28,7 @@ import { releaseSite, RETAINED_RELEASES } from '../src/server/release/release.ts
 
 export const DEFAULT_RELEASE_ROOT = '/var/www/moriium';
 
-const FLAGS = new Set(['--id', '--root', '--url', '--keep', '--workspace']);
+const FLAGS = new Set(['--id', '--root', '--url', '--keep', '--workspace', '--admin-url']);
 
 /**
  * Parses the command line.
@@ -58,6 +60,7 @@ export function parseReleaseCommand(args, env = process.env, stamp = () => new D
     id: values.get('--id') ?? stamp().toISOString().replace(/[:.]/g, '-'),
     probeUrl,
     keep,
+    ...(values.has('--admin-url') ? { adminUrl: values.get('--admin-url') } : {}),
     paths: {
       workspace: values.get('--workspace') ?? join(root, 'workspace'),
       releases: join(root, 'releases'),
@@ -70,16 +73,37 @@ export async function main(args = process.argv.slice(2)) {
   const command = parseReleaseCommand(args);
   const databasePath = process.env.MORIIUM_DATABASE_PATH?.trim() || DEFAULT_DATABASE_PATH;
   const db = openDatabase(databasePath);
+  const host = nodeReleaseHost();
 
   try {
     const result = await releaseSite({
       store: new ArticleStore(db),
       media: new MediaStore(db),
-      host: nodeReleaseHost(),
+      host,
       paths: command.paths,
       id: command.id,
       probeUrl: command.probeUrl,
       keep: command.keep,
+      ...(process.env.MORIIUM_DEPLOY_CHECK_HEAD === 'true' ? { beforeSwitch: async () => {
+        const { stdout } = await promisify(execFile)('git', ['ls-remote', 'https://github.com/Morii9961/Moriium.git', 'refs/heads/main'], { timeout: 15_000 });
+        if (stdout.split(/\s/)[0] !== command.id) throw new Error('A newer main commit superseded this release before activation.');
+      } } : {}),
+      ...(command.adminUrl ? { activate: async () => {
+        host.run('sudo', ['-n', 'systemctl', 'start', 'moriium-admin.service'], command.paths.workspace);
+        const deadline = Date.now() + 30_000;
+        for (;;) {
+          try {
+            await host.probe(command.adminUrl);
+            const url = new URL('/release-version.json', command.probeUrl);
+            const response = await fetch(url, { cache: 'no-store', redirect: 'error', signal: AbortSignal.timeout(5_000) });
+            if (!response.ok || (await response.json()).id !== command.id) throw new Error('The public version probe answered with a different release.');
+            return;
+          } catch (error) {
+            if (Date.now() >= deadline) throw error;
+            await new Promise((done) => setTimeout(done, 1_000));
+          }
+        }
+      } } : {}),
     });
     process.stdout.write(`Release ${result.id} is live with ${result.articles.length} article(s).\n`);
     for (const article of result.articles) {

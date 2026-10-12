@@ -200,6 +200,25 @@ function release(context, host, overrides = {}) {
 }
 
 describe('a release that succeeds', () => {
+  it('keeps the old release selected when a newer head arrives during the build', async () => {
+    const context = await workspace();
+    const { article } = publish(context);
+    const host = fakeHost();
+    await assert.rejects(release(context, host, { beforeSwitch: async () => { throw new Error('Superseded'); } }), /Superseded/);
+    assert.equal(host.links.get(context.paths.current), undefined);
+    assert.equal(context.store.getArticle(article.id).liveVersionId, null);
+  });
+  it('rolls back public selection when runtime activation fails, without claiming versions live', async () => {
+    const context = await workspace();
+    const { article } = publish(context);
+    const host = fakeHost();
+    const previous = join(context.paths.releases, 'previous');
+    mkdirSync(previous, { recursive: true });
+    host.links.set(context.paths.current, previous);
+    await assert.rejects(release(context, host, { activate: async () => { throw new Error('Synthetic readiness failure'); } }), /previous release was restored/);
+    assert.equal(host.links.get(context.paths.current), previous);
+    assert.equal(context.store.getArticle(article.id).liveVersionId, null);
+  });
   it('records live versions only after the probe answers', async () => {
     const context = await workspace();
     const { article, version } = publish(context);

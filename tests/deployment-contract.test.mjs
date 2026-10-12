@@ -15,7 +15,7 @@ describe('the production deployment contract', () => {
     assert.match(nginx, /server 127\.0\.0\.1:4321;/);
     assert.match(nginx, /access_log \/var\/log\/nginx\/morii9961\.top\.access\.log combined;/);
     assert.match(nginx, /location \^~ \/\.well-known\/acme-challenge\/ \{\s+root \/var\/www\/letsencrypt;\s+try_files \$uri =404;/);
-    assert.match(nginx, /location \/ \{\s+try_files \$uri \$uri\/ \$uri\/index\.html =404;/);
+    assert.match(nginx, /location \/ \{\s+expires -1;\s+try_files \$uri \$uri\/ \$uri\/index\.html =404;/);
   });
 
   it('runs one unprivileged loopback service with data outside releases', () => {

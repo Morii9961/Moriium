@@ -137,6 +137,8 @@ export default defineConfig({
   // this process. Do not switch to `output: 'server'`; that inverts the
   // default and puts the whole site behind Node.
   output: 'static',
+  // Pinned Astro 7.2.4; unkeyed aggregate routes still render on every build.
+  experimental: { incrementalBuild: true },
   adapter: node({ mode: 'standalone' }),
   session: {
     driver: sessionDrivers.fsLite({ base: sessionDirectory }),

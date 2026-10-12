@@ -19,9 +19,9 @@
 // Retrying never asks the author to publish again. The database is the truth;
 // this is the projection catching up (section 4.2).
 
-import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { chmodSync, cpSync, existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { isAbsolute, join, relative, resolve } from 'node:path';
+import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import type { ArticleStore } from '../articles.ts';
 import { AdminError } from '../errors.ts';
 import type { MediaStore } from '../media/assets.ts';
@@ -29,6 +29,7 @@ import type { ExportedArticle } from '../export/content-export.ts';
 import { exportPublished, MANIFEST_NAME } from '../export/content-export.ts';
 import { assertServable } from './checks.ts';
 import type { ReleaseHost } from './host.ts';
+import { copyReleaseTree, retainAssets } from './files.ts';
 
 /** Releases kept on disk. ADR 0002 section 15.1. */
 export const RETAINED_RELEASES = 6;
@@ -143,6 +144,10 @@ export type ReleaseOptions = {
   readonly contentRoot?: string | undefined;
   readonly mediaRoot?: string | undefined;
   readonly keep?: number | undefined;
+  /** Optional code-release readiness gate, before live versions are recorded. */
+  readonly activate?: (() => Promise<void>) | undefined;
+  /** Recheck source selection after building, immediately before switching. */
+  readonly beforeSwitch?: (() => Promise<void>) | undefined;
 };
 
 type Progress = { stage: ReleaseStage };
@@ -189,6 +194,8 @@ async function runRelease(options: ReleaseOptions, progress: Progress): Promise<
   const currentLink = resolve(options.paths.current);
   const keep = options.keep ?? RETAINED_RELEASES;
   const releaseDirectory = join(releasesRoot, options.id);
+  const previous = options.host.linkTarget(currentLink);
+  if (previous === releaseDirectory) refuse('The selected release is immutable; use a new release id.');
   // A mistyped --root would otherwise create an empty tree and then fail at the
   // install, several steps and one confusing message later.
   if (!existsSync(workspace)) refuse('The workspace directory does not exist.');
@@ -244,12 +251,21 @@ async function runRelease(options: ReleaseOptions, progress: Progress): Promise<
   if (!existsSync(built)) refuse('The build produced no dist/client directory.');
   mkdirSync(releasesRoot, { recursive: true });
   rmSync(releaseDirectory, { recursive: true, force: true });
-  cpSync(built, releaseDirectory, { recursive: true });
+  copyReleaseTree(built, releaseDirectory, previous ?? undefined);
   assertServable(releaseDirectory, exported.articles);
+  const content = createHash('sha256').update(JSON.stringify({ articles: exported.articles, media: exported.media })).digest('hex');
+  writeFileSync(join(releaseDirectory, 'release-version.json'), `${JSON.stringify({ id: options.id, content })}\n`, 'utf8');
+  chmodSync(join(releaseDirectory, 'release-version.json'), 0o644);
+  const assets = join(dirname(currentLink), 'assets');
+  if (existsSync(assets) && (!lstatSync(assets).isDirectory() || lstatSync(assets).isSymbolicLink())) refuse('The asset pool must be a regular directory.');
+  mkdirSync(assets, { recursive: true });
+  chmodSync(assets, 0o755);
+  retainAssets(join(releaseDirectory, '_astro'), join(assets, '_astro'));
+  retainAssets(join(releaseDirectory, 'media'), join(assets, 'media'));
   progress.stage = 'published';
 
   // 7. Switch. One rename; the reader never resolves a missing path.
-  const previous = options.host.linkTarget(currentLink);
+  if (options.beforeSwitch) await options.beforeSwitch();
   options.host.switchLink(currentLink, releaseDirectory);
   progress.stage = 'switched';
 
@@ -257,6 +273,7 @@ async function runRelease(options: ReleaseOptions, progress: Progress): Promise<
   //    worse than one that never switched, so this failure undoes the switch.
   try {
     await options.host.probe(options.probeUrl);
+    if (options.activate) await options.activate();
   } catch (cause) {
     if (previous) options.host.switchLink(currentLink, previous);
     refuse(
@@ -267,6 +284,9 @@ async function runRelease(options: ReleaseOptions, progress: Progress): Promise<
     );
   }
   progress.stage = 'probed';
+  // The shell driver's interruption recovery can keep a fully probed release,
+  // even if the process stops while recording conservative live-version metadata.
+  writeFileSync(join(dirname(currentLink), '.release-ready'), `${options.id}\n`, 'utf8');
 
   // 9. Only now is `live` true. Articles that were unpublished are cleared in
   //    the same pass: the site no longer contains them, so a live pointer left
