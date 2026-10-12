@@ -11,7 +11,8 @@ permissions:
 
 concurrency:
   group: moriium-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  # Pull deployment runs outside Actions, so obsolete verification is cancellable.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' || vars.DEPLOY_MODE == 'pull' }}
 
 jobs:
   verify:
@@ -76,11 +77,11 @@ jobs:
       # VPS database, so the deploy artifact is source and the same verified
       # release state machine performs the authoritative build beside that data.
       - name: Package verified source
-        if: github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
+        if: github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true' && vars.DEPLOY_MODE != 'pull'
         run: git archive --format=tar.gz --output="moriium-${GITHUB_SHA}.tar.gz" "$GITHUB_SHA"
 
       - name: Configure deployment key
-        if: github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
+        if: github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true' && vars.DEPLOY_MODE != 'pull'
         shell: bash
         env:
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
@@ -93,7 +94,7 @@ jobs:
           chmod 600 ~/.ssh/known_hosts
 
       - name: Upload source archive and deployment driver
-        if: github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
+        if: github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true' && vars.DEPLOY_MODE != 'pull'
         shell: bash
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
@@ -103,7 +104,7 @@ jobs:
           scp deploy/bin/deploy-code.sh "${VPS_USER}@${VPS_HOST}:/tmp/moriium-deploy-${GITHUB_SHA}.sh"
 
       - name: Build beside production data and release
-        if: github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
+        if: github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true' && vars.DEPLOY_MODE != 'pull'
         shell: bash
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}

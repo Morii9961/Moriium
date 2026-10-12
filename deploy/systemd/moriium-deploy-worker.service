@@ -1,0 +1,23 @@
+[Unit]
+Description=Moriium incremental verified-main deployment worker
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/etc/moriium/deploy-worker.env
+
+[Service]
+Type=oneshot
+User=moriium
+Group=moriium
+EnvironmentFile=/etc/moriium/deploy-worker.env
+Environment=npm_config_store_dir=/var/lib/moriium-deploy/pnpm-store
+ExecStart=/usr/bin/flock -n /var/lib/moriium-deploy/worker.lock /usr/local/bin/node /usr/local/lib/moriium-deploy/worker.mjs
+TimeoutStartSec=310
+TimeoutStopSec=15
+KillMode=control-group
+UMask=0027
+ProtectSystem=strict
+ReadWritePaths=/var/lib/moriium-deploy /var/www/moriium /var/lib/moriium
+# The driver invokes the existing narrowly scoped systemctl sudo rule.
+# NoNewPrivileges would disable that required transition.
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+MemoryMax=2G

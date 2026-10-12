@@ -1,0 +1,10 @@
+[Unit]
+Description=Wake the Moriium deployment worker after a durable notification
+
+[Path]
+PathChanged=/var/lib/moriium-deploy/pending
+PathChanged=/var/lib/moriium-deploy/verified
+Unit=moriium-deploy-worker.service
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,25 @@
+[Unit]
+Description=Moriium signed deployment notification receiver
+After=network.target
+ConditionPathExists=/etc/moriium/deploy-receiver.env
+
+[Service]
+Type=simple
+User=moriium-hook
+Group=moriium-hook
+SupplementaryGroups=moriium
+EnvironmentFile=/etc/moriium/deploy-receiver.env
+ExecStart=/usr/local/bin/node /usr/local/lib/moriium-deploy/receiver.mjs
+Restart=on-failure
+RestartSec=3
+UMask=0027
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/moriium-deploy/pending /var/lib/moriium-deploy/verified /var/lib/moriium-deploy/deliveries
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+MemoryMax=128M
+
+[Install]
+WantedBy=multi-user.target

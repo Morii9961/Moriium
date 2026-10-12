@@ -1,0 +1,11 @@
+[Unit]
+Description=Reconcile missed Moriium deployment notifications
+
+[Timer]
+OnBootSec=60
+OnUnitInactiveSec=60
+AccuracySec=1
+Unit=moriium-deploy-worker.service
+
+[Install]
+WantedBy=timers.target
