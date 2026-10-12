@@ -12,7 +12,13 @@ At activation, GitHub's first two ping attempts failed with a connection EOF
 before reaching Nginx. A locally signed request through the formal hostname
 returned 202 with its receipt persisted; unsigned requests returned 401.
 The minute Git/API reconciliation remains active when remote notifications
-cannot be delivered. Real ordinary-push acceptance is recorded separately.
+cannot be delivered. The first ordinary push (`d295bcc`) passed its exact CI
+run and updated all three real About totals without operator intervention in
+203.17 s from local push start (including upload), below the five-minute
+limit. Two 30 s Git-fetch timeouts preceded the third successful automatic
+attempt. Public content and Admin both answered 200 before diagnostic changes.
+The cache repository subsequently adopted `http.version=HTTP/1.1`; this is a
+protocol preference, not evidence that HTTP/2 caused those transient failures.
 
 ## What a push does
 
@@ -126,6 +132,9 @@ and `systemctl` paths instead of assuming the unit examples match the host.
    spend the first ordinary push downloading them.
    pnpm 11 requires `pnpm_config_store_dir`; it ignores the former
    `npm_config_*` prefix ([pnpm configuration](https://pnpm.io/11.x/configuring)).
+   The current host's retained Git repository uses `http.version=HTTP/1.1`.
+   Preserve that setting when restoring or recreating the cache; Git documents
+   this option in [its HTTP configuration](https://git-scm.com/docs/git-config/2.43.0).
 6. Seed `/var/www/moriium/assets/_astro/` and, if present, `assets/media/` from
    the verified current public release. Normalize those public directories and
    files for Nginx readability. Back up the installed Nginx configuration and
