@@ -1,10 +1,11 @@
 # Incremental VPS deployment plan
 
-Status: proposed implementation, 2026-10-12 (Asia/Shanghai). This document
+Status: design reference, 2026-10-12 (Asia/Shanghai). This document
 records Morii's request for automatic updates after a push, with a normal
 push-to-visible target of three minutes and a maximum of five minutes. The
-receiver, worker, repository settings, and release changes described below
-are not implemented or enabled by this document.
+local receiver, worker and incremental release implementation is described in
+[automatic deployment](automatic-deployment.md). Production activation is
+pending; several later improvements in this plan remain outside the first rollout.
 
 ## Current evidence
 

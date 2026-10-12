@@ -1,27 +1,38 @@
 # Architecture
 
-> Production baseline. Morii has approved evaluating the experience-first
-> full-stack scope documented in [vnext-architecture-plan.md](vnext-architecture-plan.md).
-> Until Phase 1 receives implementation authorization and a later Phase 5 ADR
-> updates the project contract, the static production architecture below remains
-> authoritative.
+> Production follows ADR 0002: static reader routes and a separate author
+> service. The earlier [vnext architecture plan](vnext-architecture-plan.md)
+> supplies historical planning context; changes to the reader boundary need
+> an approved architecture decision.
 
 ## Runtime boundary
 
-Astro builds the entire site to `dist/`. Production serves that directory through Nginx. There is no server adapter, Node process, database, PM2 application, server-side search service, comments service, analytics client, or CMS runtime on the VPS.
+Astro uses static output with the standalone Node adapter admitted by ADR 0002.
+Every public route is prerendered into `dist/client/`. Nginx serves the immutable
+release selected by `/var/www/moriium/current`; reader requests do not require
+Node or the database. Only `/admin/` and `/api/` reach the loopback author
+service, whose server build and persistent SQLite data are separate from the
+public release. Search remains a static index.
 
 ```text
 Markdown / encrypted JSON / cached repository metadata
                          │
                          ▼
-                GitHub Actions build
+                Verified source + VPS published-content export
                          │
                          ▼
-              static HTML, CSS, JS, media
+                Astro build on VPS
+                         │
+                         ▼
+              immutable HTML, CSS, JS, media
                          │
                          ▼
                Nginx on the existing VPS
 ```
+
+The optional [automatic deployment controller](automatic-deployment.md) receives
+signed GitHub notifications and fetches verified source incrementally. Its
+installation and activation are separate from ordinary source verification.
 
 ## Content
 
@@ -39,7 +50,9 @@ GitHub card data is collected at build time when `GITHUB_TOKEN` is available. Ac
 
 ## Search
 
-Search is a newly approved V1 capability. The design prototype filters its small inline fixture locally. Production will generate a static article index during the build and load the search module and index only when the reader opens search; no query is sent to a server and no search process runs on the VPS.
+Production generates a static article index during the build and loads the
+search module and index only when the reader opens search. No query is sent to
+a server and no search process runs on the VPS.
 
 ## Design boundary
 

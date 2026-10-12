@@ -19,7 +19,10 @@ upstream contracts used here ([Astro Node adapter documentation](https://docs.as
 ## GitHub configuration
 
 The workflow in `.github/workflows/ci.yml` deploys only from `main` and only
-when the repository variable `DEPLOY_ENABLED` equals `true`. Pull requests and
+when the repository variable `DEPLOY_ENABLED` equals `true` and `DEPLOY_MODE`
+is not `pull`. The optional signed-webhook VPS worker uses `DEPLOY_MODE=pull`
+and is configured separately; see [automatic deployment](automatic-deployment.md).
+Pull requests and
 ordinary pushes always run verification first.
 
 Create these Actions secrets:
@@ -194,17 +197,20 @@ build must run beside the database:
 2. CI uploads the archive and `deploy/bin/deploy-code.sh`.
 3. The VPS driver acquires `release.lock` and stages a new workspace.
 4. It stops the author service before replacing any server files.
-5. If the lockfile is unchanged, it reuses the existing `node_modules`;
+5. If the dependency fingerprint (lockfile, manifest, install configuration
+   and runtime versions) is unchanged, it reuses the existing `node_modules`;
    otherwise `pnpm site:release` installs from the frozen lockfile.
 6. The release state machine exports published database content, builds, runs
-   the public checks, copies `dist/client` to an immutable release, switches
-   `current`, probes `/zh/`, records `live_version_id`, and retains six.
-7. The driver starts the author service and probes `/admin/`.
+   the public checks, reuses unchanged `dist/client` files in an immutable
+   release, retains hash-addressed assets, switches `current`, and probes `/zh/`.
+7. Code releases start the author service, probe `/admin/` and the expected
+   public version marker, then record `live_version_id` and retain six.
+   A readiness failure restores the previous public selection and workspace.
 
-Any failure before the static switch restores the previous workspace and starts
-the previous author service. If the author service fails after a successful
-static switch, the workflow fails plainly but does not roll back the healthy
-public site. This is the L1 failure boundary, not a silent success.
+Any failure before readiness completes restores the previous workspace and
+starts the previous author service. A failure after the release is fully
+probed keeps the healthy public site and workspace for diagnosis; the workflow
+still fails plainly. This is the L1 failure boundary, not a silent success.
 
 Content publishing currently sets `published_version_id` and shows
 “awaiting export” in Admin. Until a separately reviewed Admin release trigger
