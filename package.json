@@ -58,7 +58,7 @@
     "@tiptap/vue-3": "3.30.5",
     "astro": "7.2.4",
     "astro-expressive-code": "0.44.1",
-    "katex": "0.18.4",
+    "katex": "0.18.9",
     "lxgw-wenkai-screen-webfont": "1.7.0",
     "marked": "17.0.6",
     "mermaid": "11.17.2",
