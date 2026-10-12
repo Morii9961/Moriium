@@ -4,6 +4,9 @@ This runbook describes the Phase 6A production layout. The files in `deploy/`
 are versioned deployment inputs; their presence is not evidence that the VPS is
 configured or that a production drill has passed.
 
+Deployment shell scripts use LF in Git archives through `.gitattributes`;
+archive syntax checks must validate committed bytes, not just a local checkout.
+
 The public site and the author service have deliberately different failure
 domains:
 

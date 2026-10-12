@@ -1,0 +1,8 @@
+# Deployment archives must contain executable POSIX shell text on Linux.
+deploy/bin/*.sh text eol=lf
+deploy/systemd/* text eol=lf
+deploy/nginx/* text eol=lf
+deploy/automation/*.env.example text eol=lf
+deploy/systemd/* text eol=lf
+deploy/nginx/* text eol=lf
+deploy/automation/*.env.example text eol=lf

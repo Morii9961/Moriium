@@ -60,7 +60,7 @@ dependency_key() {
   {
     node --version
     pnpm --version
-    for file in package.json pnpm-lock.yaml .npmrc .nvmrc; do
+    for file in package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc .nvmrc; do
       if [[ -f "$directory/$file" ]]; then
         sha256sum "$directory/$file" | cut -d' ' -f1
       fi

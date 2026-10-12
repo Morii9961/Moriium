@@ -1,8 +1,18 @@
 # Automatic incremental deployment
 
-The implementation is prepared for Moriium's existing VPS. Production
-activation is a separate operation: no webhook, receiver, worker, or Nginx
-snippet has been enabled by the implementation task.
+Production activation was authorized and performed on 2026-10-12. The
+receiver, path unit, minute reconciliation timer, asset pool, and Nginx
+snippet are installed. GitHub uses `DEPLOY_MODE=pull` and the fixed repository
+webhook subscribes to `push` and `workflow_run`.
+
+The activation bootstrap made verified commit `f156912` live in 44.69 s,
+including Admin readiness and the formal-host version probe. This was an
+explicit activation retry, not a timing claim for its historical push.
+At activation, GitHub's first two ping attempts failed with a connection EOF
+before reaching Nginx. A locally signed request through the formal hostname
+returned 202 with its receipt persisted; unsigned requests returned 401.
+The minute Git/API reconciliation remains active when remote notifications
+cannot be delivered. Real ordinary-push acceptance is recorded separately.
 
 ## What a push does
 
@@ -114,6 +124,8 @@ and `systemctl` paths instead of assuming the unit examples match the host.
    unit, and timer from `deploy/systemd/`. The worker's pnpm store is writable
    under its state directory. Warm dependencies during activation; do not
    spend the first ordinary push downloading them.
+   pnpm 11 requires `pnpm_config_store_dir`; it ignores the former
+   `npm_config_*` prefix ([pnpm configuration](https://pnpm.io/11.x/configuring)).
 6. Seed `/var/www/moriium/assets/_astro/` and, if present, `assets/media/` from
    the verified current public release. Normalize those public directories and
    files for Nginx readability. Back up the installed Nginx configuration and
