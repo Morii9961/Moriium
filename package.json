@@ -9,6 +9,7 @@
     "pnpm": ">=11.22 <12"
   },
   "scripts": {
+    "activity:codex-local": "node scripts/audit-codex-usage.mjs",
     "activity:collect": "node scripts/collect-activity.mjs",
     "activity:refresh": "node scripts/refresh-activity.mjs",
     "activity:sync": "node scripts/activity-sync.mjs",

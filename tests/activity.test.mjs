@@ -197,4 +197,8 @@ test('Codex account activity is filed in its own zone and must reconcile with th
   }
   // Without a lifetime figure the buckets stand on their own rather than failing closed.
   assert.equal(importCodexUsage({ dailyUsageBuckets: buckets }, updatedAt).days.length, 2);
+  assert.throws(() => importCodexUsage({ dailyUsageBuckets: [
+    { startDate: '2026-09-06', tokens: Number.MAX_SAFE_INTEGER },
+    { startDate: '2026-09-07', tokens: 1 },
+  ] }, updatedAt));
 });

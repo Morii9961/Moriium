@@ -2,9 +2,9 @@ import { spawn } from 'node:child_process';
 import { validDate, type ActivityDay, type ActivitySnapshot } from '../../src/lib/activity.ts';
 
 /**
- * Codex reports account-wide token activity from the server, so it covers the iOS app,
- * Codex Cloud and every other surface that never touches this computer. Local session
- * logs cannot see those. The request goes through the app-server rather than
+ * Account-side daily aggregates have no cache breakdown or documented completeness
+ * guarantee. Audit retained local counters separately with codex-local-usage.ts;
+ * never add them to these buckets. The request goes through the app-server rather than
  * `GET /backend-api/wham/usage` on purpose: the CLI holds its own credentials and this
  * repository never handles a bearer token.
  *
@@ -22,9 +22,10 @@ export async function readCodexUsage(timeoutMs = 90_000): Promise<unknown> {
   const executable = process.env.MORIIUM_CODEX_CLI || 'codex';
   const child = spawn(executable, ['app-server'], { windowsHide: true, stdio: ['pipe', 'pipe', 'ignore'] });
   const send = (message: unknown) => child.stdin.write(`${JSON.stringify(message)}\n`);
+  let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     return await new Promise((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error('Codex app-server timed out.')), timeoutMs);
+      timer = setTimeout(() => reject(new Error('Codex app-server timed out.')), timeoutMs);
       let buffer = '';
       child.on('error', reject);
       child.on('exit', () => reject(new Error('Codex app-server exited before answering.')));
@@ -50,6 +51,7 @@ export async function readCodexUsage(timeoutMs = 90_000): Promise<unknown> {
       send({ jsonrpc: '2.0', id: 1, method: 'initialize', params: { clientInfo: CLIENT } });
     });
   } finally {
+    clearTimeout(timer);
     child.kill();
   }
 }
@@ -71,6 +73,7 @@ export function importCodexUsage(result: unknown, updatedAt: string): ActivitySn
   // otherwise a silently truncated page would read as a genuine drop in usage.
   const lifetime = (result as { summary?: { lifetimeTokens?: unknown } }).summary?.lifetimeTokens;
   const total = days.reduce((sum, day) => sum + day.value, 0);
+  if (!Number.isSafeInteger(total)) throw new Error('Codex total exceeds the safe integer range.');
   if (Number.isSafeInteger(lifetime) && Number(lifetime) !== total) throw new Error('Codex buckets do not add up to the reported lifetime total.');
   return { updatedAt, timezone: CODEX_TIMEZONE, metric: 'tokens', days };
 }

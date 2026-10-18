@@ -2,6 +2,8 @@
 
 日期：2026-09-26。本文供独立项目 Enouia Runtime 接手关于页活动数据更新功能时使用。当前只更新了 Moriium 的构建快照并准备交接；Runtime 中的采集、调度和上传尚未由本文实现或启用。
 
+2026-10-18 口径修订：Codex 账号接口没有缓存分项，不能把“含缓存”或“覆盖所有设备”写成接口保证。现已增加独立的本地压缩日志核对工具；最新算法、局限及接手顺序以[本次 token 采集交接](handoff-2026-10-18-token-collection-to-enouia-runtime.md)和[技术参考](codex-token-collection.md)为准。本文其余执行状态属于历史记录。
+
 ## 接手范围
 
 关于页有 GitHub、Codex、Claude Code 三张活动日历。Moriium 的公开页面仍由 Astro 预渲染，Nginx 提供静态 HTML；构建时读取 [活动快照](../src/data/activity.json)。另有一条已实现、尚需单独部署验收的动态更新链路：本机采集日汇总，经受限 SSH 接收，由 VPS 发布为静态 JSON，浏览器按需刷新。它不经过作者后台的 `/api/status/`。
@@ -44,7 +46,7 @@
 | 来源 | 指标与边界 | 读取条件 |
 | --- | --- | --- |
 | GitHub | `contributions`，日期标签 `GitHub`；官方贡献日历一次最多查询一年 | 登录状态可用的 `gh` 或本机环境令牌；旧日汇总须保留 |
-| Codex | 含缓存的账号级 `tokens`，日期标签 `Codex`，沿用服务端日界 | 本机 Codex app-server 的 `account/usage/read`；日桶之和须等于返回的 lifetime 总量 |
+| Codex | 账号侧 `tokens`，无缓存分项；日期标签 `Codex`，沿用服务端日界 | 本机 Codex app-server 的 `account/usage/read`；日桶之和须等于返回的 lifetime 总量；本地明细只作独立核对 |
 | Claude Code | 含缓存的 `tokens`，`Asia/Shanghai` 自然日 | 固定的 `ccusage@20.0.20` 离线日报；额外逐个读取本机 Cowork 私有 store |
 
 Claude 的总量为非缓存输入、缓存读取、缓存写入和输出之和；reasoning 已包含在输出中，不能再加一次。Codex 与 Claude 的日界不同，不能合并日桶或把 Codex 日期重标为北京时间。远程 Cowork 不在本机日志里。不要用限额百分比、费用或非缓存 token 数替换这些热力图的单位。

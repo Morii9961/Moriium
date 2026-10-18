@@ -2,6 +2,8 @@
 
 The three calendars show GitHub contributions, account-side Codex activity and
 Claude Code usage retained on Morii's computer, including local Cowork tasks.
+Codex also has a separate offline audit of retained local token counters. It
+exposes cache components without changing the public calendar's source or dates.
 Only daily aggregates enter the site. No visitor tracking, public API, database
 or client framework is added.
 
@@ -31,6 +33,13 @@ GitHub uses the official GraphQL contribution calendar and the existing GitHub C
 It writes `src/data/activity.json` atomically, retaining each failed source's
 previous snapshot and returning a nonzero exit status on any failure. CLI error
 output is suppressed because it can contain private paths or report fragments.
+
+To inspect Codex's local cache breakdown, run `pnpm activity:codex-local`. This
+reads `.jsonl` and `.jsonl.zst` under `CODEX_HOME` (default `~/.codex`), including
+archived sessions. It writes only aggregate counters and diagnostics to the ignored
+`.cache/activity-codex-local.json`; it does not update or upload the public snapshot.
+See [the token collection reference](codex-token-collection.md) for formulas,
+deduplication, coverage limits and the Runtime migration contract.
 
 If the collector fails, check that the pinned tool is cached and that
 `gh auth status` succeeds. A restricted environment can prevent child processes
@@ -66,17 +75,15 @@ steps are in [status operations](status-operations.md). Do not also schedule the
 manual collector against that same data file. A scheduled task's existence does
 not prove that its credentials or upload work: inspect its first run.
 
-A missed day is recoverable as long as its source still remembers it, and all three
-now do: Claude Code retains transcripts for 3650 days, GitHub's calendar answers for a
-year, and Codex appears to return the account's whole history rather than a window —
-its earliest bucket, the earliest local session directory and `~/.codex/installation_id`
-all fall on 2026-05-12. That last point is inference from three coinciding markers, not
-a documented guarantee, so long silences remain the one real risk.
+A missed day is recoverable while its source retains the necessary records.
+GitHub's query covers one year; local transcript retention and the account endpoint's
+history may change. Compressed Codex rollouts remain usable without unpacking them
+onto disk. Preserve successful aggregates even when upstream history shrinks.
 
-There is no version of this that runs without the computer. Claude Code's usage exists
-only in local transcripts; no scheduler elsewhere can reach it. Codex is server-side and
-could in principle be read from anywhere, but only by handing its login to that other
-place, which buys a heatmap with a credential that can spend the account's quota. Do not.
+Claude Code collection and the Codex local audit need access to this computer's
+retained logs. Keep collection on the workstation and upload only approved daily
+aggregates. Account-side Codex collection delegates authentication to the installed
+CLI; deployment and CI must never receive its login files.
 
 Manual publishing remains `pnpm build`, followed by the ordinary release. Morii has
 approved implementing a separate hourly aggregate upload and a one-minute status
@@ -89,16 +96,22 @@ code, and the automated uploader does not deploy the site.
 - GitHub: daily contribution counts and dates returned for Morii9961. Visibility
   depends on the authenticated account and GitHub settings; repository names and
   contribution details are never requested.
-- Every AI figure on the page is a cache-inclusive total: non-cached input + cache read
-  + cache creation + output. Non-cached-only totals are one to two orders of magnitude
-  smaller, so the two units must never share a chart. Neither is quota use or a bill.
+- Token counts, quota percentages and bills are distinct measures. Claude's cache
+  fields are separate components; Codex local cache fields are subsets of input.
+  Their formulas cannot be interchanged. Account-side Codex buckets have no component
+  breakdown; do not label their cache semantics as an API guarantee.
 - Codex: the account's own token activity, read from the Codex app-server's
-  `account/usage/read`. It is server-side, so the iOS app, Codex Cloud and every other
-  surface count, not just this computer. The buckets carry the server's day boundaries,
+  `account/usage/read`. It can cover work beyond locally retained logs, but complete
+  cross-device coverage is not established by this response. The buckets carry the server's day boundaries,
   recorded as the `Codex` timezone rather than relabelled `Asia/Shanghai`, and the source
   offers no input/output/cache split. The importer refuses a page whose buckets do not
   add up to the reported lifetime total. The request goes through the app-server so the
   CLI keeps its own credentials; this repository never handles a bearer token.
+  The 2026-10-18 local comparison does not support a missing-cache correction:
+  cached input dominates local usage, and account totals are of the same scale as
+  local cache-inclusive totals. This is evidence from this installation, not a
+  documented definition of `dailyUsageBuckets.tokens`. Never add local cache counts
+  to account totals or take a per-day maximum across their different day boundaries.
 - Claude Code: the pinned ccusage daily reports in `Asia/Shanghai`. Reasoning output is
   already part of output and is not added again. Local logs only, so anything run on
   another device is invisible.
@@ -136,10 +149,11 @@ code, and the automated uploader does not deploy the site.
   are present as zero. Each source shows its own collection
   timestamp; retained historical days may come from earlier successful snapshots.
 
-The adapter rejects unexpected report shapes, duplicate dates and inconsistent
-totals. ccusage owns raw-log deduplication, cumulative-token deltas and inherited
-subagent-history handling. An upstream format change requires a fixture review
-before changing the pin; do not blindly upgrade the parser.
+The public adapters reject unexpected report shapes, duplicate dates and inconsistent
+totals. ccusage owns Claude raw-log deduplication. The separate Codex audit reports
+malformed rows, invalid counters, repeated events, counter rollbacks and gaps; it is
+a best-effort observation of retained history. An upstream format change requires
+a fixture review before changing the parser or tool pin.
 
 ## Presentation and checks
 
@@ -151,10 +165,12 @@ script adds date selection, pointer inspection and arrow-key navigation. Mobile
 splits each calendar at a week boundary into two consecutive halves. Both AI
 sources use the same numeric scale.
 
-Run `node --test tests/activity.test.mjs`, `pnpm check`, `pnpm test`, `pnpm build`,
-`pnpm links`, and `pnpm split`. Check all three languages, both themes and widths
-375, 390, 768, 1024 and 1440. Serve the static client output with the Node app
-stopped to verify the public route has no runtime dependency on the admin.
+For collector changes, run the affected tests, including
+`node --test --test-isolation=none tests/activity.test.mjs tests/codex-local-usage.test.mjs`,
+and check the public allowlist. Shared rendering or release acceptance uses `pnpm verify`.
+UI changes additionally check all three languages, both themes and widths 375, 390,
+768, 1024 and 1440. Release acceptance proves the public routes work with the author
+Node process stopped in an isolated instance; never stop a shared production process.
 
 ## Statistics and date boundaries
 
@@ -176,6 +192,8 @@ inspectable as zero, while future and padding cells are excluded from selection.
 
 - [Codex app-server](https://developers.openai.com/codex/app-server); run
   `codex app-server generate-json-schema --out <dir>` for the exact request contract
+- [Codex token collection reference](codex-token-collection.md)
+- [Runtime token collection handoff](handoff-2026-10-18-token-collection-to-enouia-runtime.md)
 - [ccusage JSON output](https://ccusage.com/guide/json-output)
 - [ccusage Codex source](https://ccusage.com/guide/codex/)
 - [GitHub contribution calendar schema](https://docs.github.com/en/graphql/reference/users#contributioncalendar)

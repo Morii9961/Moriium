@@ -64,7 +64,7 @@ for (const source of selected === 'all' ? SOURCES : [selected]) {
       }
       snapshot = importGitHub(report, updatedAt);
     } else if (source === 'codex') {
-      // Server-side account activity, so the iOS app and Codex Cloud are included.
+      // Account-side aggregates; local cache breakdown is a separate offline audit.
       snapshot = importCodexUsage(await readCodexUsage(), updatedAt);
     } else {
       // Run locally with cached pricing. Raw stdout/stderr stays in memory.
