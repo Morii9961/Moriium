@@ -219,6 +219,15 @@ Rebuild after editing the list.
 ## Implementation rule
 
 When the implementation and `DESIGN.md` disagree, follow `DESIGN.md` and update this status record. Do not silently promote a prototype, generic skill recommendation, or reference-site pattern into Moriium's site-wide language.
+
+## About spacing and initial selection — 2026-10-19
+
+The recovered About refinement uses `clamp(3.5rem, 6vw, 6rem)` between bands
+and before the footer, without duplicating the directory wrapper's bottom
+padding. Activity calendars begin with an empty date input and no selected
+cell. Pointer, date-input and keyboard interaction still select dates; the
+first arrow key selects the latest recorded date.
+
 ## About status implementation — 2026-09-13
 
 The About page now places operating status before its activity calendars. Four

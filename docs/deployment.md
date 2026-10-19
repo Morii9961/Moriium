@@ -41,6 +41,17 @@ Create these Actions secrets:
 Do not create `DEPLOY_ENABLED=true` until the bootstrap, configuration tests,
 static-with-Node-stopped check, and rollback rehearsal below have succeeded.
 
+## Dependency updates
+
+For dependency updates, keep `.nvmrc`, `engines`, Node types, and the VPS Node
+major aligned. Verify the combined lockfile before merging related updates.
+The VPS must install that lockfile with `--frozen-lockfile`; do not update
+packages independently on the server. After an Astro upgrade, rerun the isolated
+incremental-build and static-with-Node-stopped acceptance. After release, compare
+the formal-host version marker and workspace lockfile with the merged commit,
+then check public routes, Admin readiness and deployment services. Retain the
+previous workspace and static release for rollback.
+
 ## Filesystem layout
 
 ```text
