@@ -22,7 +22,6 @@ export function renderActivityChart(source: ActivitySource, snapshot: ActivitySn
     const parts = [cells.slice(0, split), cells.slice(split)];
     const selectable = cells.filter(cell => cell.state === 'known');
     const selectionEnd = selectable.at(-1)?.date ?? start;
-    const initialDate = snapshot?.days.filter(day => day.date >= start && day.date <= end && day.date <= asOf).at(-1)?.date ?? selectionEnd;
     const current = year === Number(asOf.slice(0, 4));
     const yearId = `${id}-${year}`;
     const calendar = parts.map((part, partIndex) => {
@@ -42,7 +41,7 @@ export function renderActivityChart(source: ActivitySource, snapshot: ActivitySn
       <footer class="activity-chart__footer"><p>${c.updated} · ${snapshot ? `<time datetime="${snapshot.updatedAt}">${e(formatTime(snapshot.updatedAt, lang))}</time>` : '—'}</p><details><summary>${c.details}</summary>
       <dl class="activity-chart__statistics" aria-label="${c.statistics}"><div><dt>${c.average}</dt><dd>${average === null ? '—' : `${e(compact.format(average))} ${unit}`}</dd></div><div><dt>${c.peak}</dt><dd>${peak ? `${e(number.format(peak.value))} ${unit} · ${peak.date}` : '—'}</dd></div></dl>
       <p class="activity-chart__method">${c.method}</p>${current ? `<p class="activity-chart__method">${c.recent}: ${recentStart} – ${asOf} · ${c.asOf} ${asOf} UTC+8</p>` : ''}
-      <div class="activity-chart__interaction" hidden data-interaction><label for="${yearId}-date">${c.date}<input id="${yearId}-date" type="date" min="${start}" max="${selectionEnd}" value="${initialDate}" data-date-input /></label></div>
+      <div class="activity-chart__interaction" hidden data-interaction><label for="${yearId}-date">${c.date}<input id="${yearId}-date" type="date" min="${start}" max="${selectionEnd}" data-date-input /></label></div>
       <p id="${yearId}-hint" class="activity-chart__hint" hidden data-interaction>${c.hint}</p><div class="activity-chart__table" tabindex="0" role="region" aria-label="${title} · ${year} · ${c.details}"><table><caption>${title} · ${start} – ${end}</caption><thead><tr><th scope="col">${c.date}</th><th scope="col">${unit}</th></tr></thead><tbody>${days.toReversed().map(cell => `<tr><th scope="row"><time datetime="${cell.date}">${cell.date}</time></th><td>${e(number.format(cell.value))}</td></tr>`).join('')}</tbody></table></div></details></footer></section>`;
   }).join('');
   return `<article class="activity-chart" data-activity-chart data-source="${source}" aria-labelledby="${id}-title"><header class="activity-chart__heading"><h3 id="${id}-title"><span class="activity-chart__mark" aria-hidden="true"></span>${title}</h3></header>${years}</article>`;
