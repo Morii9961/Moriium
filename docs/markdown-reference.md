@@ -44,6 +44,12 @@ flowchart LR
 
 Mermaid loads only on marked articles, uses strict security mode, and exposes source text when rendering fails. Diagrams are drawn in the site's own colours, resolved from the page's tokens at render time and redrawn when the theme changes. Each diagram sits in a frame that opens fitted to the column width (never below 55%): drag to pan, Ctrl or Cmd with the wheel or a trackpad pinch to zoom, two-finger pinch on touch screens, `+` `-` `0` and the arrow keys once the frame has focus, and a bar under the frame with the scale and zoom and reset buttons. A plain wheel always scrolls the page, and on touch screens a vertical swipe scrolls past a diagram until the reader has moved it.
 
+The Mermaid 12 integration explicitly keeps the `dagre` layout and `classic`
+look alongside Moriium's existing `base` theme and tokens. Its diagram runtime
+requires Safari 17.4+ or another ES2024-capable browser; this requirement applies
+to enhanced diagrams, while the prerendered source remains available without
+JavaScript. See the [upstream migration notes](https://github.com/mermaid-js/mermaid/releases/tag/mermaid%4012.0.0).
+
 ## Video
 
 ```md

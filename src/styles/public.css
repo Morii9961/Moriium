@@ -2443,6 +2443,12 @@
       animation-iteration-count: 1 !important;
     }
 
+    /* A nonzero duration also transitions SVG geometry while Mermaid measures it. */
+    .public-site svg,
+    .public-site svg * {
+      transition-duration: 0s !important;
+    }
+
     /* The colour still changes, so state stays legible. Only the travel goes;
        the reset above only shortens it. */
     .aperture-action:hover i,

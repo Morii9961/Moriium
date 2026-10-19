@@ -44,11 +44,11 @@
     "@astrojs/markdown-remark": "7.2.4",
     "@astrojs/node": "11.1.4",
     "@astrojs/rss": "4.0.19",
-    "@astrojs/sitemap": "3.7.3",
-    "@expressive-code/plugin-collapsible-sections": "0.44.1",
+    "@astrojs/sitemap": "3.7.4",
+    "@expressive-code/plugin-collapsible-sections": "0.44.2",
     "@expressive-code/plugin-line-numbers": "0.44.1",
     "@fontsource-variable/noto-sans-sc": "5.3.0",
-    "@fontsource-variable/noto-serif-jp": "5.3.0",
+    "@fontsource-variable/noto-serif-jp": "5.3.1",
     "@fontsource-variable/noto-serif-sc": "5.3.0",
     "@fontsource-variable/sora": "5.3.0",
     "@fontsource/ibm-plex-mono": "5.3.0",
@@ -62,7 +62,7 @@
     "katex": "0.18.9",
     "lxgw-wenkai-screen-webfont": "1.7.0",
     "marked": "17.0.6",
-    "mermaid": "11.17.2",
+    "mermaid": "12.2.0",
     "photoswipe": "5.4.4",
     "rehype-expressive-code": "0.44.1",
     "rehype-katex": "7.0.1",
@@ -74,7 +74,7 @@
   "devDependencies": {
     "@astrojs/check": "0.9.10",
     "@fontsource/shippori-mincho": "5.3.0",
-    "@types/node": "24.13.3",
+    "@types/node": "24.19.2",
     "picomatch": "4.0.7",
     "typescript": "6.0.3"
   }

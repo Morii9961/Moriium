@@ -447,6 +447,9 @@ const copy = READER_COPY[lang];
         mermaid.initialize({
           startOnLoad: false,
           securityLevel: 'strict',
+          // Mermaid 12 defaults changed; retain Moriium's established diagrams.
+          layout: 'dagre',
+          look: 'classic',
           theme: 'base',
           themeVariables: themeVariables(),
           flowchart: { curve: 'basis', padding: 14, nodeSpacing: 44, rankSpacing: 52 },
