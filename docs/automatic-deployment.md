@@ -42,7 +42,7 @@ Unchanged release files share immutable inodes with the previous release.
 Article cache keys include body, metadata, translation/navigation/taxonomy
 metadata, dynamic GitHub/media metadata and the footer year. Unknown data
 dependencies must invalidate pages conservatively. The build cache is
-experimental and tied to the pinned Astro 7.2.4 version. `pnpm verify` retains
+experimental and tied to the pinned Astro 7.2.9 version. `pnpm verify` retains
 its forced clean build; `pnpm build` uses incremental rendering.
 
 The shared public asset pool retains hash-addressed `_astro` and media files

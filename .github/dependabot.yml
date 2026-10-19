@@ -5,6 +5,13 @@ updates:
     schedule:
       interval: monthly
     open-pull-requests-limit: 5
+    ignore:
+      # Production and CI run Node 24; newer types expose unavailable APIs.
+      - dependency-name: "@types/node"
+        versions: [">=25.0.0"]
+      # Tiptap 3.30.5 consumes Marked 17 types and custom tokenizers.
+      - dependency-name: "marked"
+        versions: [">=18.0.0"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
