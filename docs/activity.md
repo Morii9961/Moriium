@@ -1,5 +1,7 @@
 # About-page activity calendars
 
+2026-10-25 backend update: [ADR 0004](adr-0004-remote-activity.md) adds a separate GitHub / tokens.ci feed v2 and hourly server-side collector. [Operations and frontend handoff](remote-activity-operations.md) describe deployment and the v2 contract. Existing About rendering and the v1 workflow below remain available until Claude adopts the new feed; neither is silently reinterpreted. No production timer is enabled by this source change.
+
 The three calendars show GitHub contributions, account-side Codex activity and
 Claude Code usage retained on Morii's computer, including local Cowork tasks.
 Codex also has a separate offline audit of retained local token counters. It

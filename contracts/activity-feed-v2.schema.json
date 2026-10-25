@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://morii9961.top/contracts/activity-feed-v2.schema.json",
+  "title": "Moriium remote Activity feed v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "generatedAt", "sources", "legacy"],
+  "properties": {
+    "version": { "const": 2 },
+    "generatedAt": { "$ref": "#/$defs/time" },
+    "sources": {
+      "type": "object", "additionalProperties": false,
+      "required": ["github", "codex", "claude"],
+      "properties": {
+        "github": { "allOf": [{ "$ref": "#/$defs/source" }, { "properties": { "provider": { "const": "github" }, "dayBoundary": { "const": "GitHub" } } }] },
+        "codex": { "$ref": "#/$defs/tokensSource" },
+        "claude": { "$ref": "#/$defs/tokensSource" }
+      }
+    },
+    "legacy": {
+      "type": "object", "additionalProperties": false, "required": ["hash", "url"],
+      "properties": {
+        "hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "url": { "type": "string", "pattern": "^/status-data/activity/[a-f0-9]{64}\\.json$" }
+      }
+    }
+  },
+  "$defs": {
+    "time": { "type": "string", "format": "date-time", "pattern": "Z$" },
+    "source": {
+      "type": "object", "additionalProperties": false,
+      "required": ["provider", "dayBoundary", "attemptedAt", "result", "snapshot"],
+      "properties": {
+        "provider": { "enum": ["github", "tokens.ci"] },
+        "dayBoundary": { "enum": ["GitHub", "tokens.ci device configuration"] },
+        "attemptedAt": { "$ref": "#/$defs/time" },
+        "result": { "enum": ["success", "failed"] },
+        "snapshot": { "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/snapshot" }] }
+      },
+      "allOf": [{ "if": { "properties": { "result": { "const": "success" } } }, "then": { "properties": { "snapshot": { "$ref": "#/$defs/snapshot" } } } }]
+    },
+    "tokensSource": {
+      "allOf": [{ "$ref": "#/$defs/source" }, { "properties": { "provider": { "const": "tokens.ci" }, "dayBoundary": { "const": "tokens.ci device configuration" } } }]
+    },
+    "snapshot": {
+      "type": "object", "additionalProperties": false, "required": ["updatedAt", "fetchedAt", "days"],
+      "properties": {
+        "updatedAt": { "$ref": "#/$defs/time" },
+        "fetchedAt": { "$ref": "#/$defs/time" },
+        "days": {
+          "type": "array", "maxItems": 100000,
+          "items": {
+            "type": "object", "additionalProperties": false, "required": ["date", "value"],
+            "properties": {
+              "date": { "type": "string", "format": "date" },
+              "value": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 }
+            }
+          }
+        }
+      }
+    }
+  }
+}

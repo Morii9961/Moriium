@@ -1,0 +1,11 @@
+[Unit]
+Description=Pull Moriium activity hourly without Runtime
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=1h
+AccuracySec=1min
+Unit=moriium-activity.service
+
+[Install]
+WantedBy=timers.target
