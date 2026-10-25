@@ -1,0 +1,20 @@
+[Unit]
+Description=Moriium GitHub and tokens.ci activity collector
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=moriium-status
+Group=moriium-status
+WorkingDirectory=/opt/moriium-status
+Environment=MORIIUM_STATUS_ROOT=/var/lib/moriium-status
+EnvironmentFile=/etc/moriium/activity.env
+ExecStart=/usr/bin/node /opt/moriium-status/scripts/collect-remote-activity.mjs
+UMask=0027
+TimeoutStartSec=300
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/moriium-status
