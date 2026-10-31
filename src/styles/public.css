@@ -66,7 +66,12 @@
     --surface-soft: #e8eef6;
     --ink: #171c23;
     --ink-muted: #56616e;
-    --ink-faint: #75808c;
+    /* Darkened from #75808c, which measured 3.68:1 on the canvas and 3.92:1 on
+       the raised surface -- under AA for the 9-10px metadata that uses it
+       nearly everywhere. The dark theme's #818b9b was already 5.66:1, so only
+       this side moves. DESIGN.md 18 left both values open pending exactly this
+       check. */
+    --ink-faint: #626c7a;
     --line: #c7d4e3;
     --line-soft: var(--moriium-light-border);
     --accent: #365f8d;
@@ -85,6 +90,12 @@
     --accent-strong: var(--moriium-blue-primary);
     --accent-field: var(--moriium-blue-primary);
     --accent-field-ink: #f6f7ff;
+    /* Read against the canvas, where it gives 7.63:1. On an --accent-field
+       surface the same value is 1.90:1, under the 3:1 WCAG 2.2 1.4.11 asks of a
+       focus indicator, so every rule that paints that field redeclares --focus
+       as the field's own ink (14.88:1). The dark theme does not have the
+       problem -- #bdcaff on #1f2c6a is 8.03:1 -- but it redeclares too, so the
+       pairing is one rule rather than two. */
     --focus: #244f82;
     /* Morii selected the archived Juanshou typography on 2026-09-07.
        English uses the SC family's Latin glyphs, as in that study. */
@@ -204,6 +215,7 @@
   .public-site .skip-link {
     background: var(--accent-field);
     color: var(--accent-field-ink);
+    --focus: var(--accent-field-ink);
   }
 
   .public-site .site-header {
@@ -349,6 +361,7 @@
   .public-site .theme-toggle:hover {
     background: var(--accent-field);
     color: var(--accent-field-ink);
+    --focus: var(--accent-field-ink);
   }
 
   .public-site .site-tool svg,
@@ -517,6 +530,7 @@
     margin-top: clamp(4rem, 10vw, 10rem);
     background: var(--accent-field);
     color: var(--accent-field-ink);
+    --focus: var(--accent-field-ink);
   }
 
   .public-site .site-footer__inner {
@@ -809,6 +823,44 @@
     align-items: center;
     isolation: isolate;
     border-bottom: 1px solid var(--line);
+  }
+
+  /* Seven pages used to open with the same full-screen masthead, and the only
+     thing that changed between them was the title. Read one after another it
+     stopped being a gesture and became a template, and on a 900px window the
+     first list row never reached the first screen.
+
+     So the height now says what kind of page this is. `/writing/` keeps the
+     full masthead: it is the front door of the section and the one place the
+     gesture is worth a screen. Archive, categories, tags, their detail pages
+     and about take the ledger height below -- same composition, same blue, a
+     third of the room -- because they are pages a reader arrives at already
+     looking for something. DESIGN.md 8.4 allows the denser treatment; 2.5 is
+     the reason the full one has to stay rare to keep working. */
+  .a-directory__hero--ledger {
+    min-height: min(20rem, 48vh);
+  }
+
+  .a-directory__hero--ledger > .prototype-kicker {
+    margin-top: 2.25rem;
+  }
+
+  .a-directory__hero--ledger .a-directory__title h1 {
+    max-width: 18ch;
+    font-size: clamp(2.6rem, 6vw, 5rem);
+    letter-spacing: -0.07em;
+  }
+
+  .a-directory__hero--ledger .a-directory__title p {
+    margin-top: 1rem;
+  }
+
+  .a-directory__hero--ledger .a-directory__stats {
+    margin-bottom: 2.25rem;
+  }
+
+  .a-directory__hero--ledger .a-directory__stats div {
+    min-height: 3rem;
   }
 
   .a-directory__hero::before {
@@ -1205,6 +1257,7 @@
     background: var(--accent-field);
     color: var(--accent-field-ink);
     outline-offset: -4px;
+    --focus: var(--accent-field-ink);
   }
 
   .a-writing-filter__option:hover small,
@@ -1291,6 +1344,7 @@
   .a-category-directory > a:focus-visible {
     color: var(--accent-field-ink);
     outline-offset: -4px;
+    --focus: var(--accent-field-ink);
   }
 
   /* The date and the tag line are what a reader scans a list by, so they take
@@ -1298,7 +1352,7 @@
      as decoration. */
   .a-post-index .prototype-post > a > span:first-child,
   .a-post-index time,
-  .a-post-index .prototype-post > a > span:nth-last-child(2),
+  .a-post-index__category,
   .a-taxonomy-posts time,
   .a-taxonomy-posts__tags {
     color: var(--ink-muted);
@@ -1697,6 +1751,7 @@
     padding-left: clamp(2.25rem, 5vw, 5rem);
     background: var(--accent-field);
     color: var(--accent-field-ink);
+    --focus: var(--accent-field-ink);
   }
 
   /* On the lit row the count stands on the accent field, where the resting ink
@@ -2023,6 +2078,7 @@
   .a-about-page__channels a:focus-visible {
     background: var(--accent-field);
     color: var(--accent-field-ink);
+    --focus: var(--accent-field-ink);
   }
 
   .a-about-page__channels a:hover .a-about-page__channel-note,
@@ -2089,7 +2145,12 @@
       grid-template-columns: 5.75rem minmax(0, 1fr) auto;
     }
 
-    .a-post-index .prototype-post > a > span:nth-last-child(2),
+    /* The category was meant to drop here, but `span:nth-last-child(2)` never
+       matched: the second-from-last child of this row is the <time>, not a
+       span. So five cells stayed in a four-track grid and the arrow
+       auto-placed onto a second row under the number, adding ~45px to every
+       row between 768 and 1120px. Named instead of counted. */
+    .a-post-index__category,
     .a-taxonomy-posts__tags {
       display: none;
     }
@@ -2257,6 +2318,29 @@
       margin: 0;
     }
 
+    /* The ledger header has no screen to anchor the figures to the foot of, so
+       they follow the title instead of floating over it, and the header takes
+       the height its own content needs. */
+    .a-directory__hero--ledger {
+      min-height: 0;
+      padding-top: 2.5rem;
+      padding-bottom: 2rem;
+    }
+
+    .a-directory__hero--ledger .a-directory__title {
+      margin-top: 1.75rem;
+    }
+
+    .a-directory__hero--ledger .a-directory__title h1 {
+      font-size: clamp(2.6rem, 13vw, 4.25rem);
+    }
+
+    .a-directory__hero--ledger .a-directory__stats {
+      position: static;
+      width: min(18rem, 100%);
+      margin: 2rem 0 0;
+    }
+
     .a-directory__section-head,
     .a-taxonomy-detail__head,
     .a-about-page__head {
@@ -2271,7 +2355,18 @@
       padding-inline: 0.6rem;
     }
 
-    .a-post-index .prototype-post > a > div,
+    /* The row is two lines here, and its second line has room the single-line
+       tier above did not: the date and the category share it instead of the
+       category being dropped. Scanning the index by subject is most of what it
+       is for, and the phone is where that happens most. */
+    .a-post-index .prototype-post > a {
+      grid-template-columns: 1.4rem auto minmax(0, 1fr) auto;
+    }
+
+    .a-post-index .prototype-post > a > div {
+      grid-column: 2 / 5;
+    }
+
     .a-taxonomy-posts__copy {
       grid-column: 2 / 4;
     }
@@ -2282,7 +2377,19 @@
       grid-row: 2;
     }
 
-    .a-post-index__arrow,
+    .a-post-index__category {
+      display: block;
+      grid-column: 3;
+      grid-row: 2;
+      justify-self: start;
+    }
+
+    .a-post-index__arrow {
+      grid-column: 4;
+      grid-row: 2;
+      justify-self: end;
+    }
+
     .a-taxonomy-posts__arrow {
       grid-column: 3;
       grid-row: 2;

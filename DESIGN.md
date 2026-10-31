@@ -738,7 +738,7 @@ The canonical **雾霾蓝 / 深渊蓝** palettes are now recovered and locked in
 The remaining open items are:
 
 1. Final production font families and local/webfont loading strategy.
-2. Exact neutral reading-ink tokens for light and dark mode after accessibility/contrast review.
+2. ~~Exact neutral reading-ink tokens for light and dark mode after accessibility/contrast review.~~ Resolved 2026-10-31. The three neutral ink tiers were measured against both canvases and the auxiliary tier was the only one under the Section 12 floor: in light mode it gave 3.68:1 on the canvas and 3.92:1 on the raised surface, at the 9–10px sizes most of the site's metadata uses, while the dark tier was already at 5.66:1. The light auxiliary ink moved to `#626c7a` (4.87:1 and 5.19:1); the dark one is unchanged. Reading and secondary ink were already clear in both themes. The same review fixed a related gap: `--focus` is read against the canvas, so on an `--accent-field` surface it measured 1.90:1, under the 3:1 that WCAG 2.2 1.4.11 asks of a focus indicator. Every rule that paints that field now redeclares `--focus` as the field's own ink. Implementation values are recorded in `docs/design-system.md`.
 3. Exact component-level radius/shadow tokens after the first real Moriium vNext page is implemented and reviewed.
 
 Do not silently invent unresolved identity-level values. Surface the gap and make it an explicit design decision.

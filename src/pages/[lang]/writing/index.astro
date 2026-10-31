@@ -147,7 +147,7 @@ const tags = uniqueTaxonomy(posts, 'tags')
           <li class="prototype-post" data-category={post.data.category} data-tags={JSON.stringify(post.data.tags)}><a href={postPath(post)}>
             <span data-writing-number>{number(index + 1)}</span>
             <div><h3>{post.data.title}</h3><p>{post.data.summary}</p></div>
-            <span>{post.data.category}</span>
+            <span class="a-post-index__category">{post.data.category}</span>
             <time datetime={post.data.publishedAt.toISOString()}>{formatDate(post.data.publishedAt, ui.locale)}</time>
             <span class="a-post-index__arrow" aria-hidden="true">↗</span>
           </a></li>
