@@ -231,6 +231,7 @@
     container-type: size;
     background: var(--accent-field);
     color: var(--accent-field-ink);
+    --focus: var(--accent-field-ink);
   }
 
   .aperture-hero__shutter {
@@ -646,6 +647,7 @@
   .aperture-ways a:focus-visible {
     color: var(--accent-field-ink);
     outline-offset: -4px;
+    --focus: var(--accent-field-ink);
   }
 
   .aperture-ways small,
@@ -887,6 +889,7 @@
   .aperture-ledger__years a:focus-visible {
     color: var(--accent-field-ink);
     outline-offset: -4px;
+    --focus: var(--accent-field-ink);
   }
 
   /* The metadata on a lit row keeps its rank: it steps up to the field's ink
@@ -1620,11 +1623,56 @@
       grid-template-columns: 1fr;
     }
 
+    /* Four stacked blocks cost 613px here -- 73% of a 390x844 screen -- for
+       four links the header already carries, and most of that was the empty
+       right half of a composition built to run across. One line each instead:
+       the latin label takes a column, the name and note share the next, the
+       arrow closes the row. About 360px for the four, and the first article
+       reaches the second screen. The row is the same grammar as the archive's
+       date line, not a new one. */
     .aperture-ways a,
     .aperture-ways a:nth-child(2) {
-      min-height: 8.5rem;
+      grid-template-columns: 4.75rem minmax(0, 1fr) auto;
+      align-content: center;
+      min-height: 5.5rem;
+      padding-block: 1.1rem;
       border-right: 0;
       border-bottom: 1px solid var(--line);
+    }
+
+    .aperture-ways small {
+      grid-column: 1;
+      grid-row: 1;
+      align-self: baseline;
+    }
+
+    .aperture-ways span {
+      grid-column: 2;
+      grid-row: 1;
+      align-self: baseline;
+      margin-top: 0;
+      font-size: clamp(1.3rem, 6vw, 1.7rem);
+    }
+
+    .aperture-ways i {
+      grid-column: 2;
+      grid-row: 2;
+      margin-top: 0.15rem;
+    }
+
+    .aperture-ways b {
+      position: static;
+      grid-column: 3;
+      grid-row: 1;
+      align-self: center;
+      justify-self: end;
+    }
+
+    /* The resting sliver of the hover fill is sized against the block it peeks
+       out of. At 88px rows the 0.35rem it had at 136px stopped reading as a
+       hint and started reading as a divider. */
+    .aperture-ways a::before {
+      transform: translateY(calc(100% - 0.25rem));
     }
 
     .aperture-recent > header,

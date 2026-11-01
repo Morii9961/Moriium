@@ -286,6 +286,59 @@
     font-size: clamp(1rem, 1.5vw, 1.2rem);
   }
 
+  /* Still only type, as DESIGN.md 8.6 asks. What changed is that the page now
+     answers the question a reader actually has here, using the same hairline
+     rows the lists elsewhere use rather than a component of its own. */
+  .not-found {
+    padding-block: var(--space-4) var(--space-6);
+  }
+
+  .not-found__lead {
+    color: var(--ink-muted);
+    font-size: 0.95rem;
+  }
+
+  .not-found__ways {
+    max-width: 40rem;
+    margin: var(--space-2) 0 0;
+    padding: 0;
+    border-top: 1px solid var(--line);
+    list-style: none;
+  }
+
+  .not-found__ways[hidden] {
+    display: none;
+  }
+
+  .not-found__ways a {
+    display: flex;
+    gap: var(--space-2);
+    align-items: baseline;
+    justify-content: space-between;
+    min-height: 3rem;
+    padding-block: 0.7rem;
+    border-bottom: 1px solid var(--line);
+    text-decoration: none;
+  }
+
+  .not-found__ways a:hover > span:first-child,
+  .not-found__ways a:focus-visible > span:first-child {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+
+  .not-found__ways time,
+  .not-found__index > span:last-child {
+    color: var(--ink-muted);
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .not-found__index {
+    color: var(--accent);
+  }
+
   .post-list {
     list-style: none;
     margin: 0;

@@ -33,13 +33,39 @@ These values record the branch implementation. They do not replace the canonical
 
 | Role | Light | Dark |
 | --- | --- | --- |
-| Reading ink | `#20252B` | `#E9EDF4` |
-| Secondary ink | `#5C6672` | `#AAB2BF` |
-| Auxiliary ink | `#78838F` | `#858E9E` |
+| Reading ink | `#171C23` | `#EEF1F6` |
+| Secondary ink | `#56616E` | `#ABB4C2` |
+| Auxiliary ink | `#626C7A` | `#818B9B` |
 | Accessible interactive ink | `#365F8D` | `#A9B9EF` |
+| Focus ring, on canvas | `#244F82` | `#BDCAFF` |
+| Focus ring, on `--accent-field` | `#F6F7FF` | `#F7F8FF` |
 | Primary canvas | `#F2F5F9` | `#0B0C14` |
 
-The interactive inks are functional tints derived for contrast; they do not replace Moriium Blue. Measured contrast against the primary canvases is 6.04:1 in light mode and 10.10:1 in dark mode. Reading ink measures 14.11:1 and 16.61:1 respectively.
+The interactive inks are functional tints derived for contrast; they do not replace Moriium Blue. Measured contrast against the primary canvases is 6.04:1 in light mode and 10.10:1 in dark mode. Reading ink measures 15.65:1 and 17.22:1 respectively, and secondary ink 5.77:1 and 9.32:1.
+
+The auxiliary tier closes `DESIGN.md` open item 2, resolved on 2026-10-31. It carries nearly all of the site's metadata — kickers, dates, counts, calendar figures — at 9–10px, and its previous light value `#75808c` measured 3.68:1 on the canvas and 3.92:1 on the raised surface, under the Section 12 floor. `#626C7A` gives 4.87:1 and 5.19:1. The dark value was already 5.66:1 and did not move; the two themes are not inversions of each other and were measured separately.
+
+Focus has two rings rather than one because `--focus` is read against the canvas. On an `--accent-field` surface the light ring measured 1.90:1, under the 3:1 WCAG 2.2 1.4.11 asks of a focus indicator. Every rule that paints the field — the skip link, the footer, the hero aperture, the article's adjacent-post band, the protected-post submit, and each row, option and channel that lights up blue on hover or focus — now redeclares `--focus` as `var(--accent-field-ink)` beside the `background`/`color` pair it already sets, so the ring travels with the surface instead of being maintained as a separate list. On the field that reads 14.88:1.
+
+### Directory header heights
+
+`.a-directory__hero` was a full screen — `min(44rem, calc(100vh - 6rem))` — on all seven routes that use it, so the first list row never reached the first screen and the five index pages differed only by their title. The height now states what kind of page it opens. `/writing/` keeps the full masthead as the section's front door. Archive, Categories, Tags, the category and tag detail pages, and About take `.a-directory__hero--ledger`: the same twelve-column composition, the same 深渊蓝 slab and the same stat block at `min(20rem, 48vh)`, which puts the archive's first entries at 416px instead of 800px. Below 48rem the ledger drops its `min-height` entirely and its figures follow the title in flow instead of being absolutely placed against a screen that is no longer there. `DESIGN.md` 8.4 allows archives to run denser; 2.5 is why the full-height treatment has to stay rare to keep working.
+
+### Article ending
+
+The adjacent-post band is the only part of the article ending that carries `--accent-field`. The tags sit above it on the page's own surface under a hairline, at 0.82rem with a resting underline — hover used to be the only thing that marked them as links, which `DESIGN.md` 12 rules out. Previously the field wrapped the whole footer, which made the largest area of accent colour on the page the container for its smallest type, against `DESIGN.md` 4.5, and an article with no neighbours showed a field of blue around two tags. Now that article simply has no field. Below 48rem only the band bleeds to the viewport edge; the tags keep the article's gutter.
+
+### Writing index rows
+
+The row is five cells — number, copy, category, date, arrow — and the rules that drop the category on narrower screens address it by class. They previously used `span:nth-last-child(2)`, which never matched, because the second-from-last child of the row is the `<time>`: five cells stayed in a four-track grid and the arrow auto-placed onto a second row beneath the number, adding about 45px to every row between 768 and 1120px, and at 768px and below the category fell into the 1.4rem number track and set four characters as a 22×106px column. Between 48rem and 70rem the category is hidden, as intended. At 48rem and below the row is already two lines, so the category returns beside the date on the second of them rather than being dropped — scanning the index by subject is most of what it is for. `.a-taxonomy-posts` was never affected; its tag line was always addressed by class.
+
+### Not-found page
+
+Still typographic, as `DESIGN.md` 8.6 asks, but it now answers the question a reader who followed a broken link actually has. Under the message sit the two most recent entries and a link to the writing index, in the same hairline rows the lists elsewhere use. Every language's list is prerendered and the inline script shows the one matching the path, the way the message itself is already chosen; without the script the Chinese list stands, as the Chinese message already did.
+
+### Home route band on mobile
+
+Below 48rem the four route blocks were 153px each, 613px for the band — 73% of a 390×844 screen, for four destinations the header already carries, most of it the empty right half of a composition built to run across. Each is now one 88px line: the Latin label in its own column, the name and note sharing the next, the arrow closing the row, which is the archive's date-line grammar rather than a new one. The band is 354px and the first article reaches the second screen. The resting sliver of the hover fill drops from 0.35rem to 0.25rem at that width, since it is sized against the block it peeks out of.
 
 ### Home hero geometry
 

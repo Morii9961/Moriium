@@ -918,63 +918,73 @@
     border-radius: 0;
     background: var(--accent-field);
     color: var(--accent-field-ink);
+    --focus: var(--accent-field-ink);
   }
 
   /* -------------------------------------------------------------------- end */
 
+  /* The blue used to wrap the whole ending, which made the largest field of
+     accent colour on the page the container for its smallest type -- the thing
+     DESIGN.md 4.5 asks not to do. It now wraps only the pair of links, so the
+     colour marks a way onward rather than labelling the word "tags", and an
+     article with no neighbours simply has no field. */
   .a-article__end {
     width: min(100%, var(--layout-gallery));
     margin: clamp(6rem, 12vw, 12rem) auto 0;
-    padding: clamp(2rem, 5vw, 4rem);
-    background: var(--accent-field);
-    color: var(--accent-field-ink);
-  }
-
-  /* The first post in a language has nothing before or after it, and a full
-     field of blue holding one tag reads as a mistake rather than as an ending. */
-  .a-article__end:not(:has(nav)) {
-    padding-block: clamp(1.5rem, 3vw, 2.25rem);
   }
 
   /* The tags moved here from a rail that tracked the reader down the whole
      article. They are what someone reaches for having finished, so they sit
-     where finishing happens. */
+     where finishing happens -- on the page's own surface, under a rule, at a
+     size that admits they are links. */
   .a-article__tags {
     display: flex;
     flex-wrap: wrap;
     gap: 0.6rem 1.6rem;
     align-items: baseline;
+    padding-top: 0.9rem;
+    border-top: 1px solid var(--line);
   }
 
   .a-article__tags > p {
-    color: color-mix(in srgb, var(--accent-field-ink) 58%, transparent);
+    color: var(--ink-faint);
     font-family: var(--font-data);
-    font-size: 0.6rem;
+    font-size: 0.66rem;
   }
 
+  /* A linked tag carries a resting underline. Hover was the only thing that
+     said these were links, which DESIGN.md 12 rules out; an unlinked tag keeps
+     none, so the two stay tellable apart. */
   .a-article__tags a,
   .a-article__tags span {
-    color: color-mix(in srgb, var(--accent-field-ink) 82%, transparent);
-    font-size: 0.72rem;
-    text-decoration-color: transparent;
+    color: var(--ink-muted);
+    font-size: 0.82rem;
     transition: color var(--motion-fast) ease, text-decoration-color var(--motion-fast) ease;
+  }
+
+  .a-article__tags a {
+    text-decoration: underline;
+    text-decoration-color: var(--line);
+    text-underline-offset: 0.22em;
   }
 
   .a-article__tags a:hover,
   .a-article__tags a:focus-visible {
-    color: var(--accent-field-ink);
+    color: var(--ink);
     text-decoration-color: currentColor;
   }
 
-  /* The divider belongs between the two links, not to the container behind
-     them. As a 1px grid gap over a lighter background it read as a hairline
-     while both neighbours existed -- and at either end of the archive, where
-     there is only one, the empty half showed that background as a large grey
-     block. */
+  /* The field starts here. The divider belongs between the two links, not to
+     the container behind them: as a 1px grid gap it read as a hairline while
+     both neighbours existed, and at either end of the archive, where there is
+     only one, the empty half showed the page through. */
   .a-article__end nav {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    margin-top: 2.5rem;
+    margin-top: clamp(2rem, 4vw, 3rem);
+    background: var(--accent-field);
+    color: var(--accent-field-ink);
+    --focus: var(--accent-field-ink);
   }
 
   /* One neighbour, one panel: the lone link takes the whole width, so its
@@ -991,7 +1001,7 @@
     display: grid;
     min-height: 9rem;
     align-content: space-between;
-    padding: 1.4rem;
+    padding: clamp(1.4rem, 3vw, 2.25rem);
     background: var(--accent-field);
     text-decoration: none;
   }
@@ -1139,11 +1149,13 @@
 
     .a-article__end {
       width: auto;
-      margin-inline: calc(var(--gutter) * -1);
     }
 
+    /* Only the field bleeds to the edge. The tags sit on the page now, so they
+       keep the gutter every other line of the article keeps. */
     .a-article__end nav {
       grid-template-columns: 1fr;
+      margin-inline: calc(var(--gutter) * -1);
     }
 
     /* Stacked, so the divider moves to the edge they actually share. */

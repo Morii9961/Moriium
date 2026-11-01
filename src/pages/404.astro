@@ -1,11 +1,24 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { SITE, UI } from '../data/site';
+import { getListedPosts, postPath } from '../utils/content';
 
 const copy = {
-  zh: { locale: 'zh-CN', message: '没有这一页。' },
-  ja: { locale: 'ja-JP', message: 'このページはありません。' },
-  en: { locale: 'en-US', message: 'This page does not exist.' },
+  zh: { locale: 'zh-CN', message: '没有这一页。', onward: '也许从这里继续。', index: '文章索引' },
+  ja: { locale: 'ja-JP', message: 'このページはありません。', onward: 'ここから続けられます。', index: '記事一覧' },
+  en: { locale: 'en-US', message: 'This page does not exist.', onward: 'Perhaps carry on from here.', index: 'Writing index' },
 } as const;
+
+// A reader who lands here followed something broken, and the page used to
+// offer one way out and a screen of empty canvas under it. Every language's
+// two most recent entries are rendered and the script shows the one that
+// matches the path, the same way the message itself is chosen; without the
+// script the Chinese list stands, as the Chinese message already did.
+const onward = await Promise.all(
+  SITE.languages.map(async (lang) => ({ lang, posts: (await getListedPosts(lang)).slice(0, 2) })),
+);
+const shortDate = (value: Date, locale: string) =>
+  new Intl.DateTimeFormat(locale, { month: '2-digit', day: '2-digit' }).format(value);
 ---
 
 <BaseLayout lang="zh" title="404" noindex>
@@ -14,18 +27,39 @@ const copy = {
     <h1 data-not-found-message>{copy.zh.message}</h1>
     <p><a href="/zh/" data-not-found-home>← Moriium</a></p>
   </section>
+  <section class="site-shell not-found">
+    <p class="not-found__lead" data-not-found-lead>{copy.zh.onward}</p>
+    {onward.map(({ lang, posts }) => (
+      <ul class="not-found__ways" data-not-found-ways={lang} hidden={lang !== 'zh'}>
+        {posts.map((post) => (
+          <li><a href={postPath(post)}>
+            <span>{post.data.title}</span>
+            <time datetime={post.data.publishedAt.toISOString()}>{shortDate(post.data.publishedAt, UI[lang].locale)}</time>
+          </a></li>
+        ))}
+        <li><a class="not-found__index" href={`/${lang}/writing/`}>
+          <span>{copy[lang].index}</span><span aria-hidden="true">↗</span>
+        </a></li>
+      </ul>
+    ))}
+  </section>
   <script>
     const root = document.querySelector<HTMLElement>('[data-not-found-copy]');
     const message = root?.querySelector<HTMLElement>('[data-not-found-message]');
     const home = root?.querySelector<HTMLAnchorElement>('[data-not-found-home]');
+    const lead = document.querySelector<HTMLElement>('[data-not-found-lead]');
     const lang = window.location.pathname.match(/^\/(zh|ja|en)(?:\/|$)/)?.[1] as 'zh' | 'ja' | 'en' | undefined;
     if (root && message && home && lang) {
-      const copy = JSON.parse(root.dataset.notFoundCopy || '{}') as Record<string, { locale: string; message: string }>;
+      const copy = JSON.parse(root.dataset.notFoundCopy || '{}') as Record<string, { locale: string; message: string; onward: string }>;
       const selected = copy[lang];
       if (selected) {
         document.documentElement.lang = selected.locale;
         message.textContent = selected.message;
         home.href = `/${lang}/`;
+        if (lead) lead.textContent = selected.onward;
+        for (const list of document.querySelectorAll<HTMLElement>('[data-not-found-ways]')) {
+          list.hidden = list.dataset.notFoundWays !== lang;
+        }
       }
     }
   </script>
