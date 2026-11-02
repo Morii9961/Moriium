@@ -59,6 +59,16 @@ Local changes within an approved direction do not reopen this selection. Read `D
 - Machine translation is permitted for the Japanese and English variants, and it must say so. Morii writes in Chinese; a machine-translated variant is produced at build time from the published Chinese article, becomes a real prerendered route like any other, and carries a visible notice telling the reader it was machine translated from the Chinese original. An unlabelled machine translation is treated exactly as a fabricated one, because the page then implies an author it does not have. `hreflang` continues to declare every variant.
 - Avoid global dependency churn. Lock exact versions and explain additions.
 
+## Code implementation principles
+
+Where these principles conflict with existing design or implementation guidance, follow these principles.
+
+- Keep code in one function unless it needs to be composable or reusable.
+- Validate unknown values once at the boundary that owns them. Pass typed values inward instead of repeating `typeof value === "object"` and property-existence checks. Do not defensively revalidate values already guaranteed by a schema, constructor, or internal type.
+- Do not extract single-use helpers preemptively. Keep logic at the call site unless a helper is reused, hides a genuinely complex boundary, or has a clear independent name that improves the caller.
+- Before adding complexity for a speculative or vanishingly unlikely race or security edge case, explain the concrete failure mode, likelihood, and complexity cost to Morii and get buy-in. Do not silently expand scope for theoretical robustness.
+- Avoid `try`/`catch` where possible.
+
 ## Working protocol
 
 1. Inspect the working tree and relevant files before editing.
@@ -117,9 +127,7 @@ A skill's output is advice, never authority. Morii's direct instructions, `DESIG
 
 | Skill | Invoke when | Do not invoke when |
 | --- | --- | --- |
-| `systematic-debugging` | A bug, failed test, failed build, or unexplained behavior exists. Reproduce and find the root cause before editing. | Building a requested feature normally, or speculating about failures that have not occurred. |
-| `verification-before-completion` | Before claiming substantial work is complete, fixed, or passing. Apply Quality gates and report evidence for the affected scope. | Pure discussion, or repeating a status already supported by still-valid evidence. |
-| `code-review-and-quality` | Morii requests review, a commit or merge is being prepared, or a risky diff needs multi-axis review. | Ordinary implementation before a review phase. |
+| `systematic-debugging` | Complex or hard-to-localize failures, repeated unsuccessful fixes, cross-module/service or concurrent-state issues, or evidence that systematic root-cause investigation is needed. | Routine syntax, local logic, or simple UI issues; use native debugging. |
 
 ### Writing
 
@@ -142,8 +150,7 @@ Each Skill in a combination must independently meet its trigger above; these are
 
 - New or redesigned public-site UI: read `DESIGN.md`, then use `frontend-design` + `ui-ux-pro-max` only for decisions the constitution leaves open; check the result against the clean-room visual contract.
 - Motion work: read `DESIGN.md`, then use `animate` and only the necessary GSAP specialist when the interaction justifies it; invoke the explicit motion-review skills only when Morii asks for those reviews.
-- Bug or failed build: `systematic-debugging` first, then the relevant implementation skill, then `verification-before-completion`.
-- Pre-commit readiness: `code-review-and-quality` + `verification-before-completion`.
+
 - Version-sensitive research: `source-driven-development`; add `doc-coauthoring` only when joint document decisions are needed.
 - Polishing substantial Chinese planning prose: `humanizer-zh`; add `documentation-writer` only when its structure is being rebuilt. Factual status, number, and checklist updates do not trigger prose polishing.
 
@@ -174,8 +181,8 @@ Codex uses the same script under `~/.codex/skills/`. Resolve the path from the h
 Select verification by the changed surface:
 
 - Documentation/instruction-only changes: inspect the diff, references, syntax where applicable, and rule consistency. Do not build the site unless executable examples or site behavior changed.
-- Local code/content changes: run the relevant checks and behavior tests; validate changed content/directives. Add regression coverage where a behavior bug warrants it. A reversible typo or style correction does not require a new test suite.
-- UI changes: check affected routes, interactions, themes, and relevant breakpoints, including narrow mobile and wide desktop. Use all five widths (375, 390, 768, 1024, 1440) for shared layout changes or release acceptance. Preserve keyboard access, focus, semantics, alt text, contrast, and reduced motion.
+- Local code/content changes: use focused checks for affected behavior when warranted; validate changed content/directives where relevant. Add regression coverage when the change or bug justifies it. Small wording/style edits do not need a test suite.
+- UI changes: check affected routes, interactions, themes, and breakpoints. Use all five widths (375, 390, 768, 1024, 1440) for shared layout changes or release acceptance. Preserve keyboard access, focus, semantics, alt text, contrast, and reduced motion.
 - Dependencies, shared rendering, authentication, persistence, or release acceptance: run `pnpm verify` and the relevant boundary/integration checks. `verify` includes check, content/media validation, build, tests, links, public-tree audit, render split, and baseline checks; do not also rerun its components without a reason.
 - Public rendering/bundle changes: verify static output, feature-scoped advanced bundles, and exclusion of Vue/Tiptap/admin code. For changes to static serving or deployment, and release acceptance, prove public routes remain reachable after stopping the Node process in an isolated acceptance instance. Do not stop a shared or production process without authorization.
 - Privacy-sensitive changes or releases: inspect affected content, generated output, and relevant history for protected plaintext, passwords, GPS, secrets, and unrelated generated files. Full history audits are for release acceptance or a suspected historical leak, not every local edit.
