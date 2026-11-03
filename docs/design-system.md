@@ -47,10 +47,6 @@ The auxiliary tier closes `DESIGN.md` open item 2, resolved on 2026-10-31. It ca
 
 Focus has two rings rather than one because `--focus` is read against the canvas. On an `--accent-field` surface the light ring measured 1.90:1, under the 3:1 WCAG 2.2 1.4.11 asks of a focus indicator. Every rule that paints the field — the skip link, the footer, the hero aperture, the article's adjacent-post band, the protected-post submit, and each row, option and channel that lights up blue on hover or focus — now redeclares `--focus` as `var(--accent-field-ink)` beside the `background`/`color` pair it already sets, so the ring travels with the surface instead of being maintained as a separate list. On the field that reads 14.88:1.
 
-### Directory header heights
-
-`.a-directory__hero` was a full screen — `min(44rem, calc(100vh - 6rem))` — on all seven routes that use it, so the first list row never reached the first screen and the five index pages differed only by their title. The height now states what kind of page it opens. `/writing/` keeps the full masthead as the section's front door. Archive, Categories, Tags, the category and tag detail pages, and About take `.a-directory__hero--ledger`: the same twelve-column composition, the same 深渊蓝 slab and the same stat block at `min(20rem, 48vh)`, which puts the archive's first entries at 416px instead of 800px. Below 48rem the ledger drops its `min-height` entirely and its figures follow the title in flow instead of being absolutely placed against a screen that is no longer there. `DESIGN.md` 8.4 allows archives to run denser; 2.5 is why the full-height treatment has to stay rare to keep working.
-
 ### Article ending
 
 The adjacent-post band is the only part of the article ending that carries `--accent-field`. The tags sit above it on the page's own surface under a hairline, at 0.82rem with a resting underline — hover used to be the only thing that marked them as links, which `DESIGN.md` 12 rules out. Previously the field wrapped the whole footer, which made the largest area of accent colour on the page the container for its smallest type, against `DESIGN.md` 4.5, and an article with no neighbours showed a field of blue around two tags. Now that article simply has no field. Below 48rem only the band bleeds to the viewport edge; the tags keep the article's gutter.
@@ -66,6 +62,32 @@ Still typographic, as `DESIGN.md` 8.6 asks, but it now answers the question a re
 ### Home route band on mobile
 
 Below 48rem the four route blocks were 153px each, 613px for the band — 73% of a 390×844 screen, for four destinations the header already carries, most of it the empty right half of a composition built to run across. Each is now one 88px line: the Latin label in its own column, the name and note sharing the next, the arrow closing the row, which is the archive's date-line grammar rather than a new one. The band is 354px and the first article reaches the second screen. The resting sliver of the hover fill drops from 0.35rem to 0.25rem at that width, since it is sized against the block it peeks out of.
+
+### Home section headers
+
+The four home sections (`.aperture-recent`, `.aperture-field`, `.aperture-ledger`, `.aperture-colophon`) opened with a two-column header: kicker and heading in a `1.1fr` column, the one-line note in a `0.75fr` column baseline-aligned to the heading's last line. At 1920 that put a 544px note 808px to the right of a heading a quarter as wide, with nothing between them, and the crossing widened with the window. All four now stack kicker, heading and note on one left edge, `display: block` on the note with `margin-top: 1.5rem`. This is what phones already did below 48rem and what the directory mastheads do on every route, so the `70rem` and `48rem` header overrides and the `-1.26em` baseline pull are all gone with it. The ledger keeps `margin: 0` on its header because its header is a column beside the body rather than a band above it, but it no longer carries its own heading and note spacing.
+
+### Home colophon foot
+
+`.aperture-colophon__actions` carries `margin-top: auto` so that both halves of the colophon end on an action at the same baseline, but only the calendar column had one. The author column stopped at Enouia's line, 110px above the calendar's archive link, which read as a hole in the bottom-left of the page's last screen rather than as margin. The author column now closes on the About page — the page this half of the colophon is the summary of — and the two feet land on the same y at every width down to 48rem, below which the columns and their feet stack.
+### About strips and band edges
+
+Four measured defects in the About bands, all fixed on 2026-11-02, all at the page's own widths rather than at a breakpoint.
+
+The channel and friend strips drew their frame on the `<ul>`: `border-block` on the channels, `border-top` on the friends. With one friend, that top rule ran the band's full 1328px while the cell under it was 443px wide, so the remaining 885px read as an empty table — exactly what `AboutFriends.astro`'s own note says the strip does not do. The friends strip also put `border-right` on every cell, which drew the edge of a neighbour that was not there. Both strips now carry the frame on the cells: `border-bottom` on every `li`, `border-left` on every `li:not(:nth-child(3n + 1))`, and nothing on the list. A row that is not full ends where its last cell does, and a fourth channel would open a second row of one without either rule running past it. The breakpoints restate the divider for two columns (`:nth-child(2n)`) and drop it for one.
+
+Removing the list's top rule also removes the page's one doubled band boundary: `.a-about-page__head` draws a `--ink` rule and the strip drew a `--line-soft` rule 56px below it, with nothing between the two. The head's rule is now the strip's top edge, which is what the status and activity bands already did.
+
+`.about-activity__year-control` is a `div`, so `.a-about-page__band > p`'s indent rule never reached it and an 89px picker sat alone at the band edge between an intro and a chart set 144px in. It takes the same inset as the charts it governs now.
+
+`.about-activity__charts` was capped at `min(var(--layout-media), calc(100% - var(--activity-indent)))`. At 1920 that held the charts to 992px while the status rows above ran to 1184px, so the page's right edge stepped 192px inwards for one band and back out for the next. The cap is gone; the inset below sets the measure, as it does for `.about-status__body`, and all four bands now end at the same x.
+### About band inset
+
+Band content used to take the whole `--about-indent` (144px) on its left and nothing on its right. That read as two content edges rather than one, because the strips in 其他地址 and 友链 never took it and ran the band's full width while 运行状态 and 逐年的记录 started 144px in. It also left a 144px column empty down the whole height of every indented band, holding nothing but the section label at its very top.
+
+`.a-about-page` now carries `--about-inset: calc(var(--about-indent, calc(var(--about-label, 7rem) + 2rem)) / 2)` and every band's content takes it with `margin-inline` instead: the intros, `.a-about-page__sub`, `.a-about-page__inset`, `.about-status__body`, `.about-activity__year-control`, `.about-activity__charts`, and both card strips. Content is then one width in every band (1184 of the band's 1328 at 1920, 72px clear on each side) and the head's rule still crosses the whole band above it. `--about-indent` goes to `0rem` below 48rem, so the inset follows it to zero and phones keep their full measure, unchanged.
+
+The label track itself is untouched: `.a-about-page__rows li` and `.a-about-page__inset div` still lay out on `var(--about-label) minmax(0, 1fr)` inside the inset content, and `.a-about-page__rows li + li::before` still starts its hairline after that column. The statement band keeps its own three-column grid and its own edges, decided against changing on 2026-11-02: it is the page's opening and the one band meant to read differently.
 
 ### Home hero geometry
 

@@ -288,10 +288,14 @@ test('production copy removes prototype fillers and keeps the Moriium voice', as
   assert.match(home, /いつか戻れるように。/);
   // The display type stays Japanese in all three languages — it is read as form.
   // The panel beside it is ordinary prose, so it follows the page language and
-  // no longer advertises the three languages as a label.
-  assert.match(home, /heroBody: \['文章、写真、旅先の記録を、', '少しずつ残しています。'\]/);
-  assert.match(home, /heroBody: \['文章、照片与途中见闻，', '陆续归档。'\]/);
-  assert.match(home, /heroBody: \['Writing, photographs, and notes from the road,', 'filed over time.'\]/);
+  // no longer advertises the three languages as a label. It also no longer
+  // repeats `heroIdentity`: the register prints the three kinds of thing
+  // directly above it, and the body says what the register cannot — whose
+  // archive this is, and that it is added to rather than finished.
+  assert.match(home, /heroBody: \['Morii の個人アーカイブ。', '少しずつ増え、古いものも残ります。'\]/);
+  assert.match(home, /heroBody: \['Morii 的私人数字档案。', '陆续添上几页，旧的都留着。'\]/);
+  assert.match(home, /heroBody: \['Morii’s private archive.', 'A few pages at a time; nothing comes down.'\]/);
+  assert.doesNotMatch(home, /heroBody: \['文章、/);
   assert.match(home, /\{c\.heroIdentity\}/);
   assert.match(home, /\{c\.heroBody\.map/);
   assert.doesNotMatch(home, /ZH · JA · EN|lang="ja"><span>\{heroCopy\.enter\}/);

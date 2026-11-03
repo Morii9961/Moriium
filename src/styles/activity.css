@@ -5,7 +5,7 @@
   --activity-3: var(--moriium-light-accent);
   --activity-4: var(--moriium-light-primary);
   --activity-gap: 3px;
-  --activity-indent: var(--about-indent, calc(var(--about-label, 7rem) + 2rem));
+  --activity-inset: var(--about-inset, calc((var(--about-label, 7rem) + 2rem) / 2));
 }
 :root[data-theme='dark'] .about-activity {
   --activity-empty: var(--moriium-dark-secondary);
@@ -15,12 +15,21 @@
   --activity-4: var(--moriium-blue-mid);
 }
 .about-activity__intro { color: var(--ink-muted); max-width: 42em; }
-.about-activity__year-control:not([hidden]) { display: flex; align-items: baseline; gap: 0.75rem; margin-top: 1rem; color: var(--ink-muted); font: 0.75rem var(--font-interface); }
+/* The band's own `> p` rule indents the prose around this control, but the
+   control is a div and fell through it, so a 89px picker sat alone at the band
+   edge between two things set 144px in. It takes the same indent as the charts
+   it governs. */
+.about-activity__year-control:not([hidden]) { display: flex; align-items: baseline; gap: 0.75rem; margin-top: 1rem; margin-inline: var(--activity-inset); color: var(--ink-muted); font: 0.75rem var(--font-interface); }
 .about-activity__year-field { position: relative; display: inline-flex; align-items: center; min-height: 44px; border-bottom: 1px solid var(--line); }
 .about-activity__year-field:focus-within { border-bottom-color: var(--accent); }
 .about-activity__year-field select { min-height: 44px; padding: 0.25rem 1.25rem 0.25rem 0.1rem; border: 0; border-radius: 0; appearance: none; background: transparent; color: var(--ink); font: 0.8rem var(--font-data); cursor: pointer; }
 .about-activity__year-field > span { position: absolute; right: 0.1rem; pointer-events: none; color: var(--accent); }
-.about-activity__charts { max-width: min(var(--layout-media), calc(100% - var(--activity-indent))); margin-top: 2rem; margin-left: var(--activity-indent); }
+/* The `--layout-media` cap held the charts to 992px while the status rows
+   above them ran to 1184px, so the page's right edge stepped 192px inwards for
+   one band and back out for the next. The indent is what sets the measure now,
+   as it does for the status body, and the calendar's cells take the extra
+   width rather than a margin nobody could see the reason for. */
+.about-activity__charts { margin-top: 2rem; margin-inline: var(--activity-inset); }
 .activity-chart { min-width: 0; padding-block: 1.5rem 2rem; }
 .activity-chart + .activity-chart { border-top: 1px solid var(--line); }
 .activity-chart__heading { margin-bottom: 1rem; }
