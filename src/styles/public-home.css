@@ -703,63 +703,28 @@
     padding-bottom: 0;
   }
 
-  /* Kicker and heading stack on one left edge; the note takes the right column.
-     The heading used to sit in the middle column of three, which put it adrift
-     between a short kicker and a long note and read as a centring that had
-     missed. Nothing here was ever actually centred — every `text-align` is
-     `start` — so the fix is to remove the indent, not to add alignment. */
+  /* Kicker, heading and note on one left edge. The note used to hold a second
+     column, which set it 800px to the right of a heading a quarter as wide,
+     with nothing between the two: the only line on these sections that had to
+     be crossed to be read, and the crossing grew with the window. Phones
+     already stacked it and the directory mastheads already print their note
+     under the title, so one column is what the rest of the site was doing. */
   .aperture-recent > header,
   .aperture-field > header,
   .aperture-ledger > header,
   .aperture-colophon > header {
-    display: grid;
-    grid-template-columns: minmax(0, 1.1fr) minmax(16rem, 0.75fr);
-    column-gap: clamp(2rem, 5vw, 6rem);
-    align-items: start;
     margin-bottom: clamp(2.5rem, 4.5vw, 4.5rem);
-  }
-
-  .aperture-recent > header > p,
-  .aperture-field > header > p,
-  .aperture-ledger > header > p,
-  .aperture-colophon > header > p {
-    grid-column: 1;
-    grid-row: 1;
   }
 
   .aperture-recent > header h2,
   .aperture-field > header h2,
   .aperture-ledger > header h2,
   .aperture-colophon > header h2 {
-    grid-column: 1;
-    grid-row: 2;
     /* 1.25rem read as the display line hugging its eyebrow. Changed for all
        four sections rather than only the one it was noticed in: the eyebrow and
        the line under it are one figure, and four different gaps would be four
        different figures. */
     margin-top: 2rem;
-  }
-
-  .aperture-recent > header > span,
-  .aperture-field > header > span,
-  .aperture-ledger > header > span,
-  .aperture-colophon > header > span {
-    grid-column: 2;
-    grid-row: 1 / 3;
-  }
-
-  /* The note sits down on the heading's last line rather than floating up beside
-     the kicker. `end` drops it to the bottom of the heading's row, but that
-     aligns boxes, not ink: the note's 1.8 leading and the display face's deeper
-     descent left its glyphs 15px high of the heading's. The pull is in `em` of
-     the note, whose size is fixed, so it holds across the heading's whole clamp
-     range — the heading's own half-leading varies by about a pixel end to end.
-     Excludes the ledger, whose header is block-stacked in a narrow column. */
-  .aperture-recent > header > span,
-  .aperture-field > header > span,
-  .aperture-colophon > header > span {
-    align-self: end;
-    margin-bottom: -1.26em;
   }
 
   .aperture-recent > header > p,
@@ -792,7 +757,9 @@
   .aperture-field > header > span,
   .aperture-ledger > header > span,
   .aperture-colophon > header > span {
+    display: block;
     max-width: 34rem;
+    margin-top: 1.5rem;
     color: var(--ink-muted);
     font-family: var(--font-reading);
     font-size: 0.9rem;
@@ -1072,15 +1039,6 @@
   .aperture-ledger > header {
     display: block;
     margin: 0;
-  }
-
-  .aperture-ledger > header h2 {
-    margin-top: 1.5rem;
-  }
-
-  .aperture-ledger > header > span {
-    display: block;
-    margin-top: 2rem;
   }
 
   /* Years carry the same "enter here" grammar as the categories in 内容星图:
@@ -1523,15 +1481,6 @@
     .aperture-ways a:nth-child(-n + 2) {
       border-bottom: 1px solid var(--line);
     }
-
-    /* Column 1 carries the kicker and the heading here too, so it stays the wide
-       one. It was 0.35fr back when column 1 held only the kicker. */
-    .aperture-recent > header,
-    .aperture-field > header,
-    .aperture-ledger > header,
-    .aperture-colophon > header {
-      grid-template-columns: minmax(0, 1fr) minmax(11rem, 0.55fr);
-    }
   }
 }
 
@@ -1675,27 +1624,12 @@
       transform: translateY(calc(100% - 0.25rem));
     }
 
-    .aperture-recent > header,
-    .aperture-field > header,
-    .aperture-ledger > header,
-    .aperture-colophon > header {
-      display: block;
-    }
-
     .aperture-recent > header h2,
     .aperture-field > header h2,
     .aperture-ledger > header h2,
     .aperture-colophon > header h2 {
       margin-top: 1.2rem;
       font-size: clamp(3.5rem, 17vw, 6rem);
-    }
-
-    .aperture-recent > header > span,
-    .aperture-field > header > span,
-    .aperture-ledger > header > span,
-    .aperture-colophon > header > span {
-      display: block;
-      margin-top: 1.5rem;
     }
 
     .aperture-colophon__body {

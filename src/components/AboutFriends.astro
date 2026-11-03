@@ -46,22 +46,28 @@ const initial = (name: string) => Array.from(name.trim())[0]?.toUpperCase() ?? '
 </section>
 
 <style>
+  /* The strip's frame belongs to the cells, not to the list. On the list the
+     top rule ran the band's full 1328px while the one cell under it was 443px
+     wide, so the remaining 885px read as an empty table -- the thing the note
+     above says this strip does not do. A right rule on every cell made it
+     worse: it drew the edge of a neighbour that was not there. Cells carry a
+     bottom rule and, except at the start of a row, a left one, so a row that
+     is not full ends where its last cell does. The head's own rule above is
+     the strip's top edge. */
   .about-friends {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    margin: clamp(2rem, 4vw, 3.5rem) 0 0;
+    margin: clamp(2rem, 4vw, 3.5rem) var(--about-inset) 0;
     padding: 0;
-    border-top: 1px solid var(--line-soft);
     list-style: none;
   }
 
   .about-friends li {
-    border-right: 1px solid var(--line-soft);
     border-bottom: 1px solid var(--line-soft);
   }
 
-  .about-friends li:nth-child(3n) {
-    border-right: 0;
+  .about-friends li:not(:nth-child(3n + 1)) {
+    border-left: 1px solid var(--line-soft);
   }
 
   .about-friends a {
@@ -184,12 +190,15 @@ const initial = (name: string) => Array.from(name.trim())[0]?.toUpperCase() ?? '
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .about-friends li:nth-child(3n) {
-      border-right: 1px solid var(--line-soft);
+    /* Two per row: the divider moves to every second cell. Stated for both
+       cases rather than only the one that changes, because the 3n rule above
+       still matches here otherwise. */
+    .about-friends li:not(:nth-child(3n + 1)) {
+      border-left: 0;
     }
 
     .about-friends li:nth-child(2n) {
-      border-right: 0;
+      border-left: 1px solid var(--line-soft);
     }
   }
 
@@ -199,8 +208,8 @@ const initial = (name: string) => Array.from(name.trim())[0]?.toUpperCase() ?? '
     }
 
     .about-friends li,
-    .about-friends li:nth-child(3n) {
-      border-right: 0;
+    .about-friends li:nth-child(2n) {
+      border-left: 0;
     }
 
     .about-friends a {

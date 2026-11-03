@@ -188,7 +188,7 @@ const copy = {
   zh: {
     heroTitle: '记录所见，留下未完。',
     heroIdentity: '文章 / 照片 / 途中见闻',
-    heroBody: ['文章、照片与途中见闻，', '陆续归档。'],
+    heroBody: ['Morii 的私人数字档案。', '陆续添上几页，旧的都留着。'],
     routes: [
       ['Writing', '写下的', '全部公开文章'],
       ['Archive', '回看的', '按年份存放'],
@@ -199,7 +199,7 @@ const copy = {
     field: '内容星图', fieldNote: '分类给出主要归处，标签保留更细的联系。',
     category: '主要方向', tags: '交叉索引', posts: (count: number) => `${count} 篇`,
     allCategories: '全部分类', allTags: '全部标签',
-    ledger: '存了些什么', ledgerNote: '按年份回看，也从最早的一页开始。',
+    ledger: '存了些什么', ledgerNote: '按年份回看，也可以从最早的一页看起。',
     ledgerYears: '年份', ledgerEntries: (count: number) => `${count} 篇`,
     factStarted: '开始于', factPosts: '文章',
     colophon: '关于这里',
@@ -216,12 +216,12 @@ const copy = {
     calendarPickYear: '选择年份', calendarPickMonth: '选择月份',
     calendarEmpty: '本月无更新。',
     calendarMore: (count: number | string) => `另有 ${count} 篇。`,
-    fullArchive: '归档',
+    fullArchive: '归档', fullAbout: '关于',
   },
   ja: {
     heroTitle: '見たものを記す。未完のまま残す。',
     heroIdentity: '文章 / 写真 / 旅先の記録',
-    heroBody: ['文章、写真、旅先の記録を、', '少しずつ残しています。'],
+    heroBody: ['Morii の個人アーカイブ。', '少しずつ増え、古いものも残ります。'],
     routes: [
       ['Writing', '書いたもの', '公開中の記事'],
       ['Archive', '振り返るもの', '年ごとに収録'],
@@ -249,12 +249,12 @@ const copy = {
     calendarPickYear: '年を選ぶ', calendarPickMonth: '月を選ぶ',
     calendarEmpty: 'この月の更新はありません。',
     calendarMore: (count: number | string) => `ほか ${count} 件。`,
-    fullArchive: 'アーカイブ',
+    fullArchive: 'アーカイブ', fullAbout: 'この場所',
   },
   en: {
     heroTitle: 'Record what was seen. Leave the unfinished as it is.',
     heroIdentity: 'Writing / Photography / Travel',
-    heroBody: ['Writing, photographs, and notes from the road,', 'filed over time.'],
+    heroBody: ['Morii’s private archive.', 'A few pages at a time; nothing comes down.'],
     routes: [
       ['Writing', 'Things written', 'Every public post'],
       ['Archive', 'Things revisited', 'Filed by year'],
@@ -262,7 +262,7 @@ const copy = {
       ['About', 'This place', 'Author and site'],
     ],
     recent: 'Previous pages', recentNote: 'Recently published.', all: 'Writing index',
-    field: 'A map of the work', fieldNote: 'Categories provide the main filing; tags preserve finer links.',
+    field: 'A chart of the work', fieldNote: 'Categories provide the main filing; tags preserve finer links.',
     category: 'Main directions', tags: 'Cross-index', posts: (count: number) => `${count} ${count === 1 ? 'post' : 'posts'}`,
     allCategories: 'All categories', allTags: 'All tags',
     ledger: 'What is kept here', ledgerNote: 'By year, back to the first page.',
@@ -282,7 +282,7 @@ const copy = {
     calendarPickYear: 'Choose a year', calendarPickMonth: 'Choose a month',
     calendarEmpty: 'No entries this month.',
     calendarMore: (count: number | string) => `${count} more.`,
-    fullArchive: 'Archive',
+    fullArchive: 'Archive', fullAbout: 'About',
   },
 } as const;
 const c = copy[lang];
@@ -453,6 +453,17 @@ const routeHrefs = [`/${lang}/writing/`, `/${lang}/archive/`, `/${lang}/categori
               </li>
             ))}
           </ol>
+          {/* The column's foot. `.aperture-colophon__actions` was written for
+              both halves of the colophon -- `margin-top: auto` is what lands it
+              on the calendar's archive link -- but only the calendar ever had
+              one, so the author column simply stopped above a 110px hole in the
+              bottom-left of the last screen. The About page is what this half
+              is the summary of, so it is the link that belongs here. */}
+          <div class="aperture-colophon__actions aperture-colophon__actions--single">
+            <a class="aperture-action" href={`/${lang}/about/`}>
+              <span>{c.fullAbout}</span><i aria-hidden="true">↗</i>
+            </a>
+          </div>
         </div>
 
         <div

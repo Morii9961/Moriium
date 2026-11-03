@@ -1,5 +1,5 @@
 .about-status__intro { max-width: 42em; color: var(--ink-muted); }
-.about-status__body { margin: 2rem 0 0 var(--about-indent, calc(var(--about-label, 7rem) + 2rem)); }
+.about-status__body { margin: 2rem var(--about-inset) 0; }
 .status-overview { font: 500 0.95rem var(--font-interface); }
 .status-note { margin-block: 0.75rem; color: var(--ink-muted); font: 0.75rem/1.7 var(--font-interface); }
 .status-list, .status-sources { list-style: none; padding: 0; margin: 1rem 0; }

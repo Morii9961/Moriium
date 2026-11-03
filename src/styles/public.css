@@ -825,44 +825,6 @@
     border-bottom: 1px solid var(--line);
   }
 
-  /* Seven pages used to open with the same full-screen masthead, and the only
-     thing that changed between them was the title. Read one after another it
-     stopped being a gesture and became a template, and on a 900px window the
-     first list row never reached the first screen.
-
-     So the height now says what kind of page this is. `/writing/` keeps the
-     full masthead: it is the front door of the section and the one place the
-     gesture is worth a screen. Archive, categories, tags, their detail pages
-     and about take the ledger height below -- same composition, same blue, a
-     third of the room -- because they are pages a reader arrives at already
-     looking for something. DESIGN.md 8.4 allows the denser treatment; 2.5 is
-     the reason the full one has to stay rare to keep working. */
-  .a-directory__hero--ledger {
-    min-height: min(20rem, 48vh);
-  }
-
-  .a-directory__hero--ledger > .prototype-kicker {
-    margin-top: 2.25rem;
-  }
-
-  .a-directory__hero--ledger .a-directory__title h1 {
-    max-width: 18ch;
-    font-size: clamp(2.6rem, 6vw, 5rem);
-    letter-spacing: -0.07em;
-  }
-
-  .a-directory__hero--ledger .a-directory__title p {
-    margin-top: 1rem;
-  }
-
-  .a-directory__hero--ledger .a-directory__stats {
-    margin-bottom: 2.25rem;
-  }
-
-  .a-directory__hero--ledger .a-directory__stats div {
-    min-height: 3rem;
-  }
-
   .a-directory__hero::before {
     position: absolute;
     z-index: -1;
@@ -1875,6 +1837,15 @@
      footer offset then follows the same scale as every band boundary above. */
   .a-about-page {
     padding-bottom: 0;
+    /* Half the label track's offset, taken on both sides instead of all of it
+       on the left. The left-only indent put every band's content on a 144px
+       edge and left the 144px beside it empty for the whole height of the
+       band, with nothing in it but the label at the very top. Split in two it
+       becomes a margin the band has on both sides: one content width (1184 of
+       the band's 1328), one centre, and the head's rule still crossing the
+       whole band above it. `--about-indent` goes to 0 below 48rem, so this
+       follows it there and phones keep their full measure. */
+    --about-inset: calc(var(--about-indent, calc(var(--about-label, 7rem) + 2rem)) / 2);
   }
 
   .public-site main:has(> .a-about-page) + .site-footer {
@@ -1888,7 +1859,7 @@
     align-items: center;
     gap: 0.85rem;
     margin-top: 3rem;
-    margin-left: var(--about-indent, calc(var(--about-label, 7rem) + 2rem));
+    margin-inline: var(--about-inset);
     font-family: var(--font-display);
     font-size: 1rem;
     font-weight: 620;
@@ -1897,7 +1868,7 @@
   .a-about-page__band > p {
     max-width: 40em;
     margin-top: 1.1rem;
-    margin-left: var(--about-indent, calc(var(--about-label, 7rem) + 2rem));
+    margin-inline: var(--about-inset);
     color: var(--ink-muted);
     font-family: var(--font-reading);
     font-size: 0.95rem;
@@ -1959,7 +1930,7 @@
   .a-about-page__inset {
     max-inline-size: 34em;
     margin-top: 1.4rem;
-    margin-left: var(--about-indent, calc(var(--about-label, 7rem) + 2rem));
+    margin-inline: var(--about-inset);
     padding-block: 0.4rem;
     border-top: 1px solid var(--line-soft);
     border-bottom: 1px solid var(--line-soft);
@@ -1997,16 +1968,27 @@
   /* The three destinations form one flat directory strip rather than a card
      stack. Each whole cell is the link; the brand mark is the only decorative
      gesture, and the shared rules keep it in the page's editorial grammar. */
+  /* Same frame-on-the-cells rule the friends strip below it carries, and for
+     the same reason: three channels fill the row today, a fourth would open a
+     second row of one, and the list's own `border-block` would run both rules
+     the band's full width past it. The head's rule above is the strip's top
+     edge -- a second full-width hairline 56px under it drew a band boundary
+     where there was only a gap. `li + li` is replaced because the fourth cell
+     starts a row and must not carry a divider. */
   .a-about-page__channels {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     margin-top: clamp(2rem, 4vw, 3.5rem);
+    margin-inline: var(--about-inset);
     padding: 0;
-    border-block: 1px solid var(--line-soft);
     list-style: none;
   }
 
-  .a-about-page__channels li + li {
+  .a-about-page__channels li {
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  .a-about-page__channels li:not(:nth-child(3n + 1)) {
     border-left: 1px solid var(--line-soft);
   }
 
@@ -2318,29 +2300,6 @@
       margin: 0;
     }
 
-    /* The ledger header has no screen to anchor the figures to the foot of, so
-       they follow the title instead of floating over it, and the header takes
-       the height its own content needs. */
-    .a-directory__hero--ledger {
-      min-height: 0;
-      padding-top: 2.5rem;
-      padding-bottom: 2rem;
-    }
-
-    .a-directory__hero--ledger .a-directory__title {
-      margin-top: 1.75rem;
-    }
-
-    .a-directory__hero--ledger .a-directory__title h1 {
-      font-size: clamp(2.6rem, 13vw, 4.25rem);
-    }
-
-    .a-directory__hero--ledger .a-directory__stats {
-      position: static;
-      width: min(18rem, 100%);
-      margin: 2rem 0 0;
-    }
-
     .a-directory__section-head,
     .a-taxonomy-detail__head,
     .a-about-page__head {
@@ -2470,8 +2429,9 @@
       grid-template-columns: 1fr;
     }
 
-    .a-about-page__channels li + li {
-      border-top: 1px solid var(--line-soft);
+    /* One column: every cell's own bottom rule is already the separator, so
+       the dividers only have to go. */
+    .a-about-page__channels li:not(:nth-child(3n + 1)) {
       border-left: 0;
     }
 
